@@ -36,15 +36,17 @@
 // and return both the descriptor and the corresponding struct file.
 static int argfd(int n, int* pfd, struct file** pf) {
 	int fd;
-	struct file* f;
+	struct file* f = 0;
 
 	if (argint(n, &fd) < 0)
 		return -1;
-	if (fd < 0 || fd >= NOFILE || (f = myproc()->ofile[fd]) == 0)
+	if (fd < 0 || fd >= NOFILE)
+		return -1;
+	if (fd >= 3 && (f = myproc()->ofile[fd]) == 0)
 		return -1;
 	if (pfd)
 		*pfd = fd;
-	if (pf)
+	if (pf && fd >= 3)
 		*pf = f;
 	return 0;
 }
@@ -78,21 +80,25 @@ int sys_dup(void) {
 
 int sys_read(void) {
 	struct file* f;
-	int n;
+	int n, fd;
 	char* p;
 
-	if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+	if (argfd(0, &fd, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
 		return -1;
+	if (fd < 3)
+		return devsw[CONSOLE].read(0, p, n);
 	return fileread(f, p, n);
 }
 
 int sys_write(void) {
 	struct file* f;
-	int n;
+	int n, fd;
 	char* p;
 
-	if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+	if (argfd(0, &fd, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
 		return -1;
+	if (fd < 3)
+		return devsw[CONSOLE].write(0, p, n);
 	return filewrite(f, p, n);
 }
 

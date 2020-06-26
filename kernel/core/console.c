@@ -63,7 +63,6 @@ static void printint(int xx, int base, int sign) {
 	while (--i >= 0)
 		consputc(buf[i]);
 }
-// PAGEBREAK: 50
 
 // Print to the console. only understands %d, %x, %p, %s.
 void cprintf(const char* fmt, ...) {
@@ -244,14 +243,12 @@ int consoleread(struct inode* ip, char* dst, int n) {
 	unsigned int target;
 	int c;
 
-	iunlock(ip);
 	target = n;
 	acquire(&cons.lock);
 	while (n > 0) {
 		while (input.r == input.w) {
 			if (myproc()->killed) {
 				release(&cons.lock);
-				ilock(ip);
 				return -1;
 			}
 			sleep(&input.r, &cons.lock);
@@ -271,7 +268,6 @@ int consoleread(struct inode* ip, char* dst, int n) {
 			break;
 	}
 	release(&cons.lock);
-	ilock(ip);
 
 	return target - n;
 }
@@ -279,12 +275,10 @@ int consoleread(struct inode* ip, char* dst, int n) {
 int consolewrite(struct inode* ip, char* buf, int n) {
 	int i;
 
-	iunlock(ip);
 	acquire(&cons.lock);
 	for (i = 0; i < n; i++)
 		consputc(buf[i] & 0xff);
 	release(&cons.lock);
-	ilock(ip);
 
 	return n;
 }
