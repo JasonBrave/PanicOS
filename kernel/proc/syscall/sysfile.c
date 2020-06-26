@@ -21,6 +21,7 @@
 #include <core/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
+#include <filesystem/initramfs/initramfs.h>
 #include <legacy/file.h>
 #include <legacy/fs.h>
 #include <legacy/stat.h>
@@ -427,4 +428,37 @@ int sys_pipe(void) {
 	fd[0] = fd0;
 	fd[1] = fd1;
 	return 0;
+}
+
+int sys_dir_open(void) {
+	char* dirname;
+	if (argstr(0, &dirname) < 0) {
+		return -1;
+	}
+	for (int i = 3; i < PROC_FILE_MAX; i++) {
+		if (myproc()->files[i].used == 0) {
+			if (vfs_dir_open(&myproc()->files[i], dirname) < 0) {
+				return -1;
+			}
+			return i;
+		}
+	}
+	return -1;
+}
+
+int sys_dir_read(void) {
+	int handle;
+	char* buffer;
+	if ((argint(0, &handle) < 0) || (argptr(1, &buffer, 256) < 0)) {
+		return -1;
+	}
+	return vfs_dir_read(&myproc()->files[handle], buffer);
+}
+
+int sys_dir_close(void) {
+	int handle;
+	if (argint(0, &handle) < 0) {
+		return -1;
+	}
+	return vfs_dir_close(&myproc()->files[handle]);
 }

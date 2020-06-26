@@ -27,8 +27,10 @@
 #include "../kernel/proc/exec/elf.h"
 
 #define SECTSIZE 512
+#define INITRAMFS_SECT 8192
 
 void readseg(unsigned char*, unsigned int, unsigned int);
+void load_rootfs(void);
 
 void bootmain(void) {
 	struct elfhdr* elf;
@@ -54,6 +56,8 @@ void bootmain(void) {
 		if (ph->memsz > ph->filesz)
 			stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
 	}
+
+	load_rootfs();
 
 	// Call the entry point from the ELF header.
 	// Does not return!
@@ -101,4 +105,12 @@ void readseg(unsigned char* pa, unsigned int count, unsigned int offset) {
 	// we load in increasing order.
 	for (; pa < epa; pa += SECTSIZE, offset++)
 		readsect(pa, offset);
+}
+
+void load_rootfs(void) {
+	void* initramfs = (void*)0x400000;
+	for (int i = 0; i < 2048; i++) {
+		readsect(initramfs, INITRAMFS_SECT + i);
+		initramfs += SECTSIZE;
+	}
 }

@@ -27,6 +27,8 @@ OBJS = \
 	core/uart.o\
 	vectors.o\
 	core/vm.o\
+	filesystem/initramfs/initramfs.o\
+	filesystem/vfs/dir.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

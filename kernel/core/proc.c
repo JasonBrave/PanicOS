@@ -124,6 +124,9 @@ found:
 	memset(p->context, 0, sizeof *p->context);
 	p->context->eip = (unsigned int)forkret;
 
+	// empty file table
+	memset(p->files, 0, sizeof(p->files));
+
 	return p;
 }
 

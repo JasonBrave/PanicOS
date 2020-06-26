@@ -10,6 +10,7 @@
 // Key addresses for address space layout (see kmap in vm.c for layout)
 #define KERNBASE 0x80000000 // First kernel virtual address
 #define KERNLINK (KERNBASE + EXTMEM) // Address where kernel is linked
+#define INITRAMFS_BASE 0x80400000 // initramfs load address
 
 #define V2P(a) (((unsigned int)(a)) - KERNBASE)
 #define P2V(a) ((void*)(((char*)(a)) + KERNBASE))

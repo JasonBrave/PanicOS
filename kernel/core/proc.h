@@ -20,8 +20,9 @@
 #ifndef _PROC_H
 #define _PROC_H
 
-#include "mmu.h"
-#include "param.h"
+#include <core/mmu.h>
+#include <filesystem/vfs/vfs.h>
+#include <param.h>
 
 // Per-CPU state
 struct cpu {
@@ -74,6 +75,7 @@ struct proc {
 	struct file* ofile[NOFILE]; // Open files
 	struct inode* cwd; // Current directory
 	char name[16]; // Process name (debugging)
+	struct FileDesc files[PROC_FILE_MAX]; // open files
 };
 
 // Process memory is laid out contiguously, low addresses first:
