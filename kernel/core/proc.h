@@ -62,7 +62,9 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-	unsigned int sz; // Size of process memory (bytes)
+	unsigned int sz; // size of executable image (bytes)
+	unsigned int stack_size; // size of process stack (bytes)
+	unsigned int heap_size; // size of process heap (bytes)
 	pde_t* pgdir; // Page table
 	char* kstack; // Bottom of kernel stack for this process
 	enum procstate state; // Process state

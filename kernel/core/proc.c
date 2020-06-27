@@ -168,18 +168,18 @@ void userinit(void) {
 // Grow current process's memory by n bytes.
 // Return 0 on success, -1 on failure.
 int growproc(int n) {
-	unsigned int sz;
 	struct proc* curproc = myproc();
 
-	sz = curproc->sz;
 	if (n > 0) {
-		if ((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
+		if (allocuvm(curproc->pgdir, PROC_HEAP_BOTTOM + curproc->heap_size,
+					 PROC_HEAP_BOTTOM + curproc->heap_size + n) == 0)
 			return -1;
 	} else if (n < 0) {
-		if ((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
+		if (deallocuvm(curproc->pgdir, PROC_HEAP_BOTTOM + curproc->heap_size,
+					   PROC_HEAP_BOTTOM + curproc->heap_size + n) == 0)
 			return -1;
 	}
-	curproc->sz = sz;
+	curproc->heap_size += n;
 	switchuvm(curproc);
 	return 0;
 }
@@ -196,15 +196,40 @@ int fork(void) {
 	if ((np = allocproc()) == 0) {
 		return -1;
 	}
-
-	// Copy process state from proc.
-	if ((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0) {
+	// create new page directory
+	if ((np->pgdir = setupkvm()) == 0) {
+		return -1;
+	}
+	// Copy process executable image
+	if (copyuvm(np->pgdir, curproc->pgdir, 0, curproc->sz) == 0) {
+		freevm(np->pgdir);
 		kfree(np->kstack);
 		np->kstack = 0;
 		np->state = UNUSED;
 		return -1;
 	}
+	// copy process stack
+	if (copyuvm(np->pgdir, curproc->pgdir, PROC_STACK_BOTTOM - curproc->stack_size,
+				PROC_STACK_BOTTOM) == 0) {
+		freevm(np->pgdir);
+		kfree(np->kstack);
+		np->kstack = 0;
+		np->state = UNUSED;
+		return -1;
+	}
+	// copy process heap
+	if (copyuvm(np->pgdir, curproc->pgdir, PROC_HEAP_BOTTOM,
+				PROC_HEAP_BOTTOM + curproc->heap_size) == 0) {
+		freevm(np->pgdir);
+		kfree(np->kstack);
+		np->kstack = 0;
+		np->state = UNUSED;
+		return -1;
+	}
+
 	np->sz = curproc->sz;
+	np->stack_size = curproc->stack_size;
+	np->heap_size = curproc->heap_size;
 	np->parent = curproc;
 	*np->tf = *curproc->tf;
 

@@ -112,7 +112,7 @@ int deallocuvm(pde_t*, unsigned int, unsigned int);
 void freevm(pde_t*);
 void inituvm(pde_t*, char*, unsigned int);
 int loaduvm(pde_t*, char*, struct FileDesc* fd, unsigned int, unsigned int);
-pde_t* copyuvm(pde_t*, unsigned int);
+pde_t* copyuvm(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned int end);
 void switchuvm(struct proc*);
 void switchkvm(void);
 int copyout(pde_t*, unsigned int, void*, unsigned int);

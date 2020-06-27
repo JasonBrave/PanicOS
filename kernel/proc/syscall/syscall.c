@@ -34,10 +34,6 @@
 
 // Fetch the int at addr from the current process.
 int fetchint(unsigned int addr, int* ip) {
-	struct proc* curproc = myproc();
-
-	if (addr >= curproc->sz || addr + 4 > curproc->sz)
-		return -1;
 	*ip = *(int*)(addr);
 	return 0;
 }
@@ -46,14 +42,10 @@ int fetchint(unsigned int addr, int* ip) {
 // Doesn't actually copy the string - just sets *pp to point at it.
 // Returns length of string, not including nul.
 int fetchstr(unsigned int addr, char** pp) {
-	char *s, *ep;
-	struct proc* curproc = myproc();
+	char* s;
 
-	if (addr >= curproc->sz)
-		return -1;
 	*pp = (char*)addr;
-	ep = (char*)curproc->sz;
-	for (s = *pp; s < ep; s++) {
+	for (s = *pp;; s++) {
 		if (*s == 0)
 			return s - *pp;
 	}
@@ -70,12 +62,8 @@ int argint(int n, int* ip) {
 // lies within the process address space.
 int argptr(int n, char** pp, int size) {
 	int i;
-	struct proc* curproc = myproc();
 
 	if (argint(n, &i) < 0)
-		return -1;
-	if (size < 0 || (unsigned int)i >= curproc->sz ||
-		(unsigned int)i + size > curproc->sz)
 		return -1;
 	*pp = (char*)i;
 	return 0;

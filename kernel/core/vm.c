@@ -310,34 +310,27 @@ void clearpteu(pde_t* pgdir, char* uva) {
 
 // Given a parent process's page table, create a copy
 // of it for a child.
-pde_t* copyuvm(pde_t* pgdir, unsigned int sz) {
-	pde_t* d;
+pde_t* copyuvm(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned int end) {
 	pte_t* pte;
 	unsigned int pa, i, flags;
 	char* mem;
 
-	if ((d = setupkvm()) == 0)
-		return 0;
-	for (i = 0; i < sz; i += PGSIZE) {
-		if ((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
+	for (i = begin; i < end; i += PGSIZE) {
+		if ((pte = walkpgdir(oldpgdir, (void*)i, 0)) == 0)
 			panic("copyuvm: pte should exist");
 		if (!(*pte & PTE_P))
 			panic("copyuvm: page not present");
 		pa = PTE_ADDR(*pte);
 		flags = PTE_FLAGS(*pte);
 		if ((mem = kalloc()) == 0)
-			goto bad;
+			return 0;
 		memmove(mem, (char*)P2V(pa), PGSIZE);
-		if (mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+		if (mappages(newpgdir, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
 			kfree(mem);
-			goto bad;
+			return 0;
 		}
 	}
-	return d;
-
-bad:
-	freevm(d);
-	return 0;
+	return newpgdir;
 }
 
 // PAGEBREAK!

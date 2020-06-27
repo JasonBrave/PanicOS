@@ -84,13 +84,11 @@ int exec(char* path, char** argv) {
 	}
 	vfs_fd_close(&fd);
 
-	// Allocate two pages at the next page boundary.
-	// Make the first inaccessible.  Use the second as the user stack.
-	sz = PGROUNDUP(sz);
-	if ((sz = allocuvm(pgdir, sz, sz + 2 * PGSIZE)) == 0)
+	// create the process stack
+	if (allocuvm(pgdir, PROC_STACK_BOTTOM - PGSIZE, PROC_STACK_BOTTOM) == 0) {
 		goto bad;
-	clearpteu(pgdir, (char*)(sz - 2 * PGSIZE));
-	sp = sz;
+	}
+	sp = PROC_STACK_BOTTOM;
 
 	// Push argument strings, prepare rest of stack in ustack.
 	for (argc = 0; argv[argc]; argc++) {
@@ -121,6 +119,8 @@ int exec(char* path, char** argv) {
 	oldpgdir = curproc->pgdir;
 	curproc->pgdir = pgdir;
 	curproc->sz = sz;
+	curproc->stack_size = PGSIZE;
+	curproc->heap_size = 0;
 	curproc->tf->eip = elf.entry; // main
 	curproc->tf->esp = sp;
 	switchuvm(curproc);
