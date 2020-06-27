@@ -30,6 +30,7 @@ OBJS = \
 	filesystem/initramfs/initramfs.o\
 	filesystem/vfs/dir.o\
 	filesystem/vfs/vfs.o\
+	filesystem/vfs/filedesc.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

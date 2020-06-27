@@ -78,3 +78,31 @@ int initramfs_file_get_size(const char* filename) {
 	}
 	return cpio->filesize[0] << 16 | cpio->filesize[1];
 }
+
+int initramfs_open(const char* filename) {
+	struct cpio_binary_header* cpio = initramfs_search(filename);
+	if (!cpio) {
+		return ERROR_NOT_EXIST;
+	}
+	return (unsigned int)cpio - INITRAMFS_BASE;
+}
+
+// return bytes read
+int initramfs_read(unsigned int block, void* buf, unsigned int offset,
+				   unsigned int size) {
+	const struct cpio_binary_header* cpio = (void*)INITRAMFS_BASE + block;
+	const char* data = (void*)cpio + sizeof(struct cpio_binary_header) +
+					   cpio->namesize + cpio->namesize % 2;
+
+	unsigned int copysize;
+	if (offset + size > (unsigned int)(cpio->filesize[0] << 16 | cpio->filesize[1])) {
+		copysize = (cpio->filesize[0] << 16 | cpio->filesize[1]) - offset;
+	} else {
+		copysize = size;
+	}
+	if (copysize <= 0) {
+		return 0;
+	}
+	memmove(buf, data + offset, copysize);
+	return copysize;
+}
