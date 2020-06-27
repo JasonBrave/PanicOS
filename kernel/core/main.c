@@ -46,9 +46,6 @@ int main(void) {
 	uartinit(); // serial port
 	pinit(); // process table
 	tvinit(); // trap vectors
-	binit(); // buffer cache
-	fileinit(); // file table
-	ideinit(); // disk
 	startothers(); // start other processors
 	kinit2(P2V(8 * 1024 * 1024), P2V(PHYSTOP)); // must come after startothers()
 	// greeting

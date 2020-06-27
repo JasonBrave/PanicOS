@@ -56,9 +56,6 @@ int vfs_dir_close(struct FileDesc* fd) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}
-	if (!fd->read) {
-		return ERROR_INVAILD;
-	}
 	if (!fd->dir) {
 		return ERROR_INVAILD;
 	}

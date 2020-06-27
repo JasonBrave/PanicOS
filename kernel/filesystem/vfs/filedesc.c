@@ -61,6 +61,13 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 }
 
 int vfs_fd_close(struct FileDesc* fd) {
+	if (!fd->used) {
+		return ERROR_INVAILD;
+	}
+	if (fd->dir) {
+		return ERROR_INVAILD;
+	}
+
 	fd->used = 0;
 	return 0;
 }

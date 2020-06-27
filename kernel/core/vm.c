@@ -22,6 +22,7 @@
 #include <core/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
+#include <filesystem/vfs/vfs.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -196,7 +197,7 @@ void inituvm(pde_t* pgdir, char* init, unsigned int sz) {
 
 // Load a program segment into pgdir.  addr must be page-aligned
 // and the pages from addr to addr+sz must already be mapped.
-int loaduvm(pde_t* pgdir, char* addr, struct inode* ip, unsigned int offset,
+int loaduvm(pde_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset,
 			unsigned int sz) {
 	unsigned int i, pa, n;
 	pte_t* pte;
@@ -211,8 +212,12 @@ int loaduvm(pde_t* pgdir, char* addr, struct inode* ip, unsigned int offset,
 			n = sz - i;
 		else
 			n = PGSIZE;
-		if (readi(ip, P2V(pa), offset + i, n) != n)
+		if (vfs_fd_seek(fd, offset + i, SEEK_SET) < 0) {
 			return -1;
+		}
+		if (vfs_fd_read(fd, P2V(pa), n) < 0) {
+			return -1;
+		}
 	}
 	return 0;
 }

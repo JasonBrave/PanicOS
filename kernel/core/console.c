@@ -27,8 +27,6 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
-#include <legacy/file.h>
-#include <legacy/fs.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -239,7 +237,7 @@ void consoleintr(int (*getc)(void)) {
 	}
 }
 
-int consoleread(struct inode* ip, char* dst, int n) {
+int consoleread(char* dst, int n) {
 	unsigned int target;
 	int c;
 
@@ -272,7 +270,7 @@ int consoleread(struct inode* ip, char* dst, int n) {
 	return target - n;
 }
 
-int consolewrite(struct inode* ip, char* buf, int n) {
+int consolewrite(char* buf, int n) {
 	int i;
 
 	acquire(&cons.lock);
@@ -286,8 +284,6 @@ int consolewrite(struct inode* ip, char* buf, int n) {
 void consoleinit(void) {
 	initlock(&cons.lock, "console");
 
-	devsw[CONSOLE].write = consolewrite;
-	devsw[CONSOLE].read = consoleread;
 	cons.locking = 1;
 
 	ioapicenable(IRQ_KBD, 0);

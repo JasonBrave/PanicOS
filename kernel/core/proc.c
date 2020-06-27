@@ -153,7 +153,6 @@ void userinit(void) {
 	p->tf->eip = 0; // beginning of initcode.S
 
 	safestrcpy(p->name, "initcode", sizeof(p->name));
-	p->cwd = namei("/");
 
 	// this assignment to p->state lets other cores
 	// run this process. the acquire forces the above
@@ -189,7 +188,7 @@ int growproc(int n) {
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
 int fork(void) {
-	int i, pid;
+	int pid;
 	struct proc* np;
 	struct proc* curproc = myproc();
 
@@ -212,11 +211,6 @@ int fork(void) {
 	// Clear %eax so that fork returns 0 in the child.
 	np->tf->eax = 0;
 
-	for (i = 0; i < NOFILE; i++)
-		if (curproc->ofile[i])
-			np->ofile[i] = filedup(curproc->ofile[i]);
-	np->cwd = idup(curproc->cwd);
-
 	safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
 	pid = np->pid;
@@ -236,23 +230,20 @@ int fork(void) {
 void exit(void) {
 	struct proc* curproc = myproc();
 	struct proc* p;
-	int fd;
 
 	if (curproc == initproc)
 		panic("init exiting");
 
 	// Close all open files.
-	for (fd = 0; fd < NOFILE; fd++) {
-		if (curproc->ofile[fd]) {
-			fileclose(curproc->ofile[fd]);
-			curproc->ofile[fd] = 0;
+	for (int i = 0; i < PROC_FILE_MAX; i++) {
+		if (curproc->files[i].used) {
+			if (curproc->files[i].dir) {
+				vfs_dir_close(&curproc->files[i]);
+			} else {
+				vfs_fd_close(&curproc->files[i]);
+			}
 		}
 	}
-
-	begin_op();
-	iput(curproc->cwd);
-	end_op();
-	curproc->cwd = 0;
 
 	acquire(&ptable.lock);
 
@@ -392,19 +383,8 @@ void yield(void) {
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
 void forkret(void) {
-	static int first = 1;
 	// Still holding ptable.lock from scheduler.
 	release(&ptable.lock);
-
-	if (first) {
-		// Some initialization functions must be run in the context
-		// of a regular process (e.g., they call sleep), and thus cannot
-		// be run from main().
-		first = 0;
-		iinit(ROOTDEV);
-		initlog(ROOTDEV);
-	}
-
 	// Return to "caller", actually trapret (see allocproc).
 }
 

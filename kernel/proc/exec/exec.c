@@ -21,6 +21,7 @@
 #include <core/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
+#include <filesystem/vfs/vfs.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -31,23 +32,25 @@ int exec(char* path, char** argv) {
 	int i, off;
 	unsigned int argc, sz, sp, ustack[3 + MAXARG + 1];
 	struct elfhdr elf;
-	struct inode* ip;
+	// struct inode* ip;
 	struct proghdr ph;
 	pde_t *pgdir, *oldpgdir;
 	struct proc* curproc = myproc();
+	struct FileDesc fd;
 
-	begin_op();
+	if (*path == '/') { // remove slash at beginning
+		path++;
+	}
 
-	if ((ip = namei(path)) == 0) {
-		end_op();
+	if (vfs_fd_open(&fd, path, O_READ) < 0) {
 		cprintf("exec: fail\n");
 		return -1;
 	}
-	ilock(ip);
+
 	pgdir = 0;
 
 	// Check ELF header
-	if (readi(ip, (char*)&elf, 0, sizeof(elf)) != sizeof(elf))
+	if (vfs_fd_read(&fd, &elf, sizeof(elf)) != sizeof(elf))
 		goto bad;
 	if (elf.magic != ELF_MAGIC)
 		goto bad;
@@ -58,8 +61,14 @@ int exec(char* path, char** argv) {
 	// Load program into memory.
 	sz = 0;
 	for (i = 0, off = elf.phoff; i < elf.phnum; i++, off += sizeof(ph)) {
-		if (readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
-			goto bad;
+		if (vfs_fd_seek(&fd, off, SEEK_SET) < 0) {
+			vfs_fd_close(&fd);
+			return -1;
+		}
+		if (vfs_fd_read(&fd, (char*)&ph, sizeof(ph)) != sizeof(ph)) {
+			vfs_fd_close(&fd);
+			return -1;
+		}
 		if (ph.type != ELF_PROG_LOAD)
 			continue;
 		if (ph.memsz < ph.filesz)
@@ -70,12 +79,10 @@ int exec(char* path, char** argv) {
 			goto bad;
 		if (ph.vaddr % PGSIZE != 0)
 			goto bad;
-		if (loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
+		if (loaduvm(pgdir, (char*)ph.vaddr, &fd, ph.off, ph.filesz) < 0)
 			goto bad;
 	}
-	iunlockput(ip);
-	end_op();
-	ip = 0;
+	vfs_fd_close(&fd);
 
 	// Allocate two pages at the next page boundary.
 	// Make the first inaccessible.  Use the second as the user stack.
@@ -123,9 +130,7 @@ int exec(char* path, char** argv) {
 bad:
 	if (pgdir)
 		freevm(pgdir);
-	if (ip) {
-		iunlockput(ip);
-		end_op();
-	}
+	if (fd.used)
+		vfs_fd_close(&fd);
 	return -1;
 }

@@ -1,19 +1,13 @@
 OBJS = \
-	legacy/bio.o\
 	core/console.o\
 	proc/exec/exec.o\
-	legacy/file.o\
-	legacy/fs.o\
-	legacy/ide.o\
 	core/ioapic.o\
 	core/kalloc.o\
 	core/kbd.o\
 	core/lapic.o\
-	legacy/log.o\
 	core/main.o\
 	core/mp.o\
 	core/picirq.o\
-	legacy/pipe.o\
 	core/proc.o\
 	common/sleeplock.o\
 	common/spinlock.o\
