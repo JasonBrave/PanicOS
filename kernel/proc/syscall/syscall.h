@@ -45,5 +45,6 @@
 #define SYS_dir_open 22
 #define SYS_dir_read 23
 #define SYS_dir_close 24
+#define SYS_file_get_size 25
 
 #endif

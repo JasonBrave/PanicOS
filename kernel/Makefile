@@ -29,6 +29,7 @@ OBJS = \
 	core/vm.o\
 	filesystem/initramfs/initramfs.o\
 	filesystem/vfs/dir.o\
+	filesystem/vfs/vfs.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

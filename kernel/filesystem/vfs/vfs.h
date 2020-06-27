@@ -14,6 +14,10 @@ struct FileDesc {
 	unsigned int size; // current file size
 };
 
+// vfs.c
+int vfs_file_get_size(const char* filename);
+
+// dir.c
 int vfs_dir_open(struct FileDesc* fd, const char* dirname);
 int vfs_dir_read(struct FileDesc* fd, char* buffer);
 int vfs_dir_close(struct FileDesc* fd);

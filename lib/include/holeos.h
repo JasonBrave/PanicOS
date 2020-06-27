@@ -26,6 +26,7 @@ int uptime(void);
 int dir_open(const char* dirname);
 int dir_read(int handle, char* buffer);
 int dir_close(int handle);
+int file_get_size(const char* filename);
 
 // ulib.c
 int stat(const char*, struct stat*);

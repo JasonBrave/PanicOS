@@ -1,5 +1,5 @@
 /*
- * Console imput and output
+ * Console input and output
  *
  * This file is part of HoleOS.
  *

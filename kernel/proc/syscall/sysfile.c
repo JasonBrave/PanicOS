@@ -462,3 +462,11 @@ int sys_dir_close(void) {
 	}
 	return vfs_dir_close(&myproc()->files[handle]);
 }
+
+int sys_file_get_size(void) {
+	char* filename;
+	if (argstr(0, &filename) < 0) {
+		return -1;
+	}
+	return vfs_file_get_size(filename);
+}

@@ -1,5 +1,5 @@
 fs.img:
-	../tools/xv6fs ../fs.img init ls sh dir
+	../tools/xv6fs ../fs.img init sh dir
 
 rootfs.cpio:
 	find . -print -depth | cpio -ov > ../rootfs.cpio
