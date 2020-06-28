@@ -1,5 +1,5 @@
 /*
- * dir program
+ * System call header
  *
  * This file is part of HoleOS.
  *
@@ -17,20 +17,28 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <holeos.h>
-#include <stdio.h>
-
-int main() {
-	int handle = dir_open("/");
-	if (handle < 0) {
-		printf("dir_open failed with %d\n", handle);
-		return 1;
-	}
-
-	char filename[256];
-	while (dir_read(handle, filename)) {
-		printf("%s %d\n", filename, file_get_size(filename));
-	}
-	dir_close(handle);
-	return 0;
-}
+int fork(void);
+int proc_exit(void) __attribute__((noreturn));
+int wait(void);
+int pipe(int*);
+int write(int, const void*, int);
+int read(int, void*, int);
+int close(int);
+int kill(int);
+int exec(char*, char**);
+int open(const char*, int);
+int mknod(const char*, short, short);
+int unlink(const char*);
+// int fstat(int fd, struct stat*);
+int link(const char*, const char*);
+int mkdir(const char*);
+int chdir(const char*);
+int dup(int);
+int getpid(void);
+char* sbrk(int);
+int sleep(int);
+int uptime(void);
+int dir_open(const char* dirname);
+int dir_read(int handle, char* buffer);
+int dir_close(int handle);
+int file_get_size(const char* filename);

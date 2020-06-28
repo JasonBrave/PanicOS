@@ -17,8 +17,15 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <fcntl.h>
 #include <holeos.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define O_RDONLY 0x000
+#define O_WRONLY 0x001
+#define O_RDWR 0x002
+#define O_CREATE 0x200
 
 // Parsed command representation
 #define EXEC 1
@@ -65,6 +72,22 @@ struct backcmd {
 	struct cmd* cmd;
 };
 
+static char* gets(char* buf, int max) {
+	int i, cc;
+	char c;
+
+	for (i = 0; i + 1 < max;) {
+		cc = read(0, &c, 1);
+		if (cc < 1)
+			break;
+		buf[i++] = c;
+		if (c == '\n' || c == '\r')
+			break;
+	}
+	buf[i] = '\0';
+	return buf;
+}
+
 int fork1(void); // Fork but panics on failure.
 void panic(char*);
 struct cmd* parsecmd(char*);
@@ -90,14 +113,14 @@ void runcmd(struct cmd* cmd) {
 		if (ecmd->argv[0] == 0)
 			proc_exit();
 		exec(ecmd->argv[0], ecmd->argv);
-		printf(2, "exec %s failed\n", ecmd->argv[0]);
+		printf("exec %s failed\n", ecmd->argv[0]);
 		break;
 
 	case REDIR:
 		rcmd = (struct redircmd*)cmd;
 		close(rcmd->fd);
 		if (open(rcmd->file, rcmd->mode) < 0) {
-			printf(2, "open %s failed\n", rcmd->file);
+			printf("open %s failed\n", rcmd->file);
 			proc_exit();
 		}
 		runcmd(rcmd->cmd);
@@ -145,7 +168,7 @@ void runcmd(struct cmd* cmd) {
 }
 
 int getcmd(char* buf, int nbuf) {
-	printf(2, "$ ");
+	printf("$ ");
 	memset(buf, 0, nbuf);
 	gets(buf, nbuf);
 	if (buf[0] == 0) // EOF
@@ -162,7 +185,7 @@ int main(void) {
 			// Chdir must be called by the parent, not the child.
 			buf[strlen(buf) - 1] = 0; // chop \n
 			if (chdir(buf + 3) < 0)
-				printf(2, "cannot cd %s\n", buf + 3);
+				printf("cannot cd %s\n", buf + 3);
 			continue;
 		}
 		if (fork1() == 0)
@@ -173,7 +196,7 @@ int main(void) {
 }
 
 void panic(char* s) {
-	printf(2, "%s\n", s);
+	printf("%s\n", s);
 	proc_exit();
 }
 
@@ -315,7 +338,7 @@ struct cmd* parsecmd(char* s) {
 	cmd = parseline(&s, es);
 	peek(&s, es, "");
 	if (s != es) {
-		printf(2, "leftovers: %s\n", s);
+		printf("leftovers: %s\n", s);
 		panic("syntax");
 	}
 	nulterminate(cmd);

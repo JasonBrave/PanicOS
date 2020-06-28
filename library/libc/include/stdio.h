@@ -1,5 +1,5 @@
 /*
- * dir program
+ * stdio.h header
  *
  * This file is part of HoleOS.
  *
@@ -17,20 +17,10 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <holeos.h>
-#include <stdio.h>
+#ifndef _LIBC_STDIO_H
+#define _LIBC_STDIO_H
 
-int main() {
-	int handle = dir_open("/");
-	if (handle < 0) {
-		printf("dir_open failed with %d\n", handle);
-		return 1;
-	}
+// formatted input/output functions
+int printf(const char* restrict format, ...);
 
-	char filename[256];
-	while (dir_read(handle, filename)) {
-		printf("%s %d\n", filename, file_get_size(filename));
-	}
-	dir_close(handle);
-	return 0;
-}
+#endif

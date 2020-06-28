@@ -1,5 +1,5 @@
 /*
- * dir program
+ * strchr function
  *
  * This file is part of HoleOS.
  *
@@ -17,20 +17,14 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <holeos.h>
-#include <stdio.h>
+#include <stddef.h>
 
-int main() {
-	int handle = dir_open("/");
-	if (handle < 0) {
-		printf("dir_open failed with %d\n", handle);
-		return 1;
+char* strchr(const char* s, int c) {
+	while (*s) {
+		if (*s == c) {
+			return (char*)s;
+		}
+		s++;
 	}
-
-	char filename[256];
-	while (dir_read(handle, filename)) {
-		printf("%s %d\n", filename, file_get_size(filename));
-	}
-	dir_close(handle);
-	return 0;
+	return NULL;
 }

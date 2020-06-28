@@ -1,5 +1,5 @@
 /*
- * dir program
+ * stdlib.h header
  *
  * This file is part of HoleOS.
  *
@@ -17,20 +17,12 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <holeos.h>
-#include <stdio.h>
+#ifndef _LIBC_STDLIB_H
+#define _LIBC_STDLIB_H
 
-int main() {
-	int handle = dir_open("/");
-	if (handle < 0) {
-		printf("dir_open failed with %d\n", handle);
-		return 1;
-	}
+#include <stddef.h>
 
-	char filename[256];
-	while (dir_read(handle, filename)) {
-		printf("%s %d\n", filename, file_get_size(filename));
-	}
-	dir_close(handle);
-	return 0;
-}
+// memory management functions
+void* malloc(size_t size);
+
+#endif

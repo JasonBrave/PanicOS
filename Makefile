@@ -10,13 +10,13 @@ export AR = $(PREFIX)ar
 all: holeos.img
 
 qemu: holeos.img
-	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,index=0,media=disk,format=raw -smp 2 -m 512 -net none
+	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,format=raw -smp 2 -m 512 -net none
 
 qemu-gdb: holeos.img
-	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,index=0,media=disk,format=raw -smp 2 -m 512 -s -S -net none
+	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,format=raw -smp 2 -m 512 -s -S -net none
 
 qemu-kvm: holeos.img
-	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,index=0,media=disk,format=raw -smp 2 -m 512 -accel kvm -cpu host -net none
+	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,format=raw -smp 2 -m 512 -accel kvm -cpu host -net none
 
 holeos.img: boot/bootblock kernel/kernel rootfs.cpio
 	dd if=/dev/zero of=holeos.img count=10000
@@ -34,17 +34,18 @@ kernel/kernel:
 	$(MAKE) -C kernel kernel
 
 .PHONY: program
-program: lib/lib.a
+program: library
 	$(MAKE) -C program
 
-lib/lib.a:
-	$(MAKE) -C lib lib.a
+.PHONY: library
+library:
+	$(MAKE) -C library
 
 .PHONY: clean
 clean:
 	$(MAKE) -C boot clean
 	$(MAKE) -C kernel clean
-	$(MAKE) -C lib clean
+	$(MAKE) -C library clean
 	$(MAKE) -C program clean
 	$(MAKE) -C rootfs clean
 	rm -f holeos.img rootfs.cpio

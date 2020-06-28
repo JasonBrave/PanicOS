@@ -17,27 +17,26 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <fcntl.h>
 #include <holeos.h>
-#include <stat.h>
+#include <stdio.h>
 
 char* argv[] = {"sh", 0};
 
 int main(void) {
 	int pid, wpid;
 	for (;;) {
-		printf(1, "init: starting sh\n");
+		printf("init: starting sh\n");
 		pid = fork();
 		if (pid < 0) {
-			printf(1, "init: fork failed\n");
+			printf("init: fork failed\n");
 			proc_exit();
 		}
 		if (pid == 0) {
 			exec("sh", argv);
-			printf(1, "init: exec sh failed\n");
+			printf("init: exec sh failed\n");
 			proc_exit();
 		}
 		while ((wpid = wait()) >= 0 && wpid != pid)
-			printf(1, "zombie!\n");
+			printf("zombie!\n");
 	}
 }

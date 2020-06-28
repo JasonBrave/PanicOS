@@ -1,4 +1,4 @@
 APP= init
 OBJS= init.o
 
-include ../legacy.mk
+include ../program.mk

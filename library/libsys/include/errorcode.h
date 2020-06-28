@@ -1,5 +1,5 @@
 /*
- * dir program
+ * Standard error code
  *
  * This file is part of HoleOS.
  *
@@ -17,20 +17,16 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <holeos.h>
-#include <stdio.h>
+#ifndef _ERRORCODE_H
+#define _ERRORCODE_H
 
-int main() {
-	int handle = dir_open("/");
-	if (handle < 0) {
-		printf("dir_open failed with %d\n", handle);
-		return 1;
-	}
+#define ERROR_INVAILD -1
+#define ERROR_NOT_EXIST -2
+#define ERROR_EXIST -3
+#define ERROR_NOT_FILE -4
+#define ERROR_NOT_DIRECTORY -5
+#define ERROR_READ_FAIL -6
+#define ERROR_OUT_OF_SPACE -7
+#define ERROR_WRITE_FAIL -8
 
-	char filename[256];
-	while (dir_read(handle, filename)) {
-		printf("%s %d\n", filename, file_get_size(filename));
-	}
-	dir_close(handle);
-	return 0;
-}
+#endif
