@@ -172,7 +172,7 @@ int growproc(int n) {
 
 	if (n > 0) {
 		if (allocuvm(curproc->pgdir, PROC_HEAP_BOTTOM + curproc->heap_size,
-					 PROC_HEAP_BOTTOM + curproc->heap_size + n) == 0)
+					 PROC_HEAP_BOTTOM + curproc->heap_size + n, PTE_W | PTE_U) == 0)
 			return -1;
 	} else if (n < 0) {
 		if (deallocuvm(curproc->pgdir, PROC_HEAP_BOTTOM + curproc->heap_size,

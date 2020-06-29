@@ -25,6 +25,7 @@ OBJS = \
 	filesystem/vfs/dir.o\
 	filesystem/vfs/vfs.o\
 	filesystem/vfs/filedesc.o\
+	proc/exec/elf.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

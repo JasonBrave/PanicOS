@@ -2,7 +2,7 @@ CFLAGS += -I../../library/libsys/include -I../../library/libc/include \
 	-I../../library
 
 $(APP): $(OBJS)
-	$(LD) $(LDFLAGS) -L../../library -static -N -e _start -Ttext 0 \
+	$(LD) -L../../library -static -e _start -Ttext-segment=0 \
 	-o $(APP) $(OBJS) ../../library/crt/crt0.o -lc -lsys
 
 %.o : %.asm

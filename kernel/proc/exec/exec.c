@@ -21,71 +21,30 @@
 #include <core/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
-#include <filesystem/vfs/vfs.h>
-#include <memlayout.h>
-#include <param.h>
-
-#include "elf.h"
 
 int exec(char* path, char** argv) {
 	char *s, *last;
-	int i, off;
 	unsigned int argc, sz, sp, ustack[3 + MAXARG + 1];
-	struct elfhdr elf;
-	// struct inode* ip;
-	struct proghdr ph;
-	pde_t *pgdir, *oldpgdir;
+	pde_t *pgdir = 0, *oldpgdir;
 	struct proc* curproc = myproc();
-	struct FileDesc fd;
+	unsigned int entry = 0;
 
 	if (*path == '/') { // remove slash at beginning
 		path++;
 	}
 
-	if (vfs_fd_open(&fd, path, O_READ) < 0) {
-		cprintf("exec: fail\n");
-		return -1;
-	}
-
-	pgdir = 0;
-
-	// Check ELF header
-	if (vfs_fd_read(&fd, &elf, sizeof(elf)) != sizeof(elf))
-		goto bad;
-	if (elf.magic != ELF_MAGIC)
-		goto bad;
-
+	// get a new page directory
 	if ((pgdir = setupkvm()) == 0)
 		goto bad;
 
 	// Load program into memory.
-	sz = 0;
-	for (i = 0, off = elf.phoff; i < elf.phnum; i++, off += sizeof(ph)) {
-		if (vfs_fd_seek(&fd, off, SEEK_SET) < 0) {
-			vfs_fd_close(&fd);
-			return -1;
-		}
-		if (vfs_fd_read(&fd, (char*)&ph, sizeof(ph)) != sizeof(ph)) {
-			vfs_fd_close(&fd);
-			return -1;
-		}
-		if (ph.type != ELF_PROG_LOAD)
-			continue;
-		if (ph.memsz < ph.filesz)
-			goto bad;
-		if (ph.vaddr + ph.memsz < ph.vaddr)
-			goto bad;
-		if ((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
-			goto bad;
-		if (ph.vaddr % PGSIZE != 0)
-			goto bad;
-		if (loaduvm(pgdir, (char*)ph.vaddr, &fd, ph.off, ph.filesz) < 0)
-			goto bad;
+	if ((sz = proc_elf_load(pgdir, 0, path, &entry)) < 0) {
+		goto bad;
 	}
-	vfs_fd_close(&fd);
 
 	// create the process stack
-	if (allocuvm(pgdir, PROC_STACK_BOTTOM - PGSIZE, PROC_STACK_BOTTOM) == 0) {
+	if (allocuvm(pgdir, PROC_STACK_BOTTOM - PGSIZE, PROC_STACK_BOTTOM, PTE_W | PTE_U) ==
+		0) {
 		goto bad;
 	}
 	sp = PROC_STACK_BOTTOM;
@@ -121,7 +80,7 @@ int exec(char* path, char** argv) {
 	curproc->sz = sz;
 	curproc->stack_size = PGSIZE;
 	curproc->heap_size = 0;
-	curproc->tf->eip = elf.entry; // main
+	curproc->tf->eip = entry; // _start
 	curproc->tf->esp = sp;
 	switchuvm(curproc);
 	freevm(oldpgdir);
@@ -130,7 +89,5 @@ int exec(char* path, char** argv) {
 bad:
 	if (pgdir)
 		freevm(pgdir);
-	if (fd.used)
-		vfs_fd_close(&fd);
 	return -1;
 }

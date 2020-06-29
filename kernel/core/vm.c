@@ -224,7 +224,7 @@ int loaduvm(pde_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset,
 
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
-int allocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz) {
+int allocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz, int perm) {
 	char* mem;
 	unsigned int a;
 
@@ -242,7 +242,7 @@ int allocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz) {
 			return 0;
 		}
 		memset(mem, 0, PGSIZE);
-		if (mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+		if (mappages(pgdir, (char*)a, PGSIZE, V2P(mem), perm) < 0) {
 			cprintf("allocuvm out of memory (2)\n");
 			deallocuvm(pgdir, newsz, oldsz);
 			kfree(mem);

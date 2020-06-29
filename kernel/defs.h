@@ -19,6 +19,10 @@ int consolewrite(char* buf, int n);
 // exec.c
 int exec(char*, char**);
 
+// elf.c
+int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name,
+				  unsigned int* entry);
+
 // ioapic.c
 void ioapicenable(int irq, int cpu);
 extern unsigned char ioapicid;
@@ -107,7 +111,7 @@ void seginit(void);
 void kvmalloc(void);
 pde_t* setupkvm(void);
 char* uva2ka(pde_t*, char*);
-int allocuvm(pde_t*, unsigned int, unsigned int);
+int allocuvm(pde_t*, unsigned int, unsigned int, int perm);
 int deallocuvm(pde_t*, unsigned int, unsigned int);
 void freevm(pde_t*);
 void inituvm(pde_t*, char*, unsigned int);
