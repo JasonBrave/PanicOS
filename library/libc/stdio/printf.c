@@ -20,10 +20,6 @@
 #include <holeos.h>
 #include <stdio.h>
 
-static inline void putchar(char c) {
-	write(1, &c, 1);
-}
-
 static void printint(int xx, int base, int sgn) {
 	static char digits[] = "0123456789ABCDEF";
 	char buf[16];

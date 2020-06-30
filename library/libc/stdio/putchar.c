@@ -1,5 +1,5 @@
 /*
- * stdio.h header
+ * putchar function
  *
  * This file is part of HoleOS.
  *
@@ -17,34 +17,8 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBC_STDIO_H
-#define _LIBC_STDIO_H
+#include <stdio.h>
 
-#include <stddef.h>
-
-typedef struct {
-	int fd;
-} FILE;
-
-#define EOF -1
-
-// standard input,output,error
-extern FILE* stdin;
-extern FILE* stdout;
-extern FILE* stderr;
-
-// formatted input/output functions
-int printf(const char* restrict format, ...);
-
-// character input/output functions
-int fgetc(FILE* stream);
-char* fgets(char* restrict s, int n, FILE* restrict stream);
-int fputc(int c, FILE* stream);
-int fputs(const char* restrict s, FILE* restrict stream);
-int getc(FILE* stream);
-int getchar(void);
-int putc(int c, FILE* stream);
-int putchar(int c);
-int puts(const char* s);
-
-#endif
+int putchar(int c) {
+	return putc(c, stdout);
+}

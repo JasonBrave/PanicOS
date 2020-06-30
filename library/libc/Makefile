@@ -1,5 +1,17 @@
 LIB= libc
-OBJS= stdio/printf.o\
+OBJS= stdio/fgetc.o\
+	stdio/fgets.o\
+	stdio/fputc.o\
+	stdio/fputs.o\
+	stdio/getc.o\
+	stdio/getchar.o\
+	stdio/printf.o\
+	stdio/putc.o\
+	stdio/putchar.o\
+	stdio/puts.o\
+	stdio/stderr.o\
+	stdio/stdin.o\
+	stdio/stdout.o\
 	stdlib/malloc.o\
 	string/memchr.o\
 	string/memcmp.o\

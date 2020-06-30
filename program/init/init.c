@@ -25,18 +25,18 @@ char* argv[] = {"sh", 0};
 int main(void) {
 	int pid, wpid;
 	for (;;) {
-		printf("init: starting sh\n");
+		puts("init: starting sh");
 		pid = fork();
 		if (pid < 0) {
-			printf("init: fork failed\n");
+			fputs("init: fork failed\n", stderr);
 			proc_exit();
 		}
 		if (pid == 0) {
 			exec("sh", argv);
-			printf("init: exec sh failed\n");
+			fputs("init: exec sh failed\n", stderr);
 			proc_exit();
 		}
 		while ((wpid = wait()) >= 0 && wpid != pid)
-			printf("zombie!\n");
+			fputs("init: zombie!\n", stderr);
 	}
 }
