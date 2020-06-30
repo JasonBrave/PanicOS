@@ -102,7 +102,7 @@ void runcmd(struct cmd* cmd) {
 	struct redircmd* rcmd;
 
 	if (cmd == 0)
-		proc_exit();
+		exit(EXIT_FAILURE);
 
 	switch (cmd->type) {
 	default:
@@ -111,7 +111,7 @@ void runcmd(struct cmd* cmd) {
 	case EXEC:
 		ecmd = (struct execcmd*)cmd;
 		if (ecmd->argv[0] == 0)
-			proc_exit();
+			exit(EXIT_FAILURE);
 		exec(ecmd->argv[0], ecmd->argv);
 		printf("exec %s failed\n", ecmd->argv[0]);
 		break;
@@ -121,7 +121,7 @@ void runcmd(struct cmd* cmd) {
 		close(rcmd->fd);
 		if (open(rcmd->file, rcmd->mode) < 0) {
 			printf("open %s failed\n", rcmd->file);
-			proc_exit();
+			exit(EXIT_FAILURE);
 		}
 		runcmd(rcmd->cmd);
 		break;
@@ -164,7 +164,7 @@ void runcmd(struct cmd* cmd) {
 			runcmd(bcmd->cmd);
 		break;
 	}
-	proc_exit();
+	exit(EXIT_FAILURE);
 }
 
 int getcmd(char* buf, int nbuf) {
@@ -192,12 +192,12 @@ int main(void) {
 			runcmd(parsecmd(buf));
 		wait();
 	}
-	proc_exit();
+	exit(EXIT_FAILURE);
 }
 
 void panic(char* s) {
 	printf("%s\n", s);
-	proc_exit();
+	exit(EXIT_FAILURE);
 }
 
 int fork1(void) {

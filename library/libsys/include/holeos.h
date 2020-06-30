@@ -18,7 +18,7 @@
  */
 
 int fork(void);
-int proc_exit(void) __attribute__((noreturn));
+_Noreturn int proc_exit(int);
 int wait(void);
 int pipe(int*);
 int write(int, const void*, int);

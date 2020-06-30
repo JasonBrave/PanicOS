@@ -1,5 +1,5 @@
 /*
- * stdlib.h header
+ * abort function
  *
  * This file is part of HoleOS.
  *
@@ -17,25 +17,11 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBC_STDLIB_H
-#define _LIBC_STDLIB_H
+#include <holeos.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <stddef.h>
-
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-
-// memory management functions
-void* calloc(size_t nmemb, size_t size);
-void free(void* ptr);
-void* malloc(size_t size);
-
-// communication with the environment
-_Noreturn void abort(void);
-int atexit(void (*func)(void));
-int at_quick_exit(void (*func)(void));
-_Noreturn void exit(int status);
-_Noreturn void _Exit(int status);
-_Noreturn void quick_exit(int status);
-
-#endif
+_Noreturn void abort(void) {
+	fputs("Aborted\n", stderr);
+	proc_exit(EXIT_FAILURE);
+}

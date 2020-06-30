@@ -16,7 +16,7 @@
 ; along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
 
 global _start
-extern main,proc_exit
+extern main,exit
 
 _start:
 	push ebp
@@ -29,5 +29,6 @@ _start:
 	push edi
 	call main					;int main()
 	add esp,12
-	call proc_exit					;exit
+	push eax					;int status
+	call exit					;exit
 	jmp $

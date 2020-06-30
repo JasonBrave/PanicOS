@@ -29,12 +29,12 @@ int main(void) {
 		pid = fork();
 		if (pid < 0) {
 			fputs("init: fork failed\n", stderr);
-			proc_exit();
+			return 1;
 		}
 		if (pid == 0) {
 			exec("sh", argv);
 			fputs("init: exec sh failed\n", stderr);
-			proc_exit();
+			return 1;
 		}
 		while ((wpid = wait()) >= 0 && wpid != pid)
 			fputs("init: zombie!\n", stderr);

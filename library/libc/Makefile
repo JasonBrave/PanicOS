@@ -12,9 +12,15 @@ OBJS= stdio/fgetc.o\
 	stdio/stderr.o\
 	stdio/stdin.o\
 	stdio/stdout.o\
+	stdlib/_Exit.o\
+	stdlib/abort.o\
+	stdlib/at_quick_exit.o\
+	stdlib/atexit.o\
 	stdlib/calloc.o\
+	stdlib/exit.o\
 	stdlib/free.o\
 	stdlib/malloc.o\
+	stdlib/quick_exit.o\
 	string/memchr.o\
 	string/memcmp.o\
 	string/memcpy.o\

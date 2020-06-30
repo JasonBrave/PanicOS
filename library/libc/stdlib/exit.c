@@ -1,5 +1,5 @@
 /*
- * stdlib.h header
+ * exit function
  *
  * This file is part of HoleOS.
  *
@@ -17,25 +17,17 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBC_STDLIB_H
-#define _LIBC_STDLIB_H
+#include <holeos.h>
 
-#include <stddef.h>
+void (*__libc_atexit_funcs[32])(void);
+int __libc_atexit_count = -1;
 
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-
-// memory management functions
-void* calloc(size_t nmemb, size_t size);
-void free(void* ptr);
-void* malloc(size_t size);
-
-// communication with the environment
-_Noreturn void abort(void);
-int atexit(void (*func)(void));
-int at_quick_exit(void (*func)(void));
-_Noreturn void exit(int status);
-_Noreturn void _Exit(int status);
-_Noreturn void quick_exit(int status);
-
-#endif
+_Noreturn void exit(int status) {
+	// call atexit() registered functions
+	while (__libc_atexit_count >= 0) {
+		__libc_atexit_funcs[__libc_atexit_count]();
+		__libc_atexit_count--;
+	}
+	// terminate the program
+	proc_exit(status);
+}
