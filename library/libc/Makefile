@@ -1,5 +1,6 @@
 LIB= libc
-OBJS= stdio/fgetc.o\
+OBJS= assert/assert_fail.o\
+	stdio/fgetc.o\
 	stdio/fgets.o\
 	stdio/fputc.o\
 	stdio/fputs.o\
