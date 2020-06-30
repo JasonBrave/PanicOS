@@ -1,5 +1,5 @@
 /*
- * stdlib.h header
+ * calloc function
  *
  * This file is part of HoleOS.
  *
@@ -17,14 +17,14 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBC_STDLIB_H
-#define _LIBC_STDLIB_H
+#include <stdlib.h>
+#include <string.h>
 
-#include <stddef.h>
-
-// memory management functions
-void* calloc(size_t nmemb, size_t size);
-void free(void* ptr);
-void* malloc(size_t size);
-
-#endif
+void* calloc(size_t nmemb, size_t size) {
+	void* ptr = malloc(nmemb * size);
+	if (!ptr) {
+		return NULL;
+	}
+	memset(ptr, 0, nmemb * size);
+	return ptr;
+}

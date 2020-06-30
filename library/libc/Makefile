@@ -12,6 +12,8 @@ OBJS= stdio/fgetc.o\
 	stdio/stderr.o\
 	stdio/stdin.o\
 	stdio/stdout.o\
+	stdlib/calloc.o\
+	stdlib/free.o\
 	stdlib/malloc.o\
 	string/memchr.o\
 	string/memcmp.o\
