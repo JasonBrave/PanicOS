@@ -1,5 +1,5 @@
 /*
- * Standard error code
+ * fgetpos function
  *
  * This file is part of HoleOS.
  *
@@ -17,16 +17,14 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBSYS_ERRORCODE_H
-#define _LIBSYS_ERRORCODE_H
+#include <holeos.h>
+#include <stdio.h>
 
-#define ERROR_INVAILD -1
-#define ERROR_NOT_EXIST -2
-#define ERROR_EXIST -3
-#define ERROR_NOT_FILE -4
-#define ERROR_NOT_DIRECTORY -5
-#define ERROR_READ_FAIL -6
-#define ERROR_OUT_OF_SPACE -7
-#define ERROR_WRITE_FAIL -8
-
-#endif
+int fgetpos(FILE* restrict stream, fpos_t* restrict pos) {
+	fpos_t position = lseek(stream->fd, 0, FILE_SEEK_CUR);
+	if (position < 0) {
+		return position;
+	}
+	*pos = position;
+	return 0;
+}

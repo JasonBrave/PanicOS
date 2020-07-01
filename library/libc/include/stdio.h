@@ -26,7 +26,13 @@ typedef struct {
 	int fd;
 } FILE;
 
+typedef int fpos_t;
+
 #define EOF -1
+
+#define SEEK_CUR 0
+#define SEEK_END 1
+#define SEEK_SET 2
 
 // standard input,output,error
 extern FILE* stdin;
@@ -50,5 +56,12 @@ int getchar(void);
 int putc(int c, FILE* stream);
 int putchar(int c);
 int puts(const char* s);
+
+// file positioning functions
+int fgetpos(FILE* restrict stream, fpos_t* restrict pos);
+int fseek(FILE* stream, long offset, int whence);
+int fsetpos(FILE* stream, const fpos_t* pos);
+long ftell(FILE* stream);
+void rewind(FILE* stream);
 
 #endif

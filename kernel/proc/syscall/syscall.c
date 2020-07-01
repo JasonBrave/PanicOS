@@ -105,6 +105,7 @@ extern int sys_dir_open(void);
 extern int sys_dir_read(void);
 extern int sys_dir_close(void);
 extern int sys_file_get_size(void);
+extern int sys_lseek(void);
 
 static int (*syscalls[])(void) = {
 	[SYS_fork] sys_fork,
@@ -132,10 +133,11 @@ static int (*syscalls[])(void) = {
 	[SYS_dir_read] sys_dir_read,
 	[SYS_dir_close] sys_dir_close,
 	[SYS_file_get_size] sys_file_get_size,
+	[SYS_lseek] sys_lseek,
 };
 
 void syscall(void) {
-	int num;
+	unsigned int num;
 	struct proc* curproc = myproc();
 
 	num = curproc->tf->eax;

@@ -1,5 +1,5 @@
 /*
- * Standard error code
+ * fseek function
  *
  * This file is part of HoleOS.
  *
@@ -17,16 +17,22 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBSYS_ERRORCODE_H
-#define _LIBSYS_ERRORCODE_H
+#include <holeos.h>
+#include <stdio.h>
 
-#define ERROR_INVAILD -1
-#define ERROR_NOT_EXIST -2
-#define ERROR_EXIST -3
-#define ERROR_NOT_FILE -4
-#define ERROR_NOT_DIRECTORY -5
-#define ERROR_READ_FAIL -6
-#define ERROR_OUT_OF_SPACE -7
-#define ERROR_WRITE_FAIL -8
-
-#endif
+int fseek(FILE* stream, long int offset, int whence) {
+	int lsk;
+	if (whence == SEEK_CUR) {
+		lsk = FILE_SEEK_CUR;
+	} else if (whence == SEEK_END) {
+		lsk = FILE_SEEK_END;
+	} else if (whence == SEEK_SET) {
+		lsk = FILE_SEEK_SET;
+	} else {
+		return -1;
+	}
+	if (lseek(stream->fd, offset, lsk) < 0) {
+		return -1;
+	}
+	return 0;
+}

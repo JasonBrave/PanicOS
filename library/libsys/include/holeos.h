@@ -17,6 +17,9 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef _LIBSYS_HOLEOS_H
+#define _LIBSYS_HOLEOS_H
+
 int fork(void);
 _Noreturn int proc_exit(int);
 int wait(void);
@@ -42,6 +45,7 @@ int dir_open(const char* dirname);
 int dir_read(int handle, char* buffer);
 int dir_close(int handle);
 int file_get_size(const char* filename);
+int lseek(int fd, int offset, int whence);
 
 enum OpenMode {
 	O_READ = 1,
@@ -50,3 +54,11 @@ enum OpenMode {
 	O_APPEND = 8,
 	O_TRUNC = 16,
 };
+
+enum FileSeekMode {
+	FILE_SEEK_SET,
+	FILE_SEEK_CUR,
+	FILE_SEEK_END,
+};
+
+#endif

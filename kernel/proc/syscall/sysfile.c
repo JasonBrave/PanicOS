@@ -171,3 +171,11 @@ int sys_file_get_size(void) {
 	}
 	return vfs_file_get_size(filename);
 }
+
+int sys_lseek(void) {
+	int fd, offset, whence;
+	if (argint(0, &fd) < 0 || argint(1, &offset) < 0 || argint(2, &whence) < 0) {
+		return -1;
+	}
+	return vfs_fd_seek(&myproc()->files[fd], offset, whence);
+}

@@ -17,6 +17,9 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef _LIBSYS_SYSCALL_H
+#define _LIBSYS_SYSCALL_H
+
 #define SYS_fork 1
 #define SYS_proc_exit 2
 #define SYS_wait 3
@@ -42,3 +45,6 @@
 #define SYS_dir_read 23
 #define SYS_dir_close 24
 #define SYS_file_get_size 25
+#define SYS_lseek 26
+
+#endif
