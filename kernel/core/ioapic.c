@@ -40,10 +40,10 @@ volatile struct ioapic* ioapic;
 
 // IO APIC MMIO structure: write reg, then read or write data.
 struct ioapic {
-	unsigned int reg;
-	unsigned int pad[3];
-	unsigned int data;
-};
+	uint32_t reg;
+	uint32_t pad[3];
+	uint32_t data;
+} PACKED;
 
 static unsigned int ioapicread(int reg) {
 	ioapic->reg = reg;

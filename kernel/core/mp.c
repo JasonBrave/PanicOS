@@ -106,7 +106,7 @@ void mpinit(void) {
 	if ((conf = mpconfig(&mp)) == 0)
 		panic("Expect to run on an SMP");
 	ismp = 1;
-	lapic = (unsigned int*)conf->lapicaddr;
+	lapic = (uint32_t*)conf->lapicaddr;
 	for (p = (unsigned char*)(conf + 1), e = (unsigned char*)conf + conf->length;
 		 p < e;) {
 		switch (*p) {

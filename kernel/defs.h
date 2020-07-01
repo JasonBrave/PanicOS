@@ -1,6 +1,7 @@
 #ifndef _DEFS_H
 #define _DEFS_H
 
+#include <common/types.h>
 #include <core/mmu.h>
 
 struct context;
@@ -39,7 +40,7 @@ void kbdintr(void);
 
 // lapic.c
 int lapicid(void);
-extern volatile unsigned int* lapic;
+extern volatile uint32_t* lapic;
 void lapiceoi(void);
 void lapicinit(void);
 void lapicstartap(unsigned char, unsigned int);

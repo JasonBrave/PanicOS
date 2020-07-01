@@ -1,19 +1,21 @@
 #ifndef _INITRAMFS_H
 #define _INITRAMFS_H
 
+#include <common/types.h>
+
 struct cpio_binary_header {
-	unsigned short magic;
-	unsigned short dev;
-	unsigned short ino;
-	unsigned short mode;
-	unsigned short uid;
-	unsigned short gid;
-	unsigned short nlink;
-	unsigned short rdev;
-	unsigned short mtime[2];
-	unsigned short namesize;
-	unsigned short filesize[2];
-} __attribute__((packed));
+	uint16_t magic;
+	uint16_t dev;
+	uint16_t ino;
+	uint16_t mode;
+	uint16_t uid;
+	uint16_t gid;
+	uint16_t nlink;
+	uint16_t rdev;
+	uint16_t mtime[2];
+	uint16_t namesize;
+	uint16_t filesize[2];
+} PACKED;
 
 void initramfs_init(void);
 int initramfs_dir_open(void);

@@ -22,9 +22,9 @@
 // bootmain() loads an ELF kernel image from the disk starting at
 // sector 1 and then jumps to the kernel entry routine.
 
-#include "../kernel/common/x86.h"
-#include "../kernel/memlayout.h"
-#include "../kernel/proc/exec/elf.h"
+#include <common/x86.h>
+#include <memlayout.h>
+#include <proc/exec/elf.h>
 
 #define SECTSIZE 512
 #define INITRAMFS_SECT 8192

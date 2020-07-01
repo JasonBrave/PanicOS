@@ -17,32 +17,34 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _X86_H
-#define _X86_H
+#ifndef _COMMON_X86_H
+#define _COMMON_X86_H
 
-static inline unsigned char inb(unsigned short port) {
+#include <common/types.h>
+
+static inline uint8_t inb(ioport_t port) {
 	unsigned char data;
 
 	__asm__ volatile("in %1,%0" : "=a"(data) : "d"(port));
 	return data;
 }
 
-static inline void insl(int port, void* addr, int cnt) {
+static inline void insl(ioport_t port, void* addr, int cnt) {
 	__asm__ volatile("cld; rep insl"
 					 : "=D"(addr), "=c"(cnt)
 					 : "d"(port), "0"(addr), "1"(cnt)
 					 : "memory", "cc");
 }
 
-static inline void outb(unsigned short port, unsigned char data) {
+static inline void outb(ioport_t port, uint8_t data) {
 	__asm__ volatile("out %0,%1" : : "a"(data), "d"(port));
 }
 
-static inline void outw(unsigned short port, unsigned short data) {
+static inline void outw(ioport_t port, uint16_t data) {
 	__asm__ volatile("out %0,%1" : : "a"(data), "d"(port));
 }
 
-static inline void outsl(int port, const void* addr, int cnt) {
+static inline void outsl(ioport_t port, const void* addr, int cnt) {
 	__asm__ volatile("cld; rep outsl"
 					 : "=S"(addr), "=c"(cnt)
 					 : "d"(port), "0"(addr), "1"(cnt)

@@ -20,38 +20,40 @@
 #ifndef _ELF_H
 #define _ELF_H
 
+#include <common/types.h>
+
 #define ELF_MAGIC 0x464C457FU // "\x7FELF" in little endian
 
 // File header
 struct elfhdr {
-	unsigned int magic; // must equal ELF_MAGIC
-	unsigned char elf[12];
-	unsigned short type;
-	unsigned short machine;
-	unsigned int version;
-	unsigned int entry;
-	unsigned int phoff;
-	unsigned int shoff;
-	unsigned int flags;
-	unsigned short ehsize;
-	unsigned short phentsize;
-	unsigned short phnum;
-	unsigned short shentsize;
-	unsigned short shnum;
-	unsigned short shstrndx;
-};
+	uint32_t magic; // must equal ELF_MAGIC
+	uint8_t elf[12];
+	uint16_t type;
+	uint16_t machine;
+	uint32_t version;
+	uint32_t entry;
+	uint32_t phoff;
+	uint32_t shoff;
+	uint32_t flags;
+	uint16_t ehsize;
+	uint16_t phentsize;
+	uint16_t phnum;
+	uint16_t shentsize;
+	uint16_t shnum;
+	uint16_t shstrndx;
+} PACKED;
 
 // Program section header
 struct proghdr {
-	unsigned int type;
-	unsigned int off;
-	unsigned int vaddr;
-	unsigned int paddr;
-	unsigned int filesz;
-	unsigned int memsz;
-	unsigned int flags;
-	unsigned int align;
-};
+	uint32_t type;
+	uint32_t off;
+	uint32_t vaddr;
+	uint32_t paddr;
+	uint32_t filesz;
+	uint32_t memsz;
+	uint32_t flags;
+	uint32_t align;
+} PACKED;
 
 // Values for Proghdr type
 #define ELF_PROG_LOAD 1
