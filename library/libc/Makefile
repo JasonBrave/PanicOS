@@ -1,7 +1,9 @@
 LIB= libc
 OBJS= assert/assert_fail.o\
+	stdio/fclose.o\
 	stdio/fgetc.o\
 	stdio/fgets.o\
+	stdio/fopen.o\
 	stdio/fputc.o\
 	stdio/fputs.o\
 	stdio/getc.o\

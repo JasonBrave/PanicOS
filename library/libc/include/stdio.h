@@ -33,6 +33,10 @@ extern FILE* stdin;
 extern FILE* stdout;
 extern FILE* stderr;
 
+// file access functions
+int fclose(FILE* stream);
+FILE* fopen(const char* restrict filename, const char* restrict mode);
+
 // formatted input/output functions
 int printf(const char* restrict format, ...);
 
