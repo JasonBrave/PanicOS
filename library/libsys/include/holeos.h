@@ -42,3 +42,11 @@ int dir_open(const char* dirname);
 int dir_read(int handle, char* buffer);
 int dir_close(int handle);
 int file_get_size(const char* filename);
+
+enum OpenMode {
+	O_READ = 1,
+	O_WRITE = 2,
+	O_CREATE = 4,
+	O_APPEND = 8,
+	O_TRUNC = 16,
+};

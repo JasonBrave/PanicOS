@@ -37,7 +37,7 @@ int sys_read(void) {
 		return -1;
 	if (fd < 3)
 		return consoleread(p, n);
-	return 0;
+	return vfs_fd_read(&myproc()->files[fd], p, n);
 }
 
 int sys_write(void) {
@@ -52,7 +52,11 @@ int sys_write(void) {
 }
 
 int sys_close(void) {
-	return 0;
+	int fd;
+	if (argint(0, &fd) < 0) {
+		return -1;
+	}
+	return vfs_fd_close(&myproc()->files[fd]);
 }
 
 int sys_fstat(void) {
@@ -69,7 +73,22 @@ int sys_unlink(void) {
 }
 
 int sys_open(void) {
-	return 0;
+	char* path;
+	int omode;
+
+	if (argstr(0, &path) < 0 || argint(1, &omode) < 0)
+		return -1;
+
+	for (int i = 3; i < PROC_FILE_MAX; i++) {
+		if (myproc()->files[i].used == 0) {
+			int ret;
+			if ((ret = vfs_fd_open(&myproc()->files[i], path, omode)) < 0) {
+				return ret;
+			}
+			return i;
+		}
+	}
+	return -1;
 }
 
 int sys_mkdir(void) {
