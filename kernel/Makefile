@@ -27,6 +27,8 @@ OBJS = \
 	filesystem/vfs/filedesc.o\
 	proc/exec/elf.o\
 	driver/pci/pci.o\
+	driver/pci/intx.o\
+	driver/edu/edu.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

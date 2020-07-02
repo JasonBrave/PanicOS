@@ -27,6 +27,8 @@ static const char* pci_intx_name[] = {
 	[1] = "INTA", [2] = "INTB", [3] = "INTC", [4] = "INTD"};
 
 void pci_init(void) {
+	memset(pci_irq_10, 0, sizeof(pci_irq_10));
+	memset(pci_irq_11, 0, sizeof(pci_irq_11));
 	// display list of devices
 	struct PciAddress addr;
 	for (addr.bus = 0; addr.bus < PCI_BUS_MAX; addr.bus++) {
@@ -55,10 +57,14 @@ void pci_init(void) {
 							pci_read_config_reg8(&addr, PCI_CONF_PROGIF),
 							pci_intx_name[intr_pin],
 							pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE));
+					pci_add_irq(pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE), &addr);
 				}
 			}
 		}
 	}
+	// enable interrupts
+	ioapicenable(10, 0);
+	ioapicenable(11, 0);
 }
 
 uint8_t pci_read_config_reg8(const struct PciAddress* addr, int reg) {

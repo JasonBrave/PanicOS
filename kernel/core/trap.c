@@ -23,6 +23,7 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
+#include <driver/pci/pci.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -80,6 +81,14 @@ void trap(struct trapframe* tf) {
 		break;
 	case T_IRQ0 + IRQ_COM1:
 		uartintr();
+		lapiceoi();
+		break;
+	case T_IRQ0 + 10:
+		pci_interrupt(10);
+		lapiceoi();
+		break;
+	case T_IRQ0 + 11:
+		pci_interrupt(11);
 		lapiceoi();
 		break;
 	case T_IRQ0 + 7:
