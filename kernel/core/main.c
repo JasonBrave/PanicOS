@@ -22,6 +22,7 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
+#include <driver/pci/pci.h>
 #include <filesystem/initramfs/initramfs.h>
 #include <memlayout.h>
 #include <param.h>
@@ -56,6 +57,7 @@ int main(void) {
 	cprintf("|_| |_|\\___/|_|\\___|\\___/|____/\n");
 	cprintf("Welcome to HoleOS pre-alpha version, this is free software licensed "
 			"under GNU General Public License v3+\n");
+	pci_init();
 	initramfs_init();
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup

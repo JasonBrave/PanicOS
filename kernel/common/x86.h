@@ -23,8 +23,19 @@
 #include <common/types.h>
 
 static inline uint8_t inb(ioport_t port) {
-	unsigned char data;
+	uint8_t data;
+	__asm__ volatile("in %1,%0" : "=a"(data) : "d"(port));
+	return data;
+}
 
+static inline uint16_t inw(ioport_t port) {
+	uint16_t data;
+	__asm__ volatile("in %1,%0" : "=a"(data) : "d"(port));
+	return data;
+}
+
+static inline uint32_t indw(ioport_t port) {
+	uint32_t data;
 	__asm__ volatile("in %1,%0" : "=a"(data) : "d"(port));
 	return data;
 }
@@ -41,6 +52,10 @@ static inline void outb(ioport_t port, uint8_t data) {
 }
 
 static inline void outw(ioport_t port, uint16_t data) {
+	__asm__ volatile("out %0,%1" : : "a"(data), "d"(port));
+}
+
+static inline void outdw(ioport_t port, uint32_t data) {
 	__asm__ volatile("out %0,%1" : : "a"(data), "d"(port));
 }
 
