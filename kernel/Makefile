@@ -29,6 +29,7 @@ OBJS = \
 	driver/pci/pci.o\
 	driver/pci/intx.o\
 	driver/edu/edu.o\
+	driver/virtio-blk/virtio-blk.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

@@ -24,6 +24,7 @@
 #include <defs.h>
 #include <driver/edu/edu.h>
 #include <driver/pci/pci.h>
+#include <driver/virtio-blk/virtio-blk.h>
 #include <filesystem/initramfs/initramfs.h>
 #include <memlayout.h>
 #include <param.h>
@@ -60,6 +61,7 @@ int main(void) {
 			"under GNU General Public License v3+\n");
 	pci_init();
 	edu_init();
+	virtio_blk_init();
 	initramfs_init();
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
