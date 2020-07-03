@@ -17,6 +17,7 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/errorcode.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
 #include <memlayout.h>
@@ -60,6 +61,67 @@ void virtio_blk_intr(const struct PciAddress* addr) {
 	release(&dev->lock);
 }
 
+static void virtio_blk_wait(struct VirtioBlockDevice* dev) {
+	int prev = dev->virtq_used->idx;
+	*dev->notify = 0;
+	while (prev == dev->virtq_used->idx) {
+	}
+}
+
+static void virtio_blk_req(struct VirtioBlockDevice* dev, unsigned int sect,
+						   unsigned int count, phyaddr_t dest, uint8_t* status) {
+	volatile struct {
+		uint32_t type;
+		uint32_t reserved;
+		uint64_t sector;
+	} __attribute__((packed)) buf0;
+
+	buf0.type = 0;
+	buf0.reserved = 0;
+	buf0.sector = sect;
+
+	dev->virtq_desc[0].addr = V2P(&buf0);
+	dev->virtq_desc[0].len = 16;
+	dev->virtq_desc[0].flags = VIRTQ_DESC_F_NEXT;
+	dev->virtq_desc[0].next = 1;
+
+	dev->virtq_desc[1].addr = dest;
+	dev->virtq_desc[1].len = 512 * count;
+	dev->virtq_desc[1].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
+	dev->virtq_desc[1].next = 2;
+
+	dev->virtq_desc[2].addr = V2P(status);
+	dev->virtq_desc[2].len = 1;
+	dev->virtq_desc[2].flags = VIRTQ_DESC_F_WRITE;
+	dev->virtq_desc[2].next = 0;
+
+	// insert to ring buffer
+	dev->virtq_avail->ring[dev->virtq_avail->idx % VIRTIO_BLK_QUEUE_SIZE] = 0;
+	dev->virtq_avail->idx++;
+
+	return virtio_blk_wait(dev);
+}
+
+int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
+	// check buf for DMA
+	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+		(phyaddr_t)buf % PGSIZE)
+		panic("virtio dma");
+	if (count == 0 || count > 8)
+		panic("virtio count");
+	phyaddr_t dest = V2P(buf);
+	struct VirtioBlockDevice* dev = &virtio_blk_dev[id];
+	uint8_t status;
+	// start request
+	acquire(&dev->lock);
+	virtio_blk_req(dev, begin, count, dest, &status);
+	release(&dev->lock);
+	if (status) {
+		return ERROR_READ_FAIL;
+	}
+	return 0;
+}
+
 static void virtio_blk_init_queue(struct VirtioBlockDevice* dev) {
 	dev->cmcfg->device_status = 0;
 	dev->cmcfg->device_status = 1;
@@ -70,7 +132,9 @@ static void virtio_blk_init_queue(struct VirtioBlockDevice* dev) {
 
 	dev->cmcfg->queue_select = 0;
 	dev->cmcfg->queue_enable = 0;
-	dev->cmcfg->queue_size = 8;
+	if (dev->cmcfg->queue_size < VIRTIO_BLK_QUEUE_SIZE)
+		panic("virtio block queue size must >= 256");
+	dev->cmcfg->queue_size = VIRTIO_BLK_QUEUE_SIZE;
 	dev->cmcfg->queue_desc = V2P(dev->virtq_desc);
 	dev->cmcfg->queue_driver = V2P(dev->virtq_avail);
 	dev->cmcfg->queue_device = V2P(dev->virtq_used);
@@ -125,11 +189,15 @@ void virtio_blk_dev_init(const struct PciAddress* addr, int device_id) {
 	release(&dev->lock);
 	// print a message
 	if (device_id == VIRTIO_BLK_LEGACY_DID) {
-		cprintf("[virtio-blk] Transitional Virtio Block device %d:%d.%d capacity %d\n",
-				addr->bus, addr->device, addr->function, dev->devcfg->capacity);
+		cprintf("[virtio-blk] Transitional Virtio Block device %d:%d.%d capacity %d "
+				"blk_size %d\n",
+				addr->bus, addr->device, addr->function,
+				(unsigned int)dev->devcfg->capacity, dev->devcfg->blk_size);
 	} else if (device_id == VIRTIO_BLK_MODERN_DID) {
-		cprintf("[virtio-blk] Modern Virtio Block device %d:%d.%d capacity %d\n",
-				addr->bus, addr->device, addr->function, dev->devcfg->capacity);
+		cprintf("[virtio-blk] Modern Virtio Block device %d:%d.%d capacity %d blk_size "
+				"%d\n",
+				addr->bus, addr->device, addr->function,
+				(unsigned int)dev->devcfg->capacity, dev->devcfg->blk_size);
 	}
 }
 

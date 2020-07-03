@@ -3,6 +3,8 @@
 
 #include <common/types.h>
 
+#define VIRTIO_BLK_QUEUE_SIZE 256
+
 struct VirtqDesc {
 	/* Address (guest-physical). */
 	uint64_t addr;
@@ -25,7 +27,7 @@ struct VirtqAvail {
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
 	uint16_t flags;
 	uint16_t idx;
-	uint16_t ring[8];
+	uint16_t ring[VIRTIO_BLK_QUEUE_SIZE];
 	uint16_t used_event; /* Only if VIRTIO_F_EVENT_IDX */
 } PACKED;
 
@@ -38,7 +40,7 @@ struct VirtqUsed {
 		uint32_t id;
 		/* Total length of the descriptor chain which was used (written to) */
 		uint32_t len;
-	} ring[8];
+	} ring[VIRTIO_BLK_QUEUE_SIZE];
 	uint16_t avail_event; /* Only if VIRTIO_F_EVENT_IDX */
 } PACKED;
 

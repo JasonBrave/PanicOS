@@ -22,6 +22,9 @@ struct VirtioBlockDevice {
 	struct PciAddress addr;
 };
 
+extern struct VirtioBlockDevice virtio_blk_dev[VIRTIO_BLK_NUM_MAX];
+
 void virtio_blk_init(void);
+int virtio_blk_read(int id, unsigned int begin, int count, void* buf);
 
 #endif
