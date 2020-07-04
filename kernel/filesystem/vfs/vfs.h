@@ -30,6 +30,7 @@ enum FileSeekMode {
 };
 
 // vfs.c
+void vfs_init(void);
 int vfs_file_get_size(const char* filename);
 
 // filedesc.c

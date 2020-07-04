@@ -64,10 +64,13 @@ int initramfs_dir_read(int ino, char* name) {
 	return ino;
 }
 
-void initramfs_init(void) {
+int initramfs_init(void) {
 	unsigned short* cpio_magic = (void*)INITRAMFS_BASE;
 	if (*cpio_magic == 070707) {
 		cprintf("[initramfs] initramfs found\n");
+		return 0;
+	} else {
+		return ERROR_NOT_EXIST;
 	}
 }
 

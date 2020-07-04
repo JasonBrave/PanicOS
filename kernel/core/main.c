@@ -24,7 +24,7 @@
 #include <defs.h>
 #include <driver/edu/edu.h>
 #include <driver/pci/pci.h>
-#include <filesystem/initramfs/initramfs.h>
+#include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
 #include <memlayout.h>
 #include <param.h>
@@ -62,7 +62,7 @@ int main(void) {
 	pci_init();
 	edu_init();
 	hal_init();
-	initramfs_init();
+	vfs_init();
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
 }
@@ -77,7 +77,7 @@ static void mpenter(void) {
 
 // Common CPU setup code.
 static void mpmain(void) {
-	cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
+	cprintf("[cpu] starting %d\n", cpuid(), cpuid());
 	idtinit(); // load idt register
 	xchg(&(mycpu()->started), 1); // tell startothers() we're up
 	scheduler(); // start running processes

@@ -17,9 +17,27 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <defs.h>
+#include <filesystem/fat32/fat32.h>
 #include <filesystem/initramfs/initramfs.h>
+#include <hal/hal.h>
 
 #include "vfs.h"
+
+void vfs_init(void) {
+	cprintf("[vfs] mount initramfs on /\n");
+	int status = initramfs_init();
+	if (status < 0)
+		panic("root filesystem not found");
+
+	for (int i = 0; i < HAL_PARTITION_MAX; i++) {
+		if (hal_partition_map[i].fs_type == HAL_PARTITION_FAT32) {
+			cprintf("[vfs] mount fat32 on /fat32\n");
+			fat32_mount(i);
+			break;
+		}
+	}
+}
 
 int vfs_file_get_size(const char* filename) {
 	return initramfs_file_get_size(filename);

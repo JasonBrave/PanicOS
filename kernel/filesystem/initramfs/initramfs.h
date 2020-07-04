@@ -17,7 +17,7 @@ struct cpio_binary_header {
 	uint16_t filesize[2];
 } PACKED;
 
-void initramfs_init(void);
+int initramfs_init(void);
 int initramfs_dir_open(void);
 int initramfs_dir_read(int ino, char* name);
 int initramfs_file_get_size(const char* filename);
