@@ -30,6 +30,7 @@ OBJS = \
 	driver/pci/intx.o\
 	driver/edu/edu.o\
 	driver/virtio-blk/virtio-blk.o\
+	hal/block.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.
