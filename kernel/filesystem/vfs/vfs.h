@@ -29,6 +29,11 @@ enum FileSeekMode {
 	SEEK_END,
 };
 
+struct VfsPath {
+	int parts;
+	char* pathbuf;
+};
+
 // vfs.c
 void vfs_init(void);
 int vfs_file_get_size(const char* filename);
@@ -43,5 +48,10 @@ int vfs_fd_seek(struct FileDesc* fd, unsigned int off, enum FileSeekMode mode);
 int vfs_dir_open(struct FileDesc* fd, const char* dirname);
 int vfs_dir_read(struct FileDesc* fd, char* buffer);
 int vfs_dir_close(struct FileDesc* fd);
+
+// path.c
+int vfs_path_split(const char* path, char* buf);
+int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts,
+					 const char* rhs_buf);
 
 #endif

@@ -19,18 +19,31 @@
 
 #include <holeos.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int main() {
-	int handle = dir_open("/");
+int main(int argc, char* argv[]) {
+	char* dir_target;
+	if (argc == 1) {
+		dir_target = "/";
+	} else {
+		dir_target = argv[1];
+	}
+	int handle = dir_open(dir_target);
 	if (handle < 0) {
-		printf("dir_open failed with %d\n", handle);
-		return 1;
+		fputs("Directory not exist\n", stderr);
+		exit(EXIT_FAILURE);
 	}
-
-	char filename[256];
-	while (dir_read(handle, filename)) {
-		printf("%s %d\n", filename, file_get_size(filename));
+	char buf[256];
+	char fullname[256];
+	int num = 0;
+	while (dir_read(handle, buf)) {
+		strcpy(fullname, dir_target);
+		fullname[strlen(dir_target)] = '/';
+		strcpy(fullname + strlen(dir_target) + 1, buf);
+		printf("%s %d\n", buf, file_get_size(fullname));
+		num++;
 	}
-	dir_close(handle);
+	printf("\nTotal: %d\n", num);
 	return 0;
 }

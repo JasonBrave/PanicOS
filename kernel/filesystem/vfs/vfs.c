@@ -40,5 +40,10 @@ void vfs_init(void) {
 }
 
 int vfs_file_get_size(const char* filename) {
-	return initramfs_file_get_size(filename);
+	struct VfsPath path;
+	path.pathbuf = kalloc();
+	path.parts = vfs_path_split(filename, path.pathbuf);
+	int sz = initramfs_file_get_size(path.pathbuf);
+	kfree(path.pathbuf);
+	return sz;
 }
