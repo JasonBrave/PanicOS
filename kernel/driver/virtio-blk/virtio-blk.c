@@ -47,7 +47,7 @@ static struct VirtioBlockDevice* virtio_blk_find_by_pci(const struct PciAddress*
 }
 
 void virtio_blk_intr(const struct PciAddress* addr) {
-	cprintf("[virtio-blk] INTR\n");
+	//cprintf("[virtio-blk] INTR\n");
 
 	struct VirtioBlockDevice* dev = virtio_blk_find_by_pci(addr);
 	if (!dev) {

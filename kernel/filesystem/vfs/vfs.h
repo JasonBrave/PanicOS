@@ -10,6 +10,7 @@ struct FileDesc {
 		int dir : 1; // directory
 	};
 
+	unsigned int fs_id; // ID in vfs_mount_table
 	unsigned int block; // file data starting block/cluster
 	unsigned int offset; // file pointer offset
 	unsigned int size; // current file size
@@ -33,6 +34,21 @@ struct VfsPath {
 	int parts;
 	char* pathbuf;
 };
+
+enum VfsFsType {
+	VFS_FS_NONE,
+	VFS_FS_INITRAMFS,
+	VFS_FS_FAT32,
+};
+
+struct VfsMountTableEntry {
+	enum VfsFsType fs_type;
+	unsigned int partition_id;
+};
+
+#define VFS_MOUNT_TABLE_MAX 8
+
+extern struct VfsMountTableEntry vfs_mount_table[VFS_MOUNT_TABLE_MAX];
 
 // vfs.c
 void vfs_init(void);

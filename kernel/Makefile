@@ -33,6 +33,7 @@ OBJS = \
 	hal/block.o\
 	filesystem/fat32/mount.o\
 	filesystem/vfs/path.o\
+	filesystem/fat32/dir.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.
