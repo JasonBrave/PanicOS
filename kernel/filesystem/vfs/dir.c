@@ -49,11 +49,12 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 		fd->offset = off;
 	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
 		struct VfsPath fpath = {.parts = path.parts - 1, .pathbuf = path.pathbuf + 128};
-		fd->block = fat32_open(vfs_mount_table[fs_id].partition_id, fpath);
-		if (fd->block == 0xffffffff) {
+		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, fpath);
+		if (fblock < 0) {
 			kfree(path.pathbuf);
 			return -1;
 		}
+		fd->block = fblock;
 		fd->offset =
 			fat32_dir_first_file(vfs_mount_table[fs_id].partition_id, fd->block);
 	} else {
@@ -76,22 +77,21 @@ int vfs_dir_read(struct FileDesc* fd, char* buffer) {
 	if (!fd->dir) {
 		return ERROR_INVAILD;
 	}
+	int off;
 	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_INITRAMFS) {
-		fd->offset = initramfs_dir_read(fd->offset, buffer);
-		if (fd->offset == 0) {
-			return 0; // EOF
-		}
+		off = initramfs_dir_read(fd->offset, buffer);
 	} else if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-		if (fd->offset == 0) {
-			return 0; // EOF
-		}
-		fat32_dir_name(vfs_mount_table[fd->fs_id].partition_id, buffer, fd->block,
-					   fd->offset);
-		fd->offset = fat32_dir_next_file(vfs_mount_table[fd->fs_id].partition_id,
-										 fd->block, fd->offset);
+		off = fat32_dir_read(vfs_mount_table[fd->fs_id].partition_id, buffer, fd->block,
+							 fd->offset);
 	} else {
 		panic("vfs_dir_read");
 	}
+	if (off == 0) {
+		return 0; // EOF
+	} else if (off < 0) {
+		return off; // error
+	}
+	fd->offset = off;
 	return 1;
 }
 
