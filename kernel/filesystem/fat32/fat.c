@@ -17,26 +17,28 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <common/errorcode.h>
 #include <defs.h>
 #include <hal/hal.h>
 
 #include "fat32-struct.h"
 
-struct FAT32BootSector* fat32_superblock;
+unsigned int fat32_fat_read(int partition_id, unsigned int current) {
+	uint32_t* buf = kalloc();
+	unsigned int sect = fat32_superblock->reserved_sector + current / 128;
+	hal_partition_read(partition_id, sect, 1, buf);
+	unsigned int val = buf[current % 128];
+	kfree(buf);
+	return val;
+}
 
-int fat32_mount(int partition_id) {
-	struct FAT32BootSector* bootsect = (void*)kalloc();
-	if (hal_partition_read(partition_id, 0, 1, bootsect) < 0) {
-		return ERROR_READ_FAIL;
+unsigned int fat32_offset_cluster(int partition_id, unsigned int cluster,
+								  unsigned int offset) {
+	int n = offset / 512 / fat32_superblock->sector_per_cluster;
+	while (n--) {
+		cluster = fat32_fat_read(partition_id, cluster);
+		if (cluster >= 0x0ffffff8) {
+			return 0;
+		}
 	}
-	if (strncmp(bootsect->fstype, "FAT32", 5)) {
-		panic("Mounting a non-FAT32 filesystem");
-	}
-	char label[12];
-	strncpy(label, bootsect->volume_label, 12);
-	label[11] = '\0';
-	cprintf("[fat32] Mount %s\n", label);
-	fat32_superblock = bootsect;
-	return 0;
+	return cluster;
 }

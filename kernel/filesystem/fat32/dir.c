@@ -1,41 +1,29 @@
+/*
+ * FAT32 filesystem driver
+ *
+ * This file is part of HoleOS.
+ *
+ * HoleOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * HoleOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <common/errorcode.h>
 #include <defs.h>
 #include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
 
 #include "fat32-struct.h"
-
-#define SECTORSIZE 512
-
-static int fat32_cluster_to_sector(unsigned int cluster) {
-	return (cluster - 2) * (fat32_superblock->sector_per_cluster) +
-		   (fat32_superblock->reserved_sector) +
-		   (fat32_superblock->fat_number) * (fat32_superblock->fat_size);
-}
-
-static int fat32_read_cluster(int partition_id, void* dest, unsigned int cluster,
-							  unsigned int begin, unsigned int size) {
-	void* sect = kalloc();
-	unsigned int off = 0;
-	while (off < size) {
-		int copysize;
-		if ((begin + off) / SECTORSIZE < (begin + size) / SECTORSIZE) {
-			copysize = ((begin + off) / SECTORSIZE + 1) * SECTORSIZE - (begin + off);
-		} else {
-			copysize = size - off;
-		}
-		unsigned int sector =
-			fat32_cluster_to_sector(cluster) + (begin + off) / SECTORSIZE;
-		if (hal_partition_read(partition_id, sector, 1, sect) < 0) {
-			kfree(sect);
-			return ERROR_READ_FAIL;
-		}
-		memmove(dest + off, sect + (begin + off) % SECTORSIZE, copysize);
-		off += copysize;
-	}
-	kfree(sect);
-	return 0;
-}
+#include "fat32.h"
 
 static char* fat32_get_full_name(const struct FAT32DirEntry* dir, char* name) {
 	// copy name, change to lower-case
@@ -74,10 +62,17 @@ static char* fat32_get_full_name(const struct FAT32DirEntry* dir, char* name) {
 
 static int fat32_dir_search(int partition_id, unsigned int cluster, const char* name,
 							struct FAT32DirEntry* dir_dest) {
-	for (int i = 0; i < SECTORSIZE * fat32_superblock->sector_per_cluster; i += 32) {
+	for (int i = 0;; i += 32) {
+		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		if (clus == 0) {
+			break;
+		}
 		struct FAT32DirEntry dir;
-		if (fat32_read_cluster(partition_id, &dir, cluster, i, sizeof(dir)) < 0) {
-			return ERROR_READ_FAIL;
+		int errc = fat32_read_cluster(
+			partition_id, &dir, clus,
+			i % (fat32_superblock->sector_per_cluster * SECTORSIZE), sizeof(dir));
+		if (errc < 0) {
+			return errc;
 		}
 		if (dir.name[0] == 0xe5) {
 			continue;
@@ -126,9 +121,15 @@ int fat32_open(int partition_id, struct VfsPath path) {
 }
 
 int fat32_dir_first_file(int partition_id, unsigned int cluster) {
-	for (int i = 0; i < SECTORSIZE * fat32_superblock->sector_per_cluster; i += 32) {
+	for (int i = 0;; i += 32) {
+		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		if (clus == 0) {
+			break;
+		}
 		struct FAT32DirEntry dir;
-		int errc = fat32_read_cluster(partition_id, &dir, cluster, i, sizeof(dir));
+		int errc = fat32_read_cluster(
+			partition_id, &dir, clus,
+			i % (fat32_superblock->sector_per_cluster * SECTORSIZE), sizeof(dir));
 		if (errc < 0) {
 			return errc;
 		}
@@ -148,10 +149,15 @@ int fat32_dir_first_file(int partition_id, unsigned int cluster) {
 
 int fat32_dir_read(int partition_id, char* buf, unsigned int cluster,
 				   unsigned int entry) {
-	for (int i = entry * 32; i < SECTORSIZE * fat32_superblock->sector_per_cluster;
-		 i += 32) {
+	for (int i = entry * 32;; i += 32) {
+		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		if (clus == 0) {
+			break;
+		}
 		struct FAT32DirEntry dir;
-		int errc = fat32_read_cluster(partition_id, &dir, cluster, i, sizeof(dir));
+		int errc = fat32_read_cluster(
+			partition_id, &dir, clus,
+			i % (fat32_superblock->sector_per_cluster * SECTORSIZE), sizeof(dir));
 		if (errc < 0) {
 			return errc;
 		}

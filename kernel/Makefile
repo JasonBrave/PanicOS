@@ -34,6 +34,8 @@ OBJS = \
 	filesystem/fat32/mount.o\
 	filesystem/vfs/path.o\
 	filesystem/fat32/dir.o\
+	filesystem/fat32/cluster.o\
+	filesystem/fat32/fat.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.
