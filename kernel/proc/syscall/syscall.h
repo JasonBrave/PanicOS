@@ -47,5 +47,6 @@
 #define SYS_dir_close 24
 #define SYS_file_get_size 25
 #define SYS_lseek 26
+#define SYS_file_get_mode 27
 
 #endif

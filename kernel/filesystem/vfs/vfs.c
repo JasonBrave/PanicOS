@@ -86,3 +86,20 @@ int vfs_file_get_size(const char* filename) {
 	kfree(path.pathbuf);
 	return sz;
 }
+
+int vfs_file_get_mode(const char* filename) {
+	struct VfsPath path;
+	path.pathbuf = kalloc();
+	int fs_id = vfs_path_to_fs(filename, &path);
+
+	int sz;
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
+		sz = initramfs_file_get_mode(path.pathbuf);
+	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+		sz = fat32_file_mode(vfs_mount_table[fs_id].partition_id, path);
+	} else {
+		return ERROR_INVAILD;
+	}
+	kfree(path.pathbuf);
+	return sz;
+}

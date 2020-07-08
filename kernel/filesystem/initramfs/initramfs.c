@@ -109,3 +109,11 @@ int initramfs_read(unsigned int block, void* buf, unsigned int offset,
 	memmove(buf, data + offset, copysize);
 	return copysize;
 }
+
+int initramfs_file_get_mode(const char* filename) {
+	struct cpio_binary_header* cpio = initramfs_search(filename);
+	if (!cpio) {
+		return ERROR_NOT_EXIST;
+	}
+	return cpio->mode;
+}

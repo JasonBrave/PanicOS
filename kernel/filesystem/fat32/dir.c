@@ -184,3 +184,16 @@ int fat32_file_size(int partition_id, struct VfsPath path) {
 	}
 	return dir.size;
 }
+
+int fat32_file_mode(int partition_id, struct VfsPath path) {
+	struct FAT32DirEntry dir;
+	int errc = fat32_path_search(partition_id, path, &dir);
+	if (errc < 0) {
+		return errc;
+	}
+	int mode = 0777;
+	if (dir.attr & ATTR_DIRECTORY) {
+		mode |= 0040000;
+	}
+	return mode;
+}

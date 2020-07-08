@@ -24,5 +24,6 @@ int initramfs_file_get_size(const char* filename);
 int initramfs_open(const char* filename);
 int initramfs_read(unsigned int block, void* buf, unsigned int offset,
 				   unsigned int size);
+int initramfs_file_get_mode(const char* filename);
 
 #endif

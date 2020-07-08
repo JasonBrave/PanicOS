@@ -179,3 +179,11 @@ int sys_lseek(void) {
 	}
 	return vfs_fd_seek(&myproc()->files[fd], offset, whence);
 }
+
+int sys_file_get_mode(void) {
+	char* filename;
+	if (argstr(0, &filename) < 0) {
+		return -1;
+	}
+	return vfs_file_get_mode(filename);
+}

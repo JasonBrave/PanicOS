@@ -46,6 +46,7 @@ int dir_read(int handle, char* buffer);
 int dir_close(int handle);
 int file_get_size(const char* filename);
 int lseek(int fd, int offset, int whence);
+int file_get_mode(const char* filename);
 
 enum OpenMode {
 	O_READ = 1,
