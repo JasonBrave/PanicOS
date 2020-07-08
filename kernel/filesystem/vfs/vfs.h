@@ -52,6 +52,7 @@ extern struct VfsMountTableEntry vfs_mount_table[VFS_MOUNT_TABLE_MAX];
 
 // vfs.c
 void vfs_init(void);
+int vfs_path_to_fs(const char* orig_path, struct VfsPath* path);
 int vfs_file_get_size(const char* filename);
 
 // filedesc.c

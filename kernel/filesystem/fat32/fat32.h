@@ -15,6 +15,7 @@ int fat32_open(int partition_id, struct VfsPath path);
 int fat32_dir_first_file(int partition_id, unsigned int cluster);
 int fat32_dir_read(int partition_id, char* buf, unsigned int cluster,
 				   unsigned int entry);
+int fat32_file_size(int partition_id, struct VfsPath path);
 
 // fat.c
 unsigned int fat32_fat_read(int partition_id, unsigned int current);

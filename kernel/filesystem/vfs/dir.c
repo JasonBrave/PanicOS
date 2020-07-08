@@ -27,18 +27,7 @@
 int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 	struct VfsPath path;
 	path.pathbuf = kalloc();
-	path.parts = vfs_path_split(dirname, path.pathbuf);
-	int fs_id;
-	if (path.parts == 0) {
-		fs_id = 0;
-	} else {
-		if (strncmp(path.pathbuf, "fat32", 16) == 0) {
-			fs_id = 1;
-		} else {
-			panic("vfs_dir_open");
-		}
-	}
-	fd->fs_id = fs_id;
+	int fs_id = vfs_path_to_fs(dirname, &path);
 
 	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
 		int off = initramfs_dir_open();
@@ -48,8 +37,7 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 		}
 		fd->offset = off;
 	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
-		struct VfsPath fpath = {.parts = path.parts - 1, .pathbuf = path.pathbuf + 128};
-		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, fpath);
+		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
 		if (fblock < 0) {
 			kfree(path.pathbuf);
 			return -1;
@@ -60,6 +48,7 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 	} else {
 		return ERROR_INVAILD;
 	}
+	fd->fs_id = fs_id;
 	fd->dir = 1;
 	fd->read = 1;
 	fd->used = 1;

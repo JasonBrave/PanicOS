@@ -17,6 +17,7 @@
  * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/errorcode.h>
 #include <defs.h>
 #include <filesystem/fat32/fat32.h>
 #include <filesystem/initramfs/initramfs.h>
@@ -47,11 +48,41 @@ void vfs_init(void) {
 	}
 }
 
+int vfs_path_to_fs(const char* orig_path, struct VfsPath* path) {
+	char* opath_buf = kalloc();
+	int opath_num = vfs_path_split(orig_path, opath_buf);
+	if (opath_num == 0) {
+		path->parts = 0;
+		kfree(opath_buf);
+		return 0;
+	} else {
+		if (strncmp(opath_buf, "fat32", 64) == 0) {
+			path->parts = opath_num - 1;
+			memmove(path->pathbuf, opath_buf + 128, path->parts * 128);
+			kfree(opath_buf);
+			return 1;
+		} else {
+			path->parts = opath_num;
+			memmove(path->pathbuf, opath_buf, path->parts * 128);
+			kfree(opath_buf);
+			return 0;
+		}
+	}
+}
+
 int vfs_file_get_size(const char* filename) {
 	struct VfsPath path;
 	path.pathbuf = kalloc();
-	path.parts = vfs_path_split(filename, path.pathbuf);
-	int sz = initramfs_file_get_size(path.pathbuf);
+	int fs_id = vfs_path_to_fs(filename, &path);
+
+	int sz;
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
+		sz = initramfs_file_get_size(path.pathbuf);
+	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+		sz = fat32_file_size(vfs_mount_table[fs_id].partition_id, path);
+	} else {
+		return ERROR_INVAILD;
+	}
 	kfree(path.pathbuf);
 	return sz;
 }

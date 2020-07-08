@@ -175,3 +175,12 @@ int fat32_dir_read(int partition_id, char* buf, unsigned int cluster,
 	}
 	return 0;
 }
+
+int fat32_file_size(int partition_id, struct VfsPath path) {
+	struct FAT32DirEntry dir;
+	int errc = fat32_path_search(partition_id, path, &dir);
+	if (errc < 0) {
+		return errc;
+	}
+	return dir.size;
+}
