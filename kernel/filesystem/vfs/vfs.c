@@ -29,22 +29,32 @@ struct VfsMountTableEntry vfs_mount_table[VFS_MOUNT_TABLE_MAX];
 
 void vfs_init(void) {
 	memset(vfs_mount_table, 0, sizeof(vfs_mount_table));
+	int fs_id = 0;
 
-	cprintf("[vfs] mount initramfs on /\n");
 	int status = initramfs_init();
-	if (status < 0)
-		panic("root filesystem not found");
-	vfs_mount_table[0].fs_type = VFS_FS_INITRAMFS;
-	vfs_mount_table[0].partition_id = 0; // N/A
+	if (status == 0) {
+		cprintf("[vfs] mount initramfs on /\n");
+		vfs_mount_table[0].fs_type = VFS_FS_INITRAMFS;
+		vfs_mount_table[0].partition_id = 0; // N/A
+		fs_id++;
+	}
 
 	for (int i = 0; i < HAL_PARTITION_MAX; i++) {
 		if (hal_partition_map[i].fs_type == HAL_PARTITION_FAT32) {
-			cprintf("[vfs] mount fat32 on /fat32\n");
+			if (fs_id == 0) {
+				cprintf("[vfs] mount fat32 on /\n");
+			} else if (fs_id == 1) {
+				cprintf("[vfs] mount fat32 on /fat32\n");
+			}
 			fat32_mount(i);
-			vfs_mount_table[1].fs_type = VFS_FS_FAT32;
-			vfs_mount_table[1].partition_id = i;
+			vfs_mount_table[fs_id].fs_type = VFS_FS_FAT32;
+			vfs_mount_table[fs_id].partition_id = i;
+			fs_id++;
 			break;
 		}
+	}
+	if (fs_id == 0) {
+		panic("root filesystem not found");
 	}
 }
 

@@ -10,36 +10,40 @@ export AR = $(PREFIX)ar
 all: holeos.img
 
 qemu: holeos.img
-	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,format=raw -smp 2 -m 512 -net none
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=holeos.img,format=raw,if=virtio -smp 2 -m 512 -net none
 
 qemu-gdb: holeos.img
-	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,format=raw -smp 2 -m 512 -s -S -net none
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=holeos.img,format=raw,if=virtio -smp 2 -m 512 -s -S -net none
 
 qemu-kvm: holeos.img
-	qemu-system-i386 -serial mon:stdio -drive file=holeos.img,format=raw -smp 2 -m 512 -accel kvm -cpu host -net none
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=holeos.img,format=raw,if=virtio -smp 2 -m 512 -accel kvm -cpu host -net none
 
-holeos.img: boot/bootblock kernel/kernel rootfs.cpio
-	dd if=/dev/zero of=holeos.img count=10000
-	dd if=boot/bootblock of=holeos.img conv=notrunc
-	dd if=kernel/kernel of=holeos.img seek=1 conv=notrunc
-	dd if=rootfs.cpio of=holeos.img seek=8192 conv=notrunc
+holeos.img: boot/mbr.bin kernel/kernel program
+	dd if=/dev/zero of=fs.img bs=1M count=63
+	mkfs.vfat -F32 -s8 -nHoleOS fs.img
+	mcopy -i fs.img -bs rootfs/* ::
+	dd if=/dev/zero of=holeos.img bs=1M count=64
+	dd if=boot/mbr.bin of=holeos.img conv=notrunc
+	dd if=fs.img of=holeos.img bs=1M conv=notrunc seek=1
+	rm -f fs.img
 
-rootfs.cpio: program
-	$(MAKE) -C rootfs rootfs.cpio
-
-boot/bootblock:
-	$(MAKE) -C boot bootblock
+boot/mbr.bin:
+	$(MAKE) -C boot mbr.bin
 
 kernel/kernel:
 	$(MAKE) -C kernel kernel
 
 .PHONY: program
-program: library
+program: library rootfs
 	$(MAKE) -C program
 
 .PHONY: library
-library:
+library: rootfs
 	$(MAKE) -C library
+
+.PHONY: rootfs
+rootfs:
+	mkdir -p rootfs/bin rootfs/lib
 
 .PHONY: clean
 clean:
@@ -47,5 +51,4 @@ clean:
 	$(MAKE) -C kernel clean
 	$(MAKE) -C library clean
 	$(MAKE) -C program clean
-	$(MAKE) -C rootfs clean
-	rm -f holeos.img rootfs.cpio
+	rm -rf holeos.img rootfs

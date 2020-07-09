@@ -24,6 +24,7 @@
 #include <defs.h>
 #include <driver/edu/edu.h>
 #include <driver/pci/pci.h>
+#include <filesystem/initramfs/initramfs.h>
 #include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
 #include <memlayout.h>
@@ -50,7 +51,11 @@ int main(void) {
 	pinit(); // process table
 	tvinit(); // trap vectors
 	startothers(); // start other processors
-	kinit2(P2V(8 * 1024 * 1024), P2V(PHYSTOP)); // must come after startothers()
+	if (initramfs_init() < 0) {
+		kinit2(P2V(4 * 1024 * 1024), P2V(PHYSTOP)); // no initramfs
+	} else {
+		kinit2(P2V(8 * 1024 * 1024), P2V(PHYSTOP));
+	}
 	// greeting
 	cprintf(" _   _       _       ___  ____  \n");
 	cprintf("| | | | ___ | | ___ / _ \\/ ___| \n");
