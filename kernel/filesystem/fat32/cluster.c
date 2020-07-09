@@ -53,3 +53,24 @@ int fat32_read_cluster(int partition_id, void* dest, unsigned int cluster,
 	kfree(sect);
 	return 0;
 }
+
+int fat32_read(int partition_id, unsigned int cluster, void* buf, unsigned int offset,
+			   unsigned int size) {
+	int clussize = fat32_superblock->sector_per_cluster * SECTORSIZE;
+	unsigned int off = 0;
+	while (off < size) {
+		int copysize;
+		if ((offset + off) / clussize < (offset + size) / clussize) {
+			copysize = ((offset + off) / clussize + 1) * clussize - (offset + off);
+		} else {
+			copysize = size - off;
+		}
+		unsigned int clus = fat32_offset_cluster(partition_id, cluster, offset + off);
+		if (fat32_read_cluster(partition_id, buf + off, clus, (offset + off) % clussize,
+							   copysize) < 0) {
+			return ERROR_READ_FAIL;
+		}
+		off += copysize;
+	}
+	return size;
+}

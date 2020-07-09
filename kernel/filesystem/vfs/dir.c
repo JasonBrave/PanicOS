@@ -25,6 +25,7 @@
 #include "vfs.h"
 
 int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
+	memset(fd, 0, sizeof(struct FileDesc));
 	struct VfsPath path;
 	path.pathbuf = kalloc();
 	int fs_id = vfs_path_to_fs(dirname, &path);
@@ -40,12 +41,13 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
 		if (fblock < 0) {
 			kfree(path.pathbuf);
-			return -1;
+			return fblock;
 		}
 		fd->block = fblock;
 		fd->offset =
 			fat32_dir_first_file(vfs_mount_table[fs_id].partition_id, fd->block);
 	} else {
+		kfree(path.pathbuf);
 		return ERROR_INVAILD;
 	}
 	fd->fs_id = fs_id;

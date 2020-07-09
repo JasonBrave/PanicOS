@@ -19,6 +19,7 @@
 
 #include <common/errorcode.h>
 #include <defs.h>
+#include <filesystem/fat32/fat32.h>
 #include <filesystem/initramfs/initramfs.h>
 
 #include "vfs.h"
@@ -28,16 +29,36 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 		return ERROR_INVAILD;
 	}
 	memset(fd, 0, sizeof(struct FileDesc));
+	struct VfsPath path;
+	path.pathbuf = kalloc();
+	int fs_id = vfs_path_to_fs(filename, &path);
 
-	int blk;
-	if ((blk = initramfs_open(filename)) < 0) {
-		return blk;
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
+		int blk = initramfs_open(path.pathbuf);
+		if (blk < 0) {
+			kfree(path.pathbuf);
+			return blk;
+		}
+		fd->block = blk;
+		fd->size = initramfs_file_get_size(path.pathbuf);
+	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
+		if (fblock < 0) {
+			kfree(path.pathbuf);
+			return fblock;
+		}
+		fd->block = fblock;
+		fd->size = fat32_file_size(vfs_mount_table[fs_id].partition_id, path);
+	} else {
+		kfree(path.pathbuf);
+		return ERROR_INVAILD;
 	}
-	fd->block = blk;
+
+	fd->fs_id = fs_id;
 	fd->offset = 0;
-	fd->size = initramfs_file_get_size(filename);
 	fd->used = 1;
 	fd->read = 1;
+	kfree(path.pathbuf);
 	return 0;
 }
 
@@ -53,9 +74,27 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 	}
 
 	int status;
-	status = initramfs_read(fd->block, buf, fd->offset, size);
-	if (status > 0) {
+	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_INITRAMFS) {
+		status = initramfs_read(fd->block, buf, fd->offset, size);
+		if (status > 0) {
+			fd->offset += status;
+		}
+	} else if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
+		if (fd->offset >= fd->size) { // EOF
+			return 0;
+		} else if (fd->offset + size > fd->size) {
+			status = fd->size - fd->offset;
+		} else {
+			status = size;
+		}
+		int ret = fat32_read(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf,
+							 fd->offset, size);
+		if (ret < 0) {
+			return ret;
+		}
 		fd->offset += status;
+	} else {
+		status = ERROR_INVAILD;
 	}
 	return status;
 }

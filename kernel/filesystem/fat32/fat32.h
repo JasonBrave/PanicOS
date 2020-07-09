@@ -9,6 +9,8 @@
 int fat32_cluster_to_sector(unsigned int cluster);
 int fat32_read_cluster(int partition_id, void* dest, unsigned int cluster,
 					   unsigned int begin, unsigned int size);
+int fat32_read(int partition_id, unsigned int cluster, void* buf, unsigned int offset,
+			   unsigned int size);
 
 // dir.c
 int fat32_open(int partition_id, struct VfsPath path);
