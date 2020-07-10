@@ -3,7 +3,7 @@
 
 #include <common/types.h>
 
-#define VIRTIO_BLK_QUEUE_SIZE 256
+#define VIRTIO_QUEUE_SIZE_MAX 256
 
 struct VirtqDesc {
 	/* Address (guest-physical). */
@@ -27,7 +27,7 @@ struct VirtqAvail {
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
 	uint16_t flags;
 	uint16_t idx;
-	uint16_t ring[VIRTIO_BLK_QUEUE_SIZE];
+	uint16_t ring[VIRTIO_QUEUE_SIZE_MAX];
 	uint16_t used_event; /* Only if VIRTIO_F_EVENT_IDX */
 } PACKED;
 
@@ -40,7 +40,7 @@ struct VirtqUsed {
 		uint32_t id;
 		/* Total length of the descriptor chain which was used (written to) */
 		uint32_t len;
-	} ring[VIRTIO_BLK_QUEUE_SIZE];
+	} ring[VIRTIO_QUEUE_SIZE_MAX];
 	uint16_t avail_event; /* Only if VIRTIO_F_EVENT_IDX */
 } PACKED;
 
@@ -96,5 +96,27 @@ struct VirtioBlockConfig {
 	uint8_t write_zeroes_may_unmap;
 	uint8_t unused1[3];
 } PACKED;
+
+struct VirtioPciCap {
+	uint8_t cap_vndr; /* Generic PCI field: PCI_CAP_ID_VNDR */
+	uint8_t cap_next; /* Generic PCI field: next ptr. */
+	uint8_t cap_len; /* Generic PCI field: capability length */
+	uint8_t cfg_type; /* Identifies the structure. */
+	uint8_t bar; /* Where to find it. */
+	uint8_t padding[3]; /* Pad to full dword. */
+	uint32_t offset; /* Offset within bar. */
+	uint32_t length; /* Length of the structure, in bytes. */
+} PACKED;
+
+/* Common configuration */
+#define VIRTIO_PCI_CAP_COMMON_CFG 1
+/* Notifications */
+#define VIRTIO_PCI_CAP_NOTIFY_CFG 2
+/* ISR Status */
+#define VIRTIO_PCI_CAP_ISR_CFG 3
+/* Device specific configuration */
+#define VIRTIO_PCI_CAP_DEVICE_CFG 4
+/* PCI configuration access */
+#define VIRTIO_PCI_CAP_PCI_CFG 5
 
 #endif

@@ -69,7 +69,7 @@ void hal_init(void) {
 	virtio_blk_init();
 	// find virtio-blk devices
 	for (int i = 0; i < VIRTIO_BLK_NUM_MAX; i++) {
-		if (!virtio_blk_dev[i].cmcfg) {
+		if (!virtio_blk_dev[i].virtio_dev.cmcfg) {
 			continue;
 		}
 		if (!hal_block_map_insert(HAL_BLOCK_HWTYPE_VIRTIO_BLK, i)) {

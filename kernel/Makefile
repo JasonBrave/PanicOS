@@ -36,6 +36,7 @@ OBJS = \
 	filesystem/fat32/dir.o\
 	filesystem/fat32/cluster.o\
 	filesystem/fat32/fat.o\
+	driver/virtio-blk/virtio.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

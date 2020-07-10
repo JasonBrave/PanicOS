@@ -25,10 +25,6 @@
 #include "virtio-blk-regs.h"
 #include "virtio-blk.h"
 
-#define VIRTIO_BLK_VID 0x1af4
-#define VIRTIO_BLK_LEGACY_DID 0x1001
-#define VIRTIO_BLK_MODERN_DID 0x1042
-
 struct VirtioBlockDevice virtio_blk_dev[VIRTIO_BLK_NUM_MAX];
 
 static struct VirtioBlockDevice* virtio_blk_find_by_pci(const struct PciAddress* addr) {
@@ -46,26 +42,17 @@ static struct VirtioBlockDevice* virtio_blk_find_by_pci(const struct PciAddress*
 	return &virtio_blk_dev[id];
 }
 
-void virtio_blk_intr(const struct PciAddress* addr) {
-	//cprintf("[virtio-blk] INTR\n");
-
+static void virtio_blk_intr(const struct PciAddress* addr) {
 	struct VirtioBlockDevice* dev = virtio_blk_find_by_pci(addr);
 	if (!dev) {
 		panic("invaild virtio block interrupt");
 	}
 
 	acquire(&dev->lock);
-	if (!(*dev->isr & 1)) {
+	if (!(virtio_intr_ack(&dev->virtio_dev) & 1)) {
 		panic("virtio isr");
 	}
 	release(&dev->lock);
-}
-
-static void virtio_blk_wait(struct VirtioBlockDevice* dev) {
-	int prev = dev->virtq_used->idx;
-	*dev->notify = 0;
-	while (prev == dev->virtq_used->idx) {
-	}
 }
 
 static void virtio_blk_req(struct VirtioBlockDevice* dev, unsigned int sect,
@@ -80,26 +67,23 @@ static void virtio_blk_req(struct VirtioBlockDevice* dev, unsigned int sect,
 	buf0.reserved = 0;
 	buf0.sector = sect;
 
-	dev->virtq_desc[0].addr = V2P(&buf0);
-	dev->virtq_desc[0].len = 16;
-	dev->virtq_desc[0].flags = VIRTQ_DESC_F_NEXT;
-	dev->virtq_desc[0].next = 1;
+	dev->virtio_queue.desc[0].addr = V2P(&buf0);
+	dev->virtio_queue.desc[0].len = 16;
+	dev->virtio_queue.desc[0].flags = VIRTQ_DESC_F_NEXT;
+	dev->virtio_queue.desc[0].next = 1;
 
-	dev->virtq_desc[1].addr = dest;
-	dev->virtq_desc[1].len = 512 * count;
-	dev->virtq_desc[1].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
-	dev->virtq_desc[1].next = 2;
+	dev->virtio_queue.desc[1].addr = dest;
+	dev->virtio_queue.desc[1].len = 512 * count;
+	dev->virtio_queue.desc[1].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
+	dev->virtio_queue.desc[1].next = 2;
 
-	dev->virtq_desc[2].addr = V2P(status);
-	dev->virtq_desc[2].len = 1;
-	dev->virtq_desc[2].flags = VIRTQ_DESC_F_WRITE;
-	dev->virtq_desc[2].next = 0;
+	dev->virtio_queue.desc[2].addr = V2P(status);
+	dev->virtio_queue.desc[2].len = 1;
+	dev->virtio_queue.desc[2].flags = VIRTQ_DESC_F_WRITE;
+	dev->virtio_queue.desc[2].next = 0;
 
-	// insert to ring buffer
-	dev->virtq_avail->ring[dev->virtq_avail->idx % VIRTIO_BLK_QUEUE_SIZE] = 0;
-	dev->virtq_avail->idx++;
-
-	return virtio_blk_wait(dev);
+	virtio_queue_avail_insert(&dev->virtio_queue, 0);
+	return virtio_queue_notify_wait(&dev->virtio_dev, &dev->virtio_queue);
 }
 
 int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
@@ -122,29 +106,10 @@ int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
 	return 0;
 }
 
-static void virtio_blk_init_queue(struct VirtioBlockDevice* dev) {
-	dev->cmcfg->device_status = 0;
-	dev->cmcfg->device_status = 1;
-	dev->cmcfg->device_status |= 2;
-	dev->cmcfg->driver_feature = dev->cmcfg->device_feature;
-	dev->cmcfg->device_status |= 8;
-	dev->cmcfg->device_status |= 4;
-
-	dev->cmcfg->queue_select = 0;
-	dev->cmcfg->queue_enable = 0;
-	if (dev->cmcfg->queue_size < VIRTIO_BLK_QUEUE_SIZE)
-		panic("virtio block queue size must >= 256");
-	dev->cmcfg->queue_size = VIRTIO_BLK_QUEUE_SIZE;
-	dev->cmcfg->queue_desc = V2P(dev->virtq_desc);
-	dev->cmcfg->queue_driver = V2P(dev->virtq_avail);
-	dev->cmcfg->queue_device = V2P(dev->virtq_used);
-	dev->cmcfg->queue_enable = 1;
-}
-
 static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
 	int id = -1;
 	for (int i = 0; i < VIRTIO_BLK_NUM_MAX; i++) {
-		if (!virtio_blk_dev[i].cmcfg) {
+		if (!virtio_blk_dev[i].virtio_dev.cmcfg) {
 			id = i;
 			break;
 		}
@@ -155,64 +120,32 @@ static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
 	return &virtio_blk_dev[id];
 }
 
-void virtio_blk_dev_init(const struct PciAddress* addr, int device_id) {
+static void virtio_blk_dev_init(const struct PciAddress* addr) {
 	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
-
+	// initialize lock
+	initlock(&dev->lock, "virtio-blk");
+	acquire(&dev->lock);
 	// copy PCI address
 	dev->addr = *addr;
-	// allocate memory for queues
-	dev->virtq_desc = (void*)kalloc();
-	dev->virtq_avail = (void*)kalloc();
-	dev->virtq_used = (void*)kalloc();
-	memset((void*)dev->virtq_desc, 0, 4096);
-	memset((void*)dev->virtq_avail, 0, 4096);
-	memset((void*)dev->virtq_used, 0, 4096);
 	// enable bus mastering
 	uint16_t pcicmd = pci_read_config_reg16(addr, 4);
 	pcicmd |= 4;
 	pci_write_config_reg16(addr, 4, pcicmd);
 	// register PCI interrupt handler
 	pci_register_intr_handler(addr, virtio_blk_intr);
-	/// read PCI BARs
-	void* bar4 = (void*)pci_read_bar(addr, 4);
-	if (!bar4) {
-		panic("legacy virtio devices are not supported");
-	}
-	dev->cmcfg = bar4;
-	dev->isr = bar4 + 0x1000;
-	dev->notify = bar4 + 0x3000;
-	dev->devcfg = bar4 + 0x2000;
-	// initialize lock and setup queues
-	initlock(&dev->lock, "virtio-blk");
-	acquire(&dev->lock);
-	virtio_blk_init_queue(dev);
-	release(&dev->lock);
+	// allocate memory for queues
+	virtio_read_cap(addr, &dev->virtio_dev);
+	virtio_allocate_queue(&dev->virtio_queue);
+	virtio_setup_queue(&dev->virtio_dev, &dev->virtio_queue);
 	// print a message
-	if (device_id == VIRTIO_BLK_LEGACY_DID) {
-		cprintf("[virtio-blk] Transitional Virtio Block device %d:%d.%d capacity %d "
-				"blk_size %d\n",
-				addr->bus, addr->device, addr->function,
-				(unsigned int)dev->devcfg->capacity, dev->devcfg->blk_size);
-	} else if (device_id == VIRTIO_BLK_MODERN_DID) {
-		cprintf("[virtio-blk] Modern Virtio Block device %d:%d.%d capacity %d blk_size "
-				"%d\n",
-				addr->bus, addr->device, addr->function,
-				(unsigned int)dev->devcfg->capacity, dev->devcfg->blk_size);
-	}
+	cprintf("[virtio-blk] Virtio Block device %d:%d.%d capacity %d "
+			"blk_size %d\n",
+			addr->bus, addr->device, addr->function,
+			(unsigned int)dev->virtio_dev.devcfg->capacity,
+			dev->virtio_dev.devcfg->blk_size);
+	release(&dev->lock);
 }
 
 void virtio_blk_init(void) {
-	struct PciAddress addr;
-	if (pci_find_device(&addr, VIRTIO_BLK_VID, VIRTIO_BLK_LEGACY_DID)) { // legacy
-		virtio_blk_dev_init(&addr, VIRTIO_BLK_LEGACY_DID);
-		while (pci_next_device(&addr, VIRTIO_BLK_VID, VIRTIO_BLK_LEGACY_DID)) {
-			virtio_blk_dev_init(&addr, VIRTIO_BLK_LEGACY_DID);
-		}
-	}
-	if (pci_find_device(&addr, VIRTIO_BLK_VID, VIRTIO_BLK_MODERN_DID)) { // modern
-		virtio_blk_dev_init(&addr, VIRTIO_BLK_MODERN_DID);
-		while (pci_next_device(&addr, VIRTIO_BLK_VID, VIRTIO_BLK_MODERN_DID)) {
-			virtio_blk_dev_init(&addr, VIRTIO_BLK_MODERN_DID);
-		}
-	}
+	return virtio_enum_device(2, virtio_blk_dev_init);
 }

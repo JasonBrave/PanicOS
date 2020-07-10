@@ -47,4 +47,20 @@ void pci_interrupt(int irq);
 void pci_register_intr_handler(const struct PciAddress* addr,
 							   void (*handler)(const struct PciAddress*));
 
+static inline int pci_read_capid(const struct PciAddress* addr, int capptr) {
+	return pci_read_config_reg8(addr, capptr);
+}
+
+static inline int pci_read_next_cap(const struct PciAddress* addr, int capptr) {
+	return pci_read_config_reg8(addr, capptr + 1);
+}
+
+static inline void pci_read_cap(const struct PciAddress* addr, int capptr, void* buf,
+								int size) {
+	uint8_t* p = buf;
+	for (int i = 0; i < size; i++) {
+		p[i] = pci_read_config_reg8(addr, capptr + i);
+	}
+}
+
 #endif
