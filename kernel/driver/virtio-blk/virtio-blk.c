@@ -52,12 +52,15 @@ static void virtio_blk_intr(const struct PciAddress* addr) {
 	if (!(virtio_intr_ack(&dev->virtio_dev) & 1)) {
 		panic("virtio isr");
 	}
-	int desc = dev->virtio_queue.used
-				   ->ring[(dev->virtio_queue.used->idx - 1) % dev->virtio_queue.size]
-				   .id;
-	if (dev->virtio_queue.desc[desc].flags & VIRTQ_DESC_F_NEXT) {
-		desc = dev->virtio_queue.desc[desc].next;
-		wakeup(P2V((phyaddr_t)dev->virtio_queue.desc[desc].addr));
+	static unsigned short last = 0;
+	for (; last != dev->virtio_queue.used->idx; last++) {
+		unsigned int id =
+			dev->virtio_queue.used->ring[last % dev->virtio_queue.size].id;
+		volatile struct VirtqDesc* desc = &dev->virtio_queue.desc[id];
+		if (desc->flags & VIRTQ_DESC_F_NEXT) {
+			desc = &dev->virtio_queue.desc[desc->next];
+			wakeup(P2V((phyaddr_t)desc->addr));
+		}
 	}
 	release(&dev->lock);
 }

@@ -9,6 +9,8 @@ $(LIB).a : $(OBJS)
 .PHONY: install
 install: $(LIB).a
 	cp $(LIB).a ..
+	mkdir -p ../../rootfs/devel/include/$(HEADERDIR)
+	cp -r $(HEADERS) ../../rootfs/devel/include/$(HEADERDIR)
 
 .PHONY: clean
 clean:

@@ -32,7 +32,7 @@ int main(void) {
 			return 1;
 		}
 		if (pid == 0) {
-			exec("sh", argv);
+			exec("/bin/sh", argv);
 			fputs("init: exec sh failed\n", stderr);
 			return 1;
 		}

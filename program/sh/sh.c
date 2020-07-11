@@ -112,7 +112,10 @@ void runcmd(struct cmd* cmd) {
 		ecmd = (struct execcmd*)cmd;
 		if (ecmd->argv[0] == 0)
 			exit(EXIT_FAILURE);
-		exec(ecmd->argv[0], ecmd->argv);
+		char exe[100];
+		strcpy(exe, "/bin/");
+		strcat(exe, ecmd->argv[0]);
+		exec(exe, ecmd->argv);
 		printf("exec %s failed\n", ecmd->argv[0]);
 		break;
 

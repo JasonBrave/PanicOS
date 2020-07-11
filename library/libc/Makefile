@@ -44,5 +44,6 @@ OBJS= assert/assert_fail.o\
 	string/strncpy.o\
 
 CFLAGS += -Iinclude
+HEADERS= include/*
 
 include ../library.mk

@@ -10,7 +10,7 @@ $(APP): $(OBJS)
 
 .PHONY: install
 install: $(APP)
-	cp $(APP) ../../rootfs/
+	cp $(APP) ../../rootfs/bin/
 
 .PHONY: clean
 clean:
