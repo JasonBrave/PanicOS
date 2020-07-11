@@ -1,20 +1,20 @@
 /*
  * main function of the kernel
  *
- * This file is part of HoleOS.
+ * This file is part of PanicOS.
  *
- * HoleOS is free software: you can redistribute it and/or modify
+ * PanicOS is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * HoleOS is distributed in the hope that it will be useful,
+ * PanicOS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with HoleOS.  If not, see <https://www.gnu.org/licenses/>.
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <common/x86.h>
@@ -57,13 +57,14 @@ int main(void) {
 		kinit2(P2V(8 * 1024 * 1024), P2V(PHYSTOP));
 	}
 	// greeting
-	cprintf(" _   _       _       ___  ____  \n");
-	cprintf("| | | | ___ | | ___ / _ \\/ ___| \n");
-	cprintf("| |_| |/ _ \\| |/ _ \\ | | \\___ \\ \n");
-	cprintf("|  _  | (_) | |  __/ |_| |___) |\n");
-	cprintf("|_| |_|\\___/|_|\\___|\\___/|____/\n");
-	cprintf("Welcome to HoleOS pre-alpha version, this is free software licensed "
+	cprintf(" ____             _       ___  ____  \n");
+	cprintf("|  _ \\ __ _ _ __ (_) ___ / _ \\/ ___| \n");
+	cprintf("| |_) / _` | '_ \\| |/ __| | | \\___ \\ \n");
+	cprintf("|  __/ (_| | | | | | (__| |_| |___) |\n");
+	cprintf("|_|   \\__,_|_| |_|_|\\___|\\___/|____/ \n");
+	cprintf("Welcome to PanicOS pre-alpha version, this is free software licensed "
 			"under GNU General Public License v3+\n");
+	
 	pci_init();
 	edu_init();
 	hal_init();

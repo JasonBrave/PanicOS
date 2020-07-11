@@ -7,24 +7,24 @@ export LD= $(PREFIX)ld
 export OBJCOPY= $(PREFIX)objcopy
 export AR = $(PREFIX)ar
 
-all: holeos.img
+all: panicos.img
 
-qemu: holeos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=holeos.img,format=raw,if=virtio -smp 2 -m 512 -net none
+qemu: panicos.img
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio -smp 2 -m 512 -net none
 
-qemu-gdb: holeos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=holeos.img,format=raw,if=virtio -smp 2 -m 512 -s -S -net none
+qemu-gdb: panicos.img
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio -smp 2 -m 512 -s -S -net none
 
-qemu-kvm: holeos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=holeos.img,format=raw,if=virtio -smp 2 -m 512 -accel kvm -cpu host -net none
+qemu-kvm: panicos.img
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio -smp 2 -m 512 -accel kvm -cpu host -net none
 
-holeos.img: boot/mbr.bin kernel/kernel program
+panicos.img: boot/mbr.bin kernel/kernel program
 	dd if=/dev/zero of=fs.img bs=1M count=63
-	mkfs.vfat -F32 -s8 -nHoleOS fs.img
+	mkfs.vfat -F32 -s8 -nPanicOS fs.img
 	mcopy -i fs.img -bs rootfs/* ::
-	dd if=/dev/zero of=holeos.img bs=1M count=64
-	dd if=boot/mbr.bin of=holeos.img conv=notrunc
-	dd if=fs.img of=holeos.img bs=1M conv=notrunc seek=1
+	dd if=/dev/zero of=panicos.img bs=1M count=64
+	dd if=boot/mbr.bin of=panicos.img conv=notrunc
+	dd if=fs.img of=panicos.img bs=1M conv=notrunc seek=1
 	rm -f fs.img
 
 boot/mbr.bin:
@@ -51,4 +51,4 @@ clean:
 	$(MAKE) -C kernel clean
 	$(MAKE) -C library clean
 	$(MAKE) -C program clean
-	rm -rf holeos.img rootfs
+	rm -rf panicos.img rootfs
