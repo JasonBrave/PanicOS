@@ -38,6 +38,7 @@ void virtio_setup_queue(struct VirtioDevice* dev, struct VirtioQueue* queue);
 int virtio_intr_ack(struct VirtioDevice* dev);
 void virtio_queue_notify_wait(struct VirtioDevice* dev, struct VirtioQueue* queue);
 void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc);
+void virtio_queue_notify(struct VirtioDevice* dev);
 
 // virtio-blk.c
 extern struct VirtioBlockDevice virtio_blk_dev[VIRTIO_BLK_NUM_MAX];

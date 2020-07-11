@@ -52,6 +52,13 @@ static void virtio_blk_intr(const struct PciAddress* addr) {
 	if (!(virtio_intr_ack(&dev->virtio_dev) & 1)) {
 		panic("virtio isr");
 	}
+	int desc = dev->virtio_queue.used
+				   ->ring[(dev->virtio_queue.used->idx - 1) % dev->virtio_queue.size]
+				   .id;
+	if (dev->virtio_queue.desc[desc].flags & VIRTQ_DESC_F_NEXT) {
+		desc = dev->virtio_queue.desc[desc].next;
+		wakeup(P2V((phyaddr_t)dev->virtio_queue.desc[desc].addr));
+	}
 	release(&dev->lock);
 }
 
@@ -83,7 +90,14 @@ static void virtio_blk_req(struct VirtioBlockDevice* dev, unsigned int sect,
 	dev->virtio_queue.desc[2].next = 0;
 
 	virtio_queue_avail_insert(&dev->virtio_queue, 0);
-	return virtio_queue_notify_wait(&dev->virtio_dev, &dev->virtio_queue);
+
+	// do not sleep at boot time
+	if (myproc()) {
+		virtio_queue_notify(&dev->virtio_dev);
+		sleep(P2V(dest), &dev->lock);
+	} else {
+		virtio_queue_notify_wait(&dev->virtio_dev, &dev->virtio_queue);
+	}
 }
 
 int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
@@ -121,18 +135,19 @@ static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
 }
 
 static void virtio_blk_dev_init(const struct PciAddress* addr) {
-	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
-	// initialize lock
-	initlock(&dev->lock, "virtio-blk");
-	acquire(&dev->lock);
-	// copy PCI address
-	dev->addr = *addr;
 	// enable bus mastering
 	uint16_t pcicmd = pci_read_config_reg16(addr, 4);
 	pcicmd |= 4;
 	pci_write_config_reg16(addr, 4, pcicmd);
 	// register PCI interrupt handler
 	pci_register_intr_handler(addr, virtio_blk_intr);
+
+	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
+	// initialize lock
+	initlock(&dev->lock, "virtio-blk");
+	acquire(&dev->lock);
+	// copy PCI address
+	dev->addr = *addr;
 	// allocate memory for queues
 	virtio_read_cap(addr, &dev->virtio_dev);
 	virtio_allocate_queue(&dev->virtio_queue);

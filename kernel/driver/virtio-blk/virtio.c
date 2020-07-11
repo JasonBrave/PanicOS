@@ -115,3 +115,7 @@ void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc) {
 	queue->avail->ring[queue->avail->idx % queue->size] = desc;
 	queue->avail->idx++;
 }
+
+void virtio_queue_notify(struct VirtioDevice* dev) {
+	*dev->notify = 0;
+}

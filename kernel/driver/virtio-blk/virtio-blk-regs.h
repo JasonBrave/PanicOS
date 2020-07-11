@@ -21,7 +21,7 @@ struct VirtqDesc {
 	uint16_t flags;
 	/* Next field if flags & NEXT */
 	uint16_t next;
-} PACKED;
+};
 
 struct VirtqAvail {
 #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
@@ -29,7 +29,7 @@ struct VirtqAvail {
 	uint16_t idx;
 	uint16_t ring[VIRTIO_QUEUE_SIZE_MAX];
 	uint16_t used_event; /* Only if VIRTIO_F_EVENT_IDX */
-} PACKED;
+};
 
 struct VirtqUsed {
 #define VIRTQ_USED_F_NO_NOTIFY 1
@@ -42,7 +42,7 @@ struct VirtqUsed {
 		uint32_t len;
 	} ring[VIRTIO_QUEUE_SIZE_MAX];
 	uint16_t avail_event; /* Only if VIRTIO_F_EVENT_IDX */
-} PACKED;
+};
 
 struct VirtioPciCommonConfig {
 	/* About the whole device. */
@@ -64,7 +64,7 @@ struct VirtioPciCommonConfig {
 	uint64_t queue_desc; /* read-write */
 	uint64_t queue_driver; /* read-write */
 	uint64_t queue_device; /* read-write */
-} PACKED;
+};
 
 struct VirtioBlockConfig {
 	uint64_t capacity;
@@ -95,7 +95,7 @@ struct VirtioBlockConfig {
 	uint32_t max_write_zeroes_seg;
 	uint8_t write_zeroes_may_unmap;
 	uint8_t unused1[3];
-} PACKED;
+};
 
 struct VirtioPciCap {
 	uint8_t cap_vndr; /* Generic PCI field: PCI_CAP_ID_VNDR */
@@ -106,7 +106,7 @@ struct VirtioPciCap {
 	uint8_t padding[3]; /* Pad to full dword. */
 	uint32_t offset; /* Offset within bar. */
 	uint32_t length; /* Length of the structure, in bytes. */
-} PACKED;
+};
 
 /* Common configuration */
 #define VIRTIO_PCI_CAP_COMMON_CFG 1
