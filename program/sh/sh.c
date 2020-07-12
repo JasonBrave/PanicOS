@@ -72,22 +72,6 @@ struct backcmd {
 	struct cmd* cmd;
 };
 
-static char* gets(char* buf, int max) {
-	int i, cc;
-	char c;
-
-	for (i = 0; i + 1 < max;) {
-		cc = read(0, &c, 1);
-		if (cc < 1)
-			break;
-		buf[i++] = c;
-		if (c == '\n' || c == '\r')
-			break;
-	}
-	buf[i] = '\0';
-	return buf;
-}
-
 int fork1(void); // Fork but panics on failure.
 void panic(char*);
 struct cmd* parsecmd(char*);
@@ -171,9 +155,11 @@ void runcmd(struct cmd* cmd) {
 }
 
 int getcmd(char* buf, int nbuf) {
-	printf("$ ");
+	char cwd[64];
+	getcwd(cwd);
+	printf("%s $ ", cwd);
 	memset(buf, 0, nbuf);
-	gets(buf, nbuf);
+	fgets(buf, nbuf, stdin);
 	if (buf[0] == 0) // EOF
 		return -1;
 	return 0;

@@ -154,6 +154,9 @@ void userinit(void) {
 
 	safestrcpy(p->name, "initcode", sizeof(p->name));
 
+	p->cwd.parts = 0; // root directory
+	p->cwd.pathbuf = kalloc();
+
 	// this assignment to p->state lets other cores
 	// run this process. the acquire forces the above
 	// writes to be visible, and the lock is also needed
@@ -238,6 +241,11 @@ int fork(void) {
 
 	safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
+	// copy working directory
+	np->cwd.parts = curproc->cwd.parts;
+	np->cwd.pathbuf = kalloc();
+	memmove(np->cwd.pathbuf, curproc->cwd.pathbuf, np->cwd.parts * 128);
+
 	pid = np->pid;
 
 	acquire(&ptable.lock);
@@ -311,6 +319,7 @@ int wait(void) {
 				kfree(p->kstack);
 				p->kstack = 0;
 				freevm(p->pgdir);
+				kfree(p->cwd.pathbuf);
 				p->pid = 0;
 				p->parent = 0;
 				p->name[0] = 0;

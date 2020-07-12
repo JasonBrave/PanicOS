@@ -59,10 +59,6 @@ int sys_close(void) {
 	return vfs_fd_close(&myproc()->files[fd]);
 }
 
-int sys_fstat(void) {
-	return 0;
-}
-
 // Create the path new as a link to the same inode as old.
 int sys_link(void) {
 	return 0;
@@ -96,10 +92,6 @@ int sys_mkdir(void) {
 }
 
 int sys_mknod(void) {
-	return 0;
-}
-
-int sys_chdir(void) {
 	return 0;
 }
 

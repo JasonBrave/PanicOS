@@ -71,5 +71,6 @@ int vfs_dir_close(struct FileDesc* fd);
 int vfs_path_split(const char* path, char* buf);
 int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts,
 					 const char* rhs_buf);
+void vfs_path_tostring(const struct VfsPath* path, char* buf);
 
 #endif

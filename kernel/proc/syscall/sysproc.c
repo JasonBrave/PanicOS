@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/errorcode.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
 #include <core/mmu.h>
@@ -90,4 +91,33 @@ int sys_uptime(void) {
 	xticks = ticks;
 	release(&tickslock);
 	return xticks;
+}
+
+int sys_chdir(void) {
+	char* dir;
+	if (argstr(0, &dir) < 0) {
+		return -1;
+	}
+
+	int mode = vfs_file_get_mode(dir);
+	if (mode < 0) {
+		return mode;
+	}
+	if (mode & 0040000) { // is a directory
+		struct proc* p = myproc();
+		p->cwd.parts = vfs_path_split(dir, p->cwd.pathbuf);
+	} else { // not a directory
+		return ERROR_NOT_DIRECTORY;
+	}
+
+	return 0;
+}
+
+int sys_getcwd(void) {
+	char* dir;
+	if (argstr(0, &dir) < 0) {
+		return -1;
+	}
+	vfs_path_tostring(&myproc()->cwd, dir);
+	return 0;
 }

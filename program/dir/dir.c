@@ -36,8 +36,10 @@ char* dir_type_str(const char* name) {
 
 int main(int argc, char* argv[]) {
 	char* dir_target;
+	char cwd[64];
+	getcwd(cwd);
 	if (argc == 1) {
-		dir_target = "/";
+		dir_target = cwd;
 	} else {
 		dir_target = argv[1];
 	}
