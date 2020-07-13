@@ -99,18 +99,39 @@ int sys_chdir(void) {
 		return -1;
 	}
 
-	int mode = vfs_file_get_mode(dir);
-	if (mode < 0) {
-		return mode;
+	if (dir[0] == '/') { // absolute path
+		int mode = vfs_file_get_mode(dir);
+		if (mode < 0) {
+			return mode;
+		}
+		if (mode & 0040000) { // is a directory
+			struct proc* p = myproc();
+			p->cwd.parts = vfs_path_split(dir, p->cwd.pathbuf);
+		} else { // not a directory
+			return ERROR_NOT_DIRECTORY;
+		}
+		return 0;
+	} else { // relative path
+		struct VfsPath newpath = {.pathbuf = kalloc()};
+		newpath.parts = vfs_path_split(dir, newpath.pathbuf);
+		vfs_get_absolute_path(&newpath);
+		char fullpath[64];
+		vfs_path_tostring(newpath, fullpath);
+		int mode = vfs_file_get_mode(fullpath);
+		if (mode < 0) {
+			kfree(newpath.pathbuf);
+			return mode;
+		}
+		if (mode & 0040000) { // is a directory
+			struct proc* p = myproc();
+			kfree(p->cwd.pathbuf);
+			p->cwd = newpath;
+		} else { // not a directory
+			kfree(newpath.pathbuf);
+			return ERROR_NOT_DIRECTORY;
+		}
+		return 0;
 	}
-	if (mode & 0040000) { // is a directory
-		struct proc* p = myproc();
-		p->cwd.parts = vfs_path_split(dir, p->cwd.pathbuf);
-	} else { // not a directory
-		return ERROR_NOT_DIRECTORY;
-	}
-
-	return 0;
 }
 
 int sys_getcwd(void) {
@@ -118,6 +139,6 @@ int sys_getcwd(void) {
 	if (argstr(0, &dir) < 0) {
 		return -1;
 	}
-	vfs_path_tostring(&myproc()->cwd, dir);
+	vfs_path_tostring(myproc()->cwd, dir);
 	return 0;
 }

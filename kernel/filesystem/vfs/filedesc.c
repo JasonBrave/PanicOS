@@ -29,14 +29,19 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 		return ERROR_INVAILD;
 	}
 	memset(fd, 0, sizeof(struct FileDesc));
+	struct VfsPath filepath;
+	filepath.pathbuf = kalloc();
+	filepath.parts = vfs_path_split(filename, filepath.pathbuf);
+	if (filename[0] != '/') {
+		vfs_get_absolute_path(&filepath);
+	}
 	struct VfsPath path;
-	path.pathbuf = kalloc();
-	int fs_id = vfs_path_to_fs(filename, &path);
+	int fs_id = vfs_path_to_fs(filepath, &path);
 
 	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
 		int blk = initramfs_open(path.pathbuf);
 		if (blk < 0) {
-			kfree(path.pathbuf);
+			kfree(filepath.pathbuf);
 			return blk;
 		}
 		fd->block = blk;
@@ -44,13 +49,13 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
 		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
 		if (fblock < 0) {
-			kfree(path.pathbuf);
+			kfree(filepath.pathbuf);
 			return fblock;
 		}
 		fd->block = fblock;
 		fd->size = fat32_file_size(vfs_mount_table[fs_id].partition_id, path);
 	} else {
-		kfree(path.pathbuf);
+		kfree(filepath.pathbuf);
 		return ERROR_INVAILD;
 	}
 
@@ -58,7 +63,7 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 	fd->offset = 0;
 	fd->used = 1;
 	fd->read = 1;
-	kfree(path.pathbuf);
+	kfree(filepath.pathbuf);
 	return 0;
 }
 

@@ -30,10 +30,6 @@ int exec(char* path, char** argv) {
 	struct proc* curproc = myproc();
 	unsigned int entry = 0;
 
-	if (*path == '/') { // remove slash at beginning
-		path++;
-	}
-
 	// get a new page directory
 	if ((pgdir = setupkvm()) == 0)
 		goto bad;

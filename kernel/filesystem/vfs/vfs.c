@@ -58,32 +58,32 @@ void vfs_init(void) {
 	}
 }
 
-int vfs_path_to_fs(const char* orig_path, struct VfsPath* path) {
-	char* opath_buf = kalloc();
-	int opath_num = vfs_path_split(orig_path, opath_buf);
-	if (opath_num == 0) {
+int vfs_path_to_fs(struct VfsPath orig_path, struct VfsPath* path) {
+	if (orig_path.parts == 0) {
 		path->parts = 0;
-		kfree(opath_buf);
 		return 0;
 	} else {
-		if (strncmp(opath_buf, "fat32", 64) == 0) {
-			path->parts = opath_num - 1;
-			memmove(path->pathbuf, opath_buf + 128, path->parts * 128);
-			kfree(opath_buf);
+		if (strncmp(orig_path.pathbuf, "fat32", 64) == 0) {
+			path->parts = orig_path.parts - 1;
+			path->pathbuf = orig_path.pathbuf + 128;
 			return 1;
 		} else {
-			path->parts = opath_num;
-			memmove(path->pathbuf, opath_buf, path->parts * 128);
-			kfree(opath_buf);
+			path->parts = orig_path.parts;
+			path->pathbuf = orig_path.pathbuf;
 			return 0;
 		}
 	}
 }
 
 int vfs_file_get_size(const char* filename) {
+	struct VfsPath filepath;
+	filepath.pathbuf = kalloc();
+	filepath.parts = vfs_path_split(filename, filepath.pathbuf);
+	if (filename[0] != '/') {
+		vfs_get_absolute_path(&filepath);
+	}
 	struct VfsPath path;
-	path.pathbuf = kalloc();
-	int fs_id = vfs_path_to_fs(filename, &path);
+	int fs_id = vfs_path_to_fs(filepath, &path);
 
 	int sz;
 	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
@@ -98,9 +98,14 @@ int vfs_file_get_size(const char* filename) {
 }
 
 int vfs_file_get_mode(const char* filename) {
+	struct VfsPath filepath;
+	filepath.pathbuf = kalloc();
+	filepath.parts = vfs_path_split(filename, filepath.pathbuf);
+	if (filename[0] != '/') {
+		vfs_get_absolute_path(&filepath);
+	}
 	struct VfsPath path;
-	path.pathbuf = kalloc();
-	int fs_id = vfs_path_to_fs(filename, &path);
+	int fs_id = vfs_path_to_fs(filepath, &path);
 
 	int sz;
 	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {

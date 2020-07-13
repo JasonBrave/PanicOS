@@ -26,35 +26,40 @@
 
 int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 	memset(fd, 0, sizeof(struct FileDesc));
+	struct VfsPath dirpath;
+	dirpath.pathbuf = kalloc();
+	dirpath.parts = vfs_path_split(dirname, dirpath.pathbuf);
+	if (dirname[0] != '/') {
+		vfs_get_absolute_path(&dirpath);
+	}
 	struct VfsPath path;
-	path.pathbuf = kalloc();
-	int fs_id = vfs_path_to_fs(dirname, &path);
+	int fs_id = vfs_path_to_fs(dirpath, &path);
 
 	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
 		int off = initramfs_dir_open();
 		if (off < 0) {
-			kfree(path.pathbuf);
+			kfree(dirpath.pathbuf);
 			return off;
 		}
 		fd->offset = off;
 	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
 		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
 		if (fblock < 0) {
-			kfree(path.pathbuf);
+			kfree(dirpath.pathbuf);
 			return fblock;
 		}
 		fd->block = fblock;
 		fd->offset =
 			fat32_dir_first_file(vfs_mount_table[fs_id].partition_id, fd->block);
 	} else {
-		kfree(path.pathbuf);
+		kfree(dirpath.pathbuf);
 		return ERROR_INVAILD;
 	}
 	fd->fs_id = fs_id;
 	fd->dir = 1;
 	fd->read = 1;
 	fd->used = 1;
-	kfree(path.pathbuf);
+	kfree(dirpath.pathbuf);
 	return 0;
 }
 
