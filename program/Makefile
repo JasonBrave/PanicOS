@@ -3,6 +3,7 @@ all:
 	$(MAKE) -C sh install
 	$(MAKE) -C dir install
 	$(MAKE) -C cat install
+	$(MAKE) -C lscpu install
 
 .PHONY: clean
 clean:
@@ -10,3 +11,4 @@ clean:
 	$(MAKE) -C sh clean
 	$(MAKE) -C dir clean
 	$(MAKE) -C cat clean
+	$(MAKE) -C lscpu clean

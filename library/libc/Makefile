@@ -43,7 +43,8 @@ OBJS= assert/assert_fail.o\
 	string/strncmp.o\
 	string/strncpy.o\
 
-CFLAGS += -Iinclude
 HEADERS= include/*
+CFLAGS += -Iinclude
+DEPLIBS= -lsys
 
 include ../library.mk
