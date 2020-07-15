@@ -79,6 +79,7 @@ int exec(char* path, char** argv) {
 	curproc->sz = sz;
 	curproc->stack_size = PGSIZE;
 	curproc->heap_size = 0;
+	curproc->dyn_base = PROC_DYNAMIC_BOTTOM;
 	curproc->tf->eip = entry; // _start
 	curproc->tf->esp = sp;
 	switchuvm(curproc);

@@ -1,4 +1,4 @@
-CFLAGS += -I../libsys/include -I../libc/include -I..
+CFLAGS += -I../libsys/include -I../libc/include -I.. -fPIC
 
 $(LIB).a : $(OBJS)
 	$(AR) -rcs $(LIB).a $(OBJS)
