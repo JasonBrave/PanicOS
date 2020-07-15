@@ -142,3 +142,14 @@ int sys_getcwd(void) {
 	vfs_path_tostring(myproc()->cwd, dir);
 	return 0;
 }
+
+int sys_dynamic_load(void) {
+	char* name;
+	unsigned int* dynamic;
+	unsigned int* entry;
+	if (argstr(0, &name) < 0 || argptr(1, (char**)&dynamic, sizeof(unsigned int)) ||
+		argptr(2, (char**)&entry, sizeof(unsigned int))) {
+		return -1;
+	}
+	return proc_load_dynamic(myproc(), name, dynamic, entry);
+}

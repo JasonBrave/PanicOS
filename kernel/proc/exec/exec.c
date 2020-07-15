@@ -28,14 +28,14 @@ int exec(char* path, char** argv) {
 	int sz;
 	pde_t *pgdir = 0, *oldpgdir;
 	struct proc* curproc = myproc();
-	unsigned int entry = 0;
+	unsigned int entry, dynamic, interp = 0;
 
 	// get a new page directory
 	if ((pgdir = setupkvm()) == 0)
 		goto bad;
 
 	// Load program into memory.
-	if ((sz = proc_elf_load(pgdir, 0, path, &entry)) < 0) {
+	if ((sz = proc_elf_load(pgdir, 0, path, &entry, &dynamic, &interp)) < 0) {
 		goto bad;
 	}
 
@@ -53,16 +53,18 @@ int exec(char* path, char** argv) {
 		sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
 		if (copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
 			goto bad;
-		ustack[3 + argc] = sp;
+		ustack[5 + argc] = sp;
 	}
-	ustack[3 + argc] = 0;
+	ustack[5 + argc] = 0;
 
 	ustack[0] = 0xffffffff; // fake return PC
-	ustack[1] = argc;
-	ustack[2] = sp - (argc + 1) * 4; // argv pointer
+	ustack[1] = argc; // int argc
+	ustack[2] = sp - (argc + 1) * 4; // char* argv[]
+	ustack[3] = 0; // char* envp[]
+	ustack[4] = interp; // const char* interp
 
-	sp -= (3 + argc + 1) * 4;
-	if (copyout(pgdir, sp, ustack, (3 + argc + 1) * 4) < 0)
+	sp -= (5 + argc + 1) * 4;
+	if (copyout(pgdir, sp, ustack, (5 + argc + 1) * 4) < 0)
 		goto bad;
 
 	// Save program name for debugging.

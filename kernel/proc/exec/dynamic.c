@@ -1,5 +1,5 @@
 /*
- * System call library
+ * load dynamic library
  *
  * This file is part of PanicOS.
  *
@@ -17,42 +17,19 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "include/syscall.h"
-#include "../../kernel/core/traps.h"
+#include "elf.h"
+#include <core/proc.h>
+#include <defs.h>
 
-#define SYSCALL(name) \
-	.globl name; \
-	.type name STT_FUNC; \
-	name: \
-    movl $SYS_ ## name, %eax; \
-    int $T_SYSCALL; \
-    ret
-
-SYSCALL(fork)
-SYSCALL(proc_exit)
-SYSCALL(wait)
-SYSCALL(pipe)
-SYSCALL(read)
-SYSCALL(write)
-SYSCALL(close)
-SYSCALL(kill)
-SYSCALL(exec)
-SYSCALL(open)
-SYSCALL(mknod)
-SYSCALL(unlink)
-SYSCALL(getcwd)
-SYSCALL(link)
-SYSCALL(mkdir)
-SYSCALL(chdir)
-SYSCALL(dup)
-SYSCALL(getpid)
-SYSCALL(sbrk)
-SYSCALL(sleep)
-SYSCALL(uptime)
-SYSCALL(dir_open)
-SYSCALL(dir_read)
-SYSCALL(dir_close)
-SYSCALL(file_get_size)
-SYSCALL(lseek)
-SYSCALL(file_get_mode)
-SYSCALL(dynamic_load)
+int proc_load_dynamic(struct proc* proc, const char* name, unsigned int* dynamic,
+					  unsigned int* entry) {
+	int sz;
+	unsigned int interp;
+	unsigned int load_base = myproc()->dyn_base;
+	if ((sz = proc_elf_load(proc->pgdir, load_base, name, entry, dynamic, &interp)) <
+		0) {
+		return 0;
+	}
+	myproc()->dyn_base += PGROUNDUP(sz);
+	return load_base;
+}

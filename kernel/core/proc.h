@@ -77,6 +77,7 @@ struct proc {
 	char name[16]; // Process name (debugging)
 	struct FileDesc files[PROC_FILE_MAX]; // open files
 	struct VfsPath cwd; // working directory
+	unsigned int dyn_base; // dynamic library load base
 };
 
 // Process memory is laid out contiguously, low addresses first:

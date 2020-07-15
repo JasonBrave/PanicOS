@@ -22,7 +22,11 @@ int exec(char*, char**);
 
 // elf.c
 int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name,
-				  unsigned int* entry);
+				  unsigned int* entry, unsigned int* dynamic, unsigned int* interp);
+
+// dynamic.c
+int proc_load_dynamic(struct proc* proc, const char* name, unsigned int* dynamic,
+					  unsigned int* entry);
 
 // ioapic.c
 void ioapicenable(int irq, int cpu);

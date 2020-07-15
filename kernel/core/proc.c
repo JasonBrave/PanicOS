@@ -108,8 +108,8 @@ found:
 		p->state = UNUSED;
 		return 0;
 	}
-	sp = p->kstack + KSTACKSIZE;
 
+	sp = p->kstack + KSTACKSIZE;
 	// Leave room for trap frame.
 	sp -= sizeof *p->tf;
 	p->tf = (struct trapframe*)sp;
@@ -126,6 +126,8 @@ found:
 
 	// empty file table
 	memset(p->files, 0, sizeof(p->files));
+
+	p->dyn_base = PROC_DYNAMIC_BOTTOM;
 
 	return p;
 }
@@ -211,6 +213,15 @@ int fork(void) {
 		np->state = UNUSED;
 		return -1;
 	}
+	// copy dynamic libraries
+	if (copyuvm(np->pgdir, curproc->pgdir, PROC_DYNAMIC_BOTTOM, curproc->dyn_base) ==
+		0) {
+		freevm(np->pgdir);
+		kfree(np->kstack);
+		np->kstack = 0;
+		np->state = UNUSED;
+		return -1;
+	}
 	// copy process stack
 	if (copyuvm(np->pgdir, curproc->pgdir, PROC_STACK_BOTTOM - curproc->stack_size,
 				PROC_STACK_BOTTOM) == 0) {
@@ -233,6 +244,7 @@ int fork(void) {
 	np->sz = curproc->sz;
 	np->stack_size = curproc->stack_size;
 	np->heap_size = curproc->heap_size;
+	np->dyn_base = curproc->dyn_base;
 	np->parent = curproc;
 	*np->tf = *curproc->tf;
 
