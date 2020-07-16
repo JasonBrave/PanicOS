@@ -108,6 +108,7 @@ extern int sys_file_get_size(void);
 extern int sys_lseek(void);
 extern int sys_file_get_mode(void);
 extern int sys_dynamic_load(void);
+extern int sys_kcall(void);
 
 static int (*syscalls[])(void) = {
 	[SYS_fork] = sys_fork,
@@ -138,6 +139,7 @@ static int (*syscalls[])(void) = {
 	[SYS_lseek] = sys_lseek,
 	[SYS_file_get_mode] = sys_file_get_mode,
 	[SYS_dynamic_load] = sys_dynamic_load,
+	[SYS_kcall] = sys_kcall,
 };
 
 void syscall(void) {

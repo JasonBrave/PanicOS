@@ -29,6 +29,7 @@
 #include <hal/hal.h>
 #include <memlayout.h>
 #include <param.h>
+#include <proc/kcall.h>
 
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
@@ -64,7 +65,7 @@ int main(void) {
 	cprintf("|_|   \\__,_|_| |_|_|\\___|\\___/|____/ \n");
 	cprintf("Welcome to PanicOS pre-alpha version, this is free software licensed "
 			"under GNU General Public License v3+\n");
-	
+	kcall_init();
 	pci_init();
 	edu_init();
 	hal_init();

@@ -48,5 +48,6 @@
 #define SYS_lseek 26
 #define SYS_file_get_mode 27
 #define SYS_dynamic_load 28
+#define SYS_kcall 29
 
 #endif

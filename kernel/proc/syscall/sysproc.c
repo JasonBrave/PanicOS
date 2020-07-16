@@ -25,6 +25,7 @@
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>
+#include <proc/kcall.h>
 
 int sys_fork(void) {
 	return fork();
@@ -152,4 +153,13 @@ int sys_dynamic_load(void) {
 		return -1;
 	}
 	return proc_load_dynamic(myproc(), name, dynamic, entry);
+}
+
+int sys_kcall(void) {
+	char* name;
+	unsigned int arg;
+	if (argstr(0, &name) < 0 || argint(1, (int*)&arg) < 0) {
+		return -1;
+	}
+	return kcall(name, arg);
 }

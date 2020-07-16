@@ -38,6 +38,7 @@ OBJS = \
 	filesystem/fat32/fat.o\
 	driver/virtio-blk/virtio.o\
 	proc/exec/dynamic.o\
+	proc/kcall.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.
