@@ -31,13 +31,15 @@ struct HalPartitionMap {
 
 #define HAL_PARTITION_MAX 8
 
+// block.c
 extern struct HalBlockMap hal_block_map[HAL_BLOCK_MAX];
 extern struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
-
-// hal.c
-void hal_init(void);
+void hal_block_init(void);
 int hal_block_read(int id, int begin, int count, void* buf);
 int hal_disk_read(int id, int begin, int count, void* buf);
 int hal_partition_read(int id, int begin, int count, void* buf);
+
+// display.c
+void hal_display_init(void);
 
 #endif

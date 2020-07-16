@@ -19,5 +19,6 @@
 #define PROC_STACK_BOTTOM 0x20000000 // bottom of stack in user space
 #define PROC_HEAP_BOTTOM 0x20000000 // bottom of process heap
 #define PROC_DYNAMIC_BOTTOM 0x40000000 // bottom of dynamic library space
+#define PROC_MMAP_BOTTOM 0x70000000 // bottom of process mmap
 
 #endif

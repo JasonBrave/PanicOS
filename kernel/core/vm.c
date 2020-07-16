@@ -72,8 +72,7 @@ static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc) {
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-static int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa,
-					int perm) {
+int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int perm) {
 	char *a, *last;
 	pte_t* pte;
 

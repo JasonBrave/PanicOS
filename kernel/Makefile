@@ -39,6 +39,8 @@ OBJS = \
 	driver/virtio-blk/virtio.o\
 	proc/exec/dynamic.o\
 	proc/kcall.o\
+	driver/bochs-display/bochs-display.o\
+	hal/display.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

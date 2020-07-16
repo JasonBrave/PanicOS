@@ -62,7 +62,7 @@ static struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType 
 	return 0;
 }
 
-void hal_init(void) {
+void hal_block_init(void) {
 	memset(hal_block_map, 0, sizeof(hal_block_map));
 	memset(hal_partition_map, 0, sizeof(hal_partition_map));
 	// virtio block device initialization
