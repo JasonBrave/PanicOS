@@ -24,6 +24,7 @@ OBJS= assert/assert_fail.o\
 	stdlib/abort.o\
 	stdlib/at_quick_exit.o\
 	stdlib/atexit.o\
+	stdlib/atoi.o\
 	stdlib/calloc.o\
 	stdlib/exit.o\
 	stdlib/free.o\

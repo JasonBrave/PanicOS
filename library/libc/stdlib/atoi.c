@@ -1,5 +1,5 @@
 /*
- * stdlib.h header
+ * atoi function
  *
  * This file is part of PanicOS.
  *
@@ -17,28 +17,17 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBC_STDLIB_H
-#define _LIBC_STDLIB_H
-
-#include <stddef.h>
-
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-
-// numeric conversion functions
-int atoi(const char* nptr);
-
-// memory management functions
-void* calloc(size_t nmemb, size_t size);
-void free(void* ptr);
-void* malloc(size_t size);
-
-// communication with the environment
-_Noreturn void abort(void);
-int atexit(void (*func)(void));
-int at_quick_exit(void (*func)(void));
-_Noreturn void exit(int status);
-_Noreturn void _Exit(int status);
-_Noreturn void quick_exit(int status);
-
-#endif
+int atoi(const char* nptr) {
+	int n = 0, neg = 0;
+	while (*nptr) {
+		if ((*nptr >= '0') && (*nptr <= '9')) {
+			n = n * 10 + (*nptr - '0');
+		} else if (*nptr == '-') {
+			neg = 1;
+		} else if (*nptr == '+') {
+			neg = 0;
+		}
+		nptr++;
+	}
+	return neg ? -n : n;
+}

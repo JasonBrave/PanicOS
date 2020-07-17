@@ -24,6 +24,7 @@
 #include <core/traps.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <driver/ps2/ps2.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -67,6 +68,10 @@ void trap(struct trapframe* tf) {
 			wakeup(&ticks);
 			release(&tickslock);
 		}
+		lapiceoi();
+		break;
+	case T_IRQ0 + IRQ_MOUSE:
+		ps2_mouse_intr();
 		lapiceoi();
 		break;
 	case T_IRQ0 + IRQ_IDE:

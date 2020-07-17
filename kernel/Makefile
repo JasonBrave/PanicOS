@@ -41,6 +41,7 @@ OBJS = \
 	proc/kcall.o\
 	driver/bochs-display/bochs-display.o\
 	hal/display.o\
+	driver/ps2/mouse.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.
