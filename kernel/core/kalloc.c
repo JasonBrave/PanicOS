@@ -97,3 +97,20 @@ void* kalloc(void) {
 		release(&kmem.lock);
 	return r;
 }
+
+void print_memory_usage(void) {
+	if (kmem.use_lock)
+		acquire(&kmem.lock);
+
+	unsigned int pages = 0;
+	struct run* r = kmem.freelist;
+	while (r) {
+		r = r->next;
+		pages++;
+	}
+
+	if (kmem.use_lock)
+		release(&kmem.lock);
+
+	cprintf("Free memory %d pages %d MiB\n", pages, pages / 256);
+}

@@ -10,13 +10,16 @@ export AR = $(PREFIX)ar
 all: panicos.img
 
 qemu: panicos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio -smp 2 -m 512 -net none
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 256 -net none
 
 qemu-gdb: panicos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio -smp 2 -m 512 -s -S -net none
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 256 -s -S -net none
 
 qemu-kvm: panicos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio -smp 2 -m 512 -accel kvm -cpu host -net none
+	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 256 -accel kvm -cpu host -net none
 
 panicos.img: boot/mbr.bin kernel/kernel rootfs program
 	dd if=/dev/zero of=fs.img bs=1M count=63

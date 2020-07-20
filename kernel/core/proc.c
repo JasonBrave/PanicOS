@@ -516,8 +516,8 @@ int kill(int pid) {
 // No lock to avoid wedging a stuck machine further.
 void procdump(void) {
 	static char* states[] = {
-		[UNUSED] "unused",	 [EMBRYO] "embryo",	 [SLEEPING] "sleep ",
-		[RUNNABLE] "runble", [RUNNING] "run   ", [ZOMBIE] "zombie"};
+		[UNUSED] = "unused",   [EMBRYO] = "embryo",	 [SLEEPING] = "sleep ",
+		[RUNNABLE] = "runble", [RUNNING] = "run   ", [ZOMBIE] = "zombie"};
 	int i;
 	struct proc* p;
 	char* state;

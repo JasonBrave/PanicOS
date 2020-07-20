@@ -38,6 +38,7 @@ void* kalloc(void);
 void kfree(void*);
 void kinit1(void*, void*);
 void kinit2(void*, void*);
+void print_memory_usage(void);
 
 // kbd.c
 void kbdintr(void);
