@@ -17,16 +17,16 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "include/syscall.h"
 #include "../../kernel/core/traps.h"
+#include "include/syscall.h"
 
-#define SYSCALL(name) \
-	.globl name; \
-	.type name STT_FUNC; \
-	name: \
-    movl $SYS_ ## name, %eax; \
-    int $T_SYSCALL; \
-    ret
+#define SYSCALL(name)                                                                  \
+	.globl name;                                                                       \
+	.type name STT_FUNC;                                                               \
+	name:                                                                              \
+	movl $SYS_##name, % eax;                                                           \
+	int $T_SYSCALL;                                                                    \
+	ret
 
 SYSCALL(fork)
 SYSCALL(proc_exit)
@@ -57,3 +57,8 @@ SYSCALL(lseek)
 SYSCALL(file_get_mode)
 SYSCALL(dynamic_load)
 SYSCALL(kcall)
+SYSCALL(message_send)
+SYSCALL(message_receive)
+SYSCALL(message_wait)
+SYSCALL(getppid)
+SYSCALL(proc_search)

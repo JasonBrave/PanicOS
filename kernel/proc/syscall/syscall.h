@@ -50,5 +50,10 @@
 #define SYS_file_get_mode 27
 #define SYS_dynamic_load 28
 #define SYS_kcall 29
+#define SYS_message_send 30
+#define SYS_message_receive 31
+#define SYS_message_wait 32
+#define SYS_getppid 33
+#define SYS_proc_search 34
 
 #endif

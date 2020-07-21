@@ -20,6 +20,7 @@
 #ifndef _PROC_H
 #define _PROC_H
 
+#include <common/spinlock.h>
 #include <core/mmu.h>
 #include <filesystem/vfs/vfs.h>
 #include <param.h>
@@ -60,6 +61,19 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+#define MESSAGE_MAX 64
+
+struct Message {
+	int pid, size;
+	void** addr;
+};
+
+struct MessageQueue {
+	struct spinlock lock;
+	int begin, end;
+	struct Message queue[MESSAGE_MAX];
+};
+
 // Per-process state
 struct proc {
 	unsigned int sz; // size of executable image (bytes)
@@ -78,12 +92,7 @@ struct proc {
 	struct FileDesc files[PROC_FILE_MAX]; // open files
 	struct VfsPath cwd; // working directory
 	unsigned int dyn_base; // dynamic library load base
+	struct MessageQueue msgqueue; // message queue
 };
-
-// Process memory is laid out contiguously, low addresses first:
-//   text
-//   original data and bss
-//   fixed-size stack
-//   expandable heap
 
 #endif

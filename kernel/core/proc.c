@@ -27,10 +27,7 @@
 #include <memlayout.h>
 #include <param.h>
 
-struct {
-	struct spinlock lock;
-	struct proc proc[NPROC];
-} ptable;
+struct ProcTable ptable;
 
 static struct proc* initproc;
 
@@ -126,8 +123,11 @@ found:
 
 	// empty file table
 	memset(p->files, 0, sizeof(p->files));
-
 	p->dyn_base = PROC_DYNAMIC_BOTTOM;
+	// empty the message queue
+	p->msgqueue.begin = 0;
+	p->msgqueue.end = 0;
+	initlock(&p->msgqueue.lock, "msgqueue");
 
 	return p;
 }
@@ -337,6 +337,18 @@ int wait(void) {
 				p->name[0] = 0;
 				p->killed = 0;
 				p->state = UNUSED;
+				// free message queue
+				acquire(&p->msgqueue.lock);
+				for (int msg = p->msgqueue.end; msg != p->msgqueue.begin; msg++) {
+					if (msg == MESSAGE_MAX) {
+						msg = 0;
+					}
+					struct Message* thismsg = &p->msgqueue.queue[msg];
+					for (int i = 0; i < thismsg->size; i++) {
+						kfree(thismsg->addr[i / PGSIZE]);
+					}
+				}
+				release(&p->msgqueue.lock);
 				release(&ptable.lock);
 				return pid;
 			}
@@ -538,4 +550,16 @@ void procdump(void) {
 		}
 		cprintf("\n");
 	}
+}
+
+struct proc* proc_search_pid(int pid) {
+	acquire(&ptable.lock);
+	for (int i = 0; i < NPROC; i++) {
+		if (ptable.proc[i].state != UNUSED && ptable.proc[i].pid == pid) {
+			release(&ptable.lock);
+			return &ptable.proc[i];
+		}
+	}
+	release(&ptable.lock);
+	return 0;
 }

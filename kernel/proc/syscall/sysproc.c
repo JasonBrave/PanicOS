@@ -163,3 +163,106 @@ int sys_kcall(void) {
 	}
 	return kcall(name, arg);
 }
+
+int sys_message_send(void) {
+	int pid, size;
+	void* data;
+	if ((argint(0, &pid) < 0) || (argint(1, &size) < 0) ||
+		(argptr(2, (char**)&data, size) < 0)) {
+		return -1;
+	}
+	struct proc* destproc = proc_search_pid(pid);
+	if (!destproc) {
+		return -1;
+	}
+	acquire(&destproc->msgqueue.lock);
+	struct Message* destmsg = &destproc->msgqueue.queue[destproc->msgqueue.begin];
+	destmsg->pid = myproc()->pid;
+	destmsg->size = size;
+	destmsg->addr = kalloc();
+	memset(destmsg->addr, 0, PGSIZE);
+	for (int i = 0; i < size; i += PGSIZE) {
+		destmsg->addr[i / PGSIZE] = kalloc();
+		memmove(destmsg->addr[i / PGSIZE], data + i,
+				(size - i < PGSIZE) ? (size - i) : PGSIZE);
+	}
+	destproc->msgqueue.begin++;
+	if (destproc->msgqueue.begin == MESSAGE_MAX) {
+		destproc->msgqueue.begin = 0;
+	}
+	wakeup(&destproc->msgqueue);
+	release(&destproc->msgqueue.lock);
+	return 0;
+}
+
+int sys_message_receive(void) {
+	void* data;
+	if (argptr(0, (char**)&data, 4 * 1024 * 1024) < 0) {
+		return -1;
+	}
+	acquire(&myproc()->msgqueue.lock);
+	if (myproc()->msgqueue.begin == myproc()->msgqueue.end) {
+		release(&myproc()->msgqueue.lock);
+		return 0;
+	}
+	struct Message* thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
+	int ret = thismsg->pid;
+	for (int i = 0; i < thismsg->size; i += PGSIZE) {
+		memmove(data + i, thismsg->addr[i / PGSIZE],
+				(thismsg->size - i < PGSIZE) ? (thismsg->size - i) : PGSIZE);
+		kfree(thismsg->addr[i / PGSIZE]);
+	}
+	kfree(thismsg->addr);
+	myproc()->msgqueue.end++;
+	if (myproc()->msgqueue.end == MESSAGE_MAX) {
+		myproc()->msgqueue.end = 0;
+	}
+	release(&myproc()->msgqueue.lock);
+	return ret;
+}
+
+int sys_message_wait(void) {
+	void* data;
+	if (argptr(0, (char**)&data, 4 * 1024 * 1024) < 0) {
+		return -1;
+	}
+	acquire(&myproc()->msgqueue.lock);
+	while (myproc()->msgqueue.begin == myproc()->msgqueue.end) {
+		sleep(&myproc()->msgqueue, &myproc()->msgqueue.lock);
+	}
+	struct Message* thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
+	int ret = thismsg->pid;
+	for (int i = 0; i < thismsg->size; i += PGSIZE) {
+		memmove(data + i, thismsg->addr[i / PGSIZE],
+				(thismsg->size - i < PGSIZE) ? (thismsg->size - i) : PGSIZE);
+		kfree(thismsg->addr[i / PGSIZE]);
+	}
+	kfree(thismsg->addr);
+	myproc()->msgqueue.end++;
+	if (myproc()->msgqueue.end == MESSAGE_MAX) {
+		myproc()->msgqueue.end = 0;
+	}
+	release(&myproc()->msgqueue.lock);
+	return ret;
+}
+
+int sys_getppid(void) {
+	return myproc()->parent->pid;
+}
+
+int sys_proc_search(void) {
+	char* name;
+	if (argstr(0, &name) < 0) {
+		return -1;
+	}
+	acquire(&ptable.lock);
+	for (int i = 0; i < NPROC; i++) {
+		if (ptable.proc[i].state != UNUSED &&
+			strncmp(name, ptable.proc[i].name, sizeof(ptable.proc[i].name)) == 0) {
+			release(&ptable.lock);
+			return ptable.proc[i].pid;
+		}
+	}
+	release(&ptable.lock);
+	return 0;
+}

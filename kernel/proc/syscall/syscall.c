@@ -109,6 +109,11 @@ extern int sys_lseek(void);
 extern int sys_file_get_mode(void);
 extern int sys_dynamic_load(void);
 extern int sys_kcall(void);
+extern int sys_message_send(void);
+extern int sys_message_receive(void);
+extern int sys_message_wait(void);
+extern int sys_getppid(void);
+extern int sys_proc_search(void);
 
 static int (*syscalls[])(void) = {
 	[SYS_fork] = sys_fork,
@@ -140,6 +145,11 @@ static int (*syscalls[])(void) = {
 	[SYS_file_get_mode] = sys_file_get_mode,
 	[SYS_dynamic_load] = sys_dynamic_load,
 	[SYS_kcall] = sys_kcall,
+	[SYS_message_send] = sys_message_send,
+	[SYS_message_receive] = sys_message_receive,
+	[SYS_message_wait] = sys_message_wait,
+	[SYS_getppid] = sys_getppid,
+	[SYS_proc_search] = sys_proc_search,
 };
 
 void syscall(void) {

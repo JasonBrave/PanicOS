@@ -1,13 +1,18 @@
 #ifndef _DEFS_H
 #define _DEFS_H
 
+#include <common/sleeplock.h>
 #include <common/types.h>
 #include <core/mmu.h>
+#include <core/proc.h>
 
 struct context;
-struct proc;
-struct spinlock;
 struct FileDesc;
+
+extern struct ProcTable {
+	struct spinlock lock;
+	struct proc proc[NPROC];
+} ptable;
 
 // console.c
 void consoleinit(void);
@@ -77,6 +82,7 @@ void userinit(void);
 int wait(void);
 void wakeup(void*);
 void yield(void);
+struct proc* proc_search_pid(int pid);
 
 // swtch.S
 void swtch(struct context**, struct context*);
