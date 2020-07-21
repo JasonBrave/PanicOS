@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <libwm/protocol.h>
 #include <panicos.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -48,6 +49,7 @@ struct Window {
 
 struct Sheet {
 	int x, y, width, height;
+	int owner_pid;
 	COLOUR* buffer;
 	struct Window* window;
 	struct Sheet* next;
@@ -310,6 +312,110 @@ void mouse_button_event(unsigned char btn) {
 	}
 }
 
+void message_received(int pid, void* msg) {
+	if (*(int*)msg == WM_MESSAGE_CREATE_SHEET) { // create_sheet
+		struct MessageCreateSheet* message = msg;
+		struct Sheet* sheet_handle =
+			wm_create_sheet(message->x, message->y, message->width, message->height);
+		sheet_handle->owner_pid = pid;
+		struct MessageReturnHandle return_handle = {.msgtype = WM_MESSAGE_RETURN_HANDLE,
+													.handle = (int)sheet_handle};
+		message_send(pid, sizeof(return_handle), &return_handle);
+	} else if (*(int*)msg == WM_MESSAGE_FILL_SHEET) { // fill_sheet
+		struct MessageFillSheet* message = msg;
+		COLOUR colour = {.r = message->r, .g = message->g, .b = message->b};
+		struct Sheet* sheet = (struct Sheet*)message->sheet_id;
+		if (!sheet->window) {
+			wm_fill_buffer(sheet->buffer, 0, 0, sheet->width, sheet->height,
+						   sheet->width, colour);
+		} else {
+			wm_fill_buffer(sheet->window->buffer, 0, 0, sheet->window->width,
+						   sheet->window->height, sheet->window->width, colour);
+			if (!sheet->next) {
+				wm_render_window(sheet, dark_blue);
+			} else {
+				wm_render_window(sheet, gray);
+			}
+		}
+	} else if (*(int*)msg == WM_MESSAGE_PRINT_TEXT) { // print_text
+		struct MessagePrintText* message = msg;
+		COLOUR colour = {.r = message->r, .g = message->g, .b = message->b};
+		struct Sheet* sheet = (struct Sheet*)message->sheet_id;
+		if (!sheet->window) {
+			wm_print_string(sheet->buffer, message->text, message->x, message->y,
+							sheet->width, colour);
+		} else {
+			wm_print_string(sheet->window->buffer, message->text, message->x,
+							message->y, sheet->window->width, colour);
+			if (!sheet->next) {
+				wm_render_window(sheet, dark_blue);
+			} else {
+				wm_render_window(sheet, gray);
+			}
+		}
+	} else if (*(int*)msg == WM_MESSAGE_CREATE_WINDOW) { // create_window
+		struct MessageCreateWindow* message = msg;
+		struct Sheet* sheet_handle =
+			wm_create_window(message->width, message->height, 200, 200);
+		sheet_handle->owner_pid = pid;
+		struct MessageReturnHandle return_handle = {.msgtype = WM_MESSAGE_RETURN_HANDLE,
+													.handle = (int)sheet_handle};
+		message_send(pid, sizeof(return_handle), &return_handle);
+	} else if (*(int*)msg == WM_MESSAGE_WINDOW_SET_TITLE) { // window_set_title
+		struct MessageWindowSetTitle* message = msg;
+		wm_window_set_title((struct Sheet*)message->sheet_id, message->title);
+	} else if (*(int*)msg == WM_MESSAGE_REMOVE_SHEET) { // window_remove_sheet
+		struct MessageWindowSetTitle* message = msg;
+		struct Sheet* sheet = (struct Sheet*)message->sheet_id;
+		if (sheet->window) {
+			window_remove(sheet);
+		} else {
+			sheet_remove(sheet);
+		}
+
+	} else if (*(int*)msg == WM_MESSAGE_DRAW_RECT) { // window_draw_rect
+		struct MessageDrawRect* message = msg;
+		struct Sheet* sheet = (struct Sheet*)message->sheet_id;
+		COLOUR colour = {.r = message->r, .g = message->g, .b = message->b};
+		if (!sheet->window) {
+			wm_fill_buffer(sheet->buffer, message->x, message->y, message->w,
+						   message->h, sheet->width, colour);
+		} else {
+			wm_fill_buffer(sheet->window->buffer, message->x, message->y, message->w,
+						   message->h, sheet->window->width, colour);
+			if (!sheet->next) {
+				wm_render_window(sheet, dark_blue);
+			} else {
+				wm_render_window(sheet, gray);
+			}
+		}
+	} else if (*(int*)msg == WM_MESSAGE_DRAW_BUFFER) {
+		struct MessageDrawBuffer* message = msg;
+		struct Sheet* sheet = (struct Sheet*)message->sheet_id;
+		if (!sheet->window) {
+			wm_copy_buffer(sheet->buffer, message->x, message->y, sheet->width,
+						   (void*)message->buffer, 0, 0, message->w, message->w,
+						   message->h);
+		} else {
+			wm_copy_buffer(sheet->window->buffer, message->x, message->y,
+						   sheet->window->width, (void*)message->buffer, 0, 0,
+						   message->w, message->w, message->h);
+			if (!sheet->next) {
+				wm_render_window(sheet, dark_blue);
+			} else {
+				wm_render_window(sheet, gray);
+			}
+		}
+	} else {
+		printf("Unknown message %d from pid %d\n", *(int*)msg, pid);
+	}
+	struct Sheet* todraw = sheet_list;
+	while (todraw) {
+		wm_draw_sheet(todraw);
+		todraw = todraw->next;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	if (argc == 1) {
 		xres = DEFAULT_XRES;
@@ -331,20 +437,14 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	struct Sheet* win_a = wm_create_window(300, 300, 100, 200);
-	wm_print_string(win_a->window->buffer, "Window A", 10, 10, 300, green);
-	wm_window_set_title(win_a, "Window A");
-	struct Sheet* win_b = wm_create_window(250, 400, 500, 200);
-	wm_print_string(win_b->window->buffer, "Window B", 10, 10, 250, green);
-	wm_window_set_title(win_b, "Window B");
-	// draw sheets
-	struct Sheet* sht = sheet_list;
-	while (sht) {
-		wm_draw_sheet(sht);
-		sht = sht->next;
-	}
+	char* msg = malloc(1024 * 4096); // 4MiB byte buffer
 	// main loop
 	for (;;) {
+		int pid;
+		if ((pid = message_receive(msg)) != 0) {
+			message_received(pid, msg);
+		}
+
 		int m;
 		kcall("mouse", (unsigned int)&m);
 		if (!m) {

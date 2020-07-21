@@ -4,6 +4,7 @@ all:
 	$(MAKE) -C libc install
 	$(MAKE) -C libcpu install
 	$(MAKE) -C ld install
+	$(MAKE) -C libwm install
 	cp *.so ../rootfs/lib
 	cp *.a ../rootfs/devel/lib
 	cp crt/*.o ../rootfs/devel/lib
@@ -15,4 +16,5 @@ clean:
 	$(MAKE) -C libc clean
 	$(MAKE) -C libcpu clean
 	$(MAKE) -C ld clean
+	$(MAKE) -C libwm clean
 	rm -f *.a *.so
