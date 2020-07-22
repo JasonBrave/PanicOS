@@ -5,6 +5,7 @@ all:
 	$(MAKE) -C cat install
 	$(MAKE) -C lscpu install
 	$(MAKE) -C wm install
+	$(MAKE) -C desktop install
 
 .PHONY: clean
 clean:
@@ -14,3 +15,4 @@ clean:
 	$(MAKE) -C cat clean
 	$(MAKE) -C lscpu clean
 	$(MAKE) -C wm clean
+	$(MAKE) -C desktop clean
