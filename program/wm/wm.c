@@ -306,9 +306,48 @@ void mouse_button_event(unsigned char btn) {
 			if (sht->window) {
 				window_onclick(sht, btn);
 			}
+			// mouse button event message
+			struct MessageMouseButtonEvent msg;
+			msg.msgtype = WM_MESSAGE_MOUSE_BUTTON_EVENT;
+			msg.sheet_id = (int)sht;
+			msg.x = cur_x - sht->x;
+			if (sht->window) {
+				if (cur_y < sht->y + 32) {
+					return;
+				}
+				msg.y = cur_y - sht->y - 32;
+			} else {
+				msg.y = cur_y - sht->y;
+			}
+			msg.button = btn;
+			message_send(sht->owner_pid, sizeof(msg), &msg);
+
 			return;
 		}
 		sht = sht->next;
+	}
+}
+
+void keyboard_event(unsigned int keycode) {
+	struct MessageKeyboardEvent event = {.msgtype = WM_MESSAGE_KEYBOARD_EVENT};
+	event.keycode = keycode & 0xff;
+	if (keycode & 0x100) {
+		event.event = 1;
+	} else {
+		event.event = 0;
+	}
+	event.sheet_id = 0;
+	message_send(getppid(), sizeof(event), &event);
+	struct Sheet *wnd = NULL, *sht = sheet_list;
+	while (sht) {
+		if (sht->window) {
+			wnd = sht;
+		}
+		sht = sht->next;
+	}
+	if (wnd) {
+		event.sheet_id = (int)wnd;
+		message_send(wnd->owner_pid, sizeof(event), &event);
 	}
 }
 
@@ -444,7 +483,13 @@ int main(int argc, char* argv[]) {
 		if ((pid = message_receive(msg)) != 0) {
 			message_received(pid, msg);
 		}
-
+		// keyboard
+		unsigned int kbd;
+		kcall("keyboard", (unsigned int)&kbd);
+		if (kbd != 0x0 && kbd != 0x100) {
+			keyboard_event(kbd);
+		}
+		// mouse
 		int m;
 		kcall("mouse", (unsigned int)&m);
 		if (!m) {

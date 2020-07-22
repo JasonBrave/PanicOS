@@ -47,6 +47,7 @@ void print_memory_usage(void);
 
 // kbd.c
 void kbdintr(void);
+void kbdinit(void);
 
 // lapic.c
 int lapicid(void);

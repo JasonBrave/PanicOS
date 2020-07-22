@@ -83,11 +83,25 @@ struct MessageDrawBuffer {
 
 enum WmUserMessageType {
 	WM_MESSAGE_RETURN_HANDLE,
+	WM_MESSAGE_KEYBOARD_EVENT,
+	WM_MESSAGE_MOUSE_BUTTON_EVENT,
 };
 
 struct MessageReturnHandle {
 	enum WmUserMessageType msgtype;
 	int handle;
+};
+
+struct MessageKeyboardEvent {
+	enum WmUserMessageType msgtype;
+	int sheet_id, keycode, event;
+};
+
+struct MessageMouseButtonEvent {
+	enum WmUserMessageType msgtype;
+	int sheet_id;
+	int x, y;
+	int button;
 };
 
 #endif

@@ -93,6 +93,100 @@ void wm_window_set_title(int handle, const char* title) {
 	message_send(wm_pid, sizeof(msg), &msg);
 }
 
+int wm_wait_event(struct WmEvent* event) {
+	char buf[256];
+	if (!message_wait(buf)) {
+		return 0;
+	}
+	if (*(int*)buf == WM_MESSAGE_KEYBOARD_EVENT) {
+		struct MessageKeyboardEvent* msg = (struct MessageKeyboardEvent*)buf;
+		if (msg->event) {
+			event->event_type = WM_EVENT_KEY_UP;
+		} else {
+			event->event_type = WM_EVENT_KEY_DOWN;
+		}
+		event->handle = msg->sheet_id;
+		event->keycode = msg->keycode;
+		return 1;
+	} else if (*(int*)buf == WM_MESSAGE_MOUSE_BUTTON_EVENT) {
+		static int prevbtn = 0;
+		struct MessageMouseButtonEvent* msg = (struct MessageMouseButtonEvent*)buf;
+		if (!(prevbtn & 1) && (msg->button & 1)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
+			event->keycode = WM_MOUSE_LEFT;
+		} else if ((prevbtn & 1) && !(msg->button & 1)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_UP;
+			event->keycode = WM_MOUSE_LEFT;
+		} else if (!(prevbtn & 2) && (msg->button & 2)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
+			event->keycode = WM_MOUSE_RIGHT;
+		} else if ((prevbtn & 2) && !(msg->button & 2)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_UP;
+			event->keycode = WM_MOUSE_RIGHT;
+		} else if (!(prevbtn & 4) && (msg->button & 4)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
+			event->keycode = WM_MOUSE_MIDDLE;
+		} else if ((prevbtn & 4) && !(msg->button & 4)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_UP;
+			event->keycode = WM_MOUSE_MIDDLE;
+		}
+		prevbtn = msg->button;
+		event->handle = msg->sheet_id;
+		event->x = msg->x;
+		event->y = msg->y;
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+int wm_catch_event(struct WmEvent* event) {
+	char buf[256];
+	if (!message_receive(buf)) {
+		return 0;
+	}
+	if (*(int*)buf == WM_MESSAGE_KEYBOARD_EVENT) {
+		struct MessageKeyboardEvent* msg = (struct MessageKeyboardEvent*)buf;
+		if (msg->event) {
+			event->event_type = WM_EVENT_KEY_UP;
+		} else {
+			event->event_type = WM_EVENT_KEY_DOWN;
+		}
+		event->handle = msg->sheet_id;
+		event->keycode = msg->keycode;
+		return 1;
+	} else if (*(int*)buf == WM_MESSAGE_MOUSE_BUTTON_EVENT) {
+		static int prevbtn = 0;
+		struct MessageMouseButtonEvent* msg = (struct MessageMouseButtonEvent*)buf;
+		if (!(prevbtn & 1) && (msg->button & 1)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
+			event->keycode = WM_MOUSE_LEFT;
+		} else if ((prevbtn & 1) && !(msg->button & 1)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_UP;
+			event->keycode = WM_MOUSE_LEFT;
+		} else if (!(prevbtn & 2) && (msg->button & 2)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
+			event->keycode = WM_MOUSE_RIGHT;
+		} else if ((prevbtn & 2) && !(msg->button & 2)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_UP;
+			event->keycode = WM_MOUSE_RIGHT;
+		} else if (!(prevbtn & 4) && (msg->button & 4)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
+			event->keycode = WM_MOUSE_MIDDLE;
+		} else if ((prevbtn & 4) && !(msg->button & 4)) {
+			event->event_type = WM_EVENT_MOUSE_BUTTON_UP;
+			event->keycode = WM_MOUSE_MIDDLE;
+		}
+		prevbtn = msg->button;
+		event->handle = msg->sheet_id;
+		event->x = msg->x;
+		event->y = msg->y;
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 void wm_remove_sheet(int handle) {
 	struct MessageRemoveSheet msg;
 	msg.msgtype = WM_MESSAGE_REMOVE_SHEET;

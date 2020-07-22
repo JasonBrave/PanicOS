@@ -20,6 +20,30 @@
 #include <common/x86.h>
 #include <core/kbd.h>
 #include <defs.h>
+#include <proc/kcall.h>
+
+#include "ps2-keyboard-map.h"
+
+static unsigned int kbddata = 0;
+
+static unsigned int kbd_scan_to_keycode(unsigned int data) {
+	unsigned int keycode = 0;
+	int rel;
+	if (data & 0x80) {
+		rel = 1;
+		data = data & 0x7f;
+	} else {
+		rel = 0;
+	}
+
+	keycode = ps2_keyboard_map[data];
+
+	if (rel) {
+		return keycode | 0x100;
+	} else {
+		return keycode;
+	}
+}
 
 int kbdgetc(void) {
 	static unsigned int shift;
@@ -30,6 +54,7 @@ int kbdgetc(void) {
 	if ((st & KBS_DIB) == 0)
 		return -1;
 	data = inb(KBDATAP);
+	kbddata = kbd_scan_to_keycode(data);
 
 	if (data == 0xE0) {
 		shift |= E0ESC;
@@ -59,4 +84,16 @@ int kbdgetc(void) {
 
 void kbdintr(void) {
 	consoleintr(kbdgetc);
+}
+
+int kbd_kcall_handler(unsigned int ptr) {
+	unsigned int* k = (unsigned int*)ptr;
+	*k = kbddata;
+	kbddata = 0;
+	return 0;
+}
+
+void kbdinit(void) {
+	cprintf("[kbd] Keyboard found\n");
+	kcall_set("keyboard", kbd_kcall_handler);
 }

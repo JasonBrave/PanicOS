@@ -71,6 +71,7 @@ int main(void) {
 	edu_init();
 	hal_block_init();
 	vfs_init();
+	kbdinit();
 	ps2_mouse_init();
 	hal_display_init();
 	userinit(); // first user process
