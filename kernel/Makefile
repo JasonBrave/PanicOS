@@ -3,7 +3,6 @@ OBJS = \
 	proc/exec/exec.o\
 	core/ioapic.o\
 	core/kalloc.o\
-	core/kbd.o\
 	core/lapic.o\
 	core/main.o\
 	core/mp.o\
@@ -42,6 +41,7 @@ OBJS = \
 	driver/bochs-display/bochs-display.o\
 	hal/display.o\
 	driver/ps2/mouse.o\
+	driver/ps2/keyboard.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

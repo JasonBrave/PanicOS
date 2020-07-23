@@ -69,11 +69,11 @@ int main(void) {
 	kcall_init();
 	pci_init();
 	edu_init();
-	hal_block_init();
-	vfs_init();
-	kbdinit();
+	ps2_keyboard_init();
 	ps2_mouse_init();
 	hal_display_init();
+	hal_block_init();
+	vfs_init();
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
 }

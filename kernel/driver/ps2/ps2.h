@@ -1,9 +1,6 @@
 #ifndef _DRIVER_PS2_H
 #define _DRIVER_PS2_H
 
-void ps2_mouse_init(void);
-void ps2_mouse_intr(void);
-
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
 #define PS2_COMMAND_PORT 0x64
@@ -27,5 +24,13 @@ enum PS2MouseType {
 	PS2_MOUSE_WITH_WHEEL,
 	PS2_MOUSE_WITHOUT_WHEEL,
 };
+
+// mouse.c
+void ps2_mouse_init(void);
+void ps2_mouse_intr(void);
+
+// keyboard.c
+void ps2_keyboard_init(void);
+void ps2_keyboard_intr(void);
 
 #endif

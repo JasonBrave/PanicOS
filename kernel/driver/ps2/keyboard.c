@@ -18,13 +18,15 @@
  */
 
 #include <common/x86.h>
-#include <core/kbd.h>
 #include <defs.h>
 #include <proc/kcall.h>
 
+#include "kbd.h"
 #include "ps2-keyboard-map.h"
+#include "ps2.h"
 
-static unsigned int kbddata = 0;
+static unsigned int rawkbddata = 0;
+static int sendto_console = 1;
 
 static unsigned int kbd_scan_to_keycode(unsigned int data) {
 	unsigned int keycode = 0;
@@ -45,16 +47,31 @@ static unsigned int kbd_scan_to_keycode(unsigned int data) {
 	}
 }
 
-int kbdgetc(void) {
+static int kbd_kcall_handler(unsigned int ptr) {
+	sendto_console = 0;
+	unsigned int* k = (unsigned int*)ptr;
+	*k = kbd_scan_to_keycode(rawkbddata);
+	rawkbddata = 0;
+	return 0;
+}
+
+void ps2_keyboard_init(void) {
+	cprintf("[ps2] PS/2 Keyboard found\n");
+	kcall_set("keyboard", kbd_kcall_handler);
+	ioapicenable(1, 0);
+}
+
+static int kbd_getc(void) {
 	static unsigned int shift;
 	static unsigned char* charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
-	unsigned int st, data, c;
+	unsigned int data, c;
 
-	st = inb(KBSTATP);
-	if ((st & KBS_DIB) == 0)
+	if (rawkbddata == 0) {
 		return -1;
-	data = inb(KBDATAP);
-	kbddata = kbd_scan_to_keycode(data);
+	}
+
+	data = rawkbddata;
+	rawkbddata = 0;
 
 	if (data == 0xE0) {
 		shift |= E0ESC;
@@ -82,18 +99,13 @@ int kbdgetc(void) {
 	return c;
 }
 
-void kbdintr(void) {
-	consoleintr(kbdgetc);
-}
-
-int kbd_kcall_handler(unsigned int ptr) {
-	unsigned int* k = (unsigned int*)ptr;
-	*k = kbddata;
-	kbddata = 0;
-	return 0;
-}
-
-void kbdinit(void) {
-	cprintf("[kbd] Keyboard found\n");
-	kcall_set("keyboard", kbd_kcall_handler);
+void ps2_keyboard_intr(void) {
+	int stat = inb(PS2_STATUS_PORT);
+	if ((stat & 1) == 0) {
+		return;
+	}
+	rawkbddata = inb(PS2_DATA_PORT);
+	if (sendto_console) {
+		consoleintr(kbd_getc);
+	}
 }

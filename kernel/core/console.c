@@ -284,8 +284,5 @@ int consolewrite(char* buf, int n) {
 
 void consoleinit(void) {
 	initlock(&cons.lock, "console");
-
 	cons.locking = 1;
-
-	ioapicenable(IRQ_KBD, 0);
 }
