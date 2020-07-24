@@ -48,6 +48,7 @@ void pci_init(void) {
 							pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS),
 							pci_read_config_reg8(&addr, PCI_CONF_PROGIF));
 				} else {
+					uint8_t intr_line = pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE);
 					cprintf("[pci] bus %d device %d func %d %x:%x class %x "
 							"subclass %x progif %x %s %d\n",
 							addr.bus, addr.device, addr.function, vendor,
@@ -55,9 +56,10 @@ void pci_init(void) {
 							pci_read_config_reg8(&addr, PCI_CONF_CLASS),
 							pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS),
 							pci_read_config_reg8(&addr, PCI_CONF_PROGIF),
-							pci_intx_name[intr_pin],
-							pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE));
-					pci_add_irq(pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE), &addr);
+							pci_intx_name[intr_pin], intr_line);
+					if ((intr_line == 10) || (intr_line == 11)) {
+						pci_add_irq(intr_line, &addr);
+					}
 				}
 			}
 		}
@@ -68,44 +70,50 @@ void pci_init(void) {
 }
 
 uint8_t pci_read_config_reg8(const struct PciAddress* addr, int reg) {
-	outdw(PCI_IO_CONFADD,
-		  addr->bus << PCI_IO_CONF_BUSNUM | addr->device << PCI_IO_CONF_DEVNUM |
-			  addr->function << PCI_IO_CONF_FUNCNUM | reg | 1 << PCI_IO_CONF_CONE);
-	return inb(PCI_IO_CONFDATA);
+	outdw(PCI_IO_CONFADD, addr->bus << PCI_IO_CONF_BUSNUM |
+							  addr->device << PCI_IO_CONF_DEVNUM |
+							  addr->function << PCI_IO_CONF_FUNCNUM | (reg & 0xfc) |
+							  1 << PCI_IO_CONF_CONE);
+	return inb(PCI_IO_CONFDATA + reg % 4);
 }
 
 uint16_t pci_read_config_reg16(const struct PciAddress* addr, int reg) {
-	outdw(PCI_IO_CONFADD,
-		  addr->bus << PCI_IO_CONF_BUSNUM | addr->device << PCI_IO_CONF_DEVNUM |
-			  addr->function << PCI_IO_CONF_FUNCNUM | reg | 1 << PCI_IO_CONF_CONE);
-	return inw(PCI_IO_CONFDATA);
+	outdw(PCI_IO_CONFADD, addr->bus << PCI_IO_CONF_BUSNUM |
+							  addr->device << PCI_IO_CONF_DEVNUM |
+							  addr->function << PCI_IO_CONF_FUNCNUM | (reg & 0xfc) |
+							  1 << PCI_IO_CONF_CONE);
+	return inw(PCI_IO_CONFDATA + reg % 4);
 }
 
 uint32_t pci_read_config_reg32(const struct PciAddress* addr, int reg) {
-	outdw(PCI_IO_CONFADD,
-		  addr->bus << PCI_IO_CONF_BUSNUM | addr->device << PCI_IO_CONF_DEVNUM |
-			  addr->function << PCI_IO_CONF_FUNCNUM | reg | 1 << PCI_IO_CONF_CONE);
+	outdw(PCI_IO_CONFADD, addr->bus << PCI_IO_CONF_BUSNUM |
+							  addr->device << PCI_IO_CONF_DEVNUM |
+							  addr->function << PCI_IO_CONF_FUNCNUM | (reg & 0xfc) |
+							  1 << PCI_IO_CONF_CONE);
 	return indw(PCI_IO_CONFDATA);
 }
 
 void pci_write_config_reg8(const struct PciAddress* addr, int reg, uint8_t data) {
-	outdw(PCI_IO_CONFADD,
-		  addr->bus << PCI_IO_CONF_BUSNUM | addr->device << PCI_IO_CONF_DEVNUM |
-			  addr->function << PCI_IO_CONF_FUNCNUM | reg | 1 << PCI_IO_CONF_CONE);
-	outb(PCI_IO_CONFDATA, data);
+	outdw(PCI_IO_CONFADD, addr->bus << PCI_IO_CONF_BUSNUM |
+							  addr->device << PCI_IO_CONF_DEVNUM |
+							  addr->function << PCI_IO_CONF_FUNCNUM | (reg & 0xfc) |
+							  1 << PCI_IO_CONF_CONE);
+	outb(PCI_IO_CONFDATA + reg % 4, data);
 }
 
 void pci_write_config_reg16(const struct PciAddress* addr, int reg, uint16_t data) {
-	outdw(PCI_IO_CONFADD,
-		  addr->bus << PCI_IO_CONF_BUSNUM | addr->device << PCI_IO_CONF_DEVNUM |
-			  addr->function << PCI_IO_CONF_FUNCNUM | reg | 1 << PCI_IO_CONF_CONE);
-	outw(PCI_IO_CONFDATA, data);
+	outdw(PCI_IO_CONFADD, addr->bus << PCI_IO_CONF_BUSNUM |
+							  addr->device << PCI_IO_CONF_DEVNUM |
+							  addr->function << PCI_IO_CONF_FUNCNUM | (reg & 0xfc) |
+							  1 << PCI_IO_CONF_CONE);
+	outw(PCI_IO_CONFDATA + reg % 4, data);
 }
 
 void pci_write_config_reg32(const struct PciAddress* addr, int reg, uint32_t data) {
-	outdw(PCI_IO_CONFADD,
-		  addr->bus << PCI_IO_CONF_BUSNUM | addr->device << PCI_IO_CONF_DEVNUM |
-			  addr->function << PCI_IO_CONF_FUNCNUM | reg | 1 << PCI_IO_CONF_CONE);
+	outdw(PCI_IO_CONFADD, addr->bus << PCI_IO_CONF_BUSNUM |
+							  addr->device << PCI_IO_CONF_DEVNUM |
+							  addr->function << PCI_IO_CONF_FUNCNUM | (reg & 0xfc) |
+							  1 << PCI_IO_CONF_CONE);
 	outdw(PCI_IO_CONFDATA, data);
 }
 
