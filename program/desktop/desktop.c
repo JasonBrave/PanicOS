@@ -23,6 +23,44 @@
 #include <stdlib.h>
 #include <string.h>
 
+// dirent.h
+typedef struct {
+	int fd;
+} DIR;
+
+struct dirent {
+	char d_name[256];
+};
+
+static DIR* opendir(const char* dirname) {
+	DIR* dir = malloc(sizeof(DIR));
+	if (!dir) {
+		return NULL;
+	}
+	dir->fd = dir_open(dirname);
+	if (dir->fd < 0) {
+		free(dir);
+		return NULL;
+	}
+	return dir;
+}
+
+static struct dirent* readdir(DIR* dirp) {
+	static struct dirent dire;
+	if (!dir_read(dirp->fd, dire.d_name)) {
+		return 0;
+	}
+	return &dire;
+}
+
+static int closedir(DIR* dirp) {
+	close(dirp->fd);
+	free(dirp);
+	return 0;
+}
+
+// end of dirent.h
+
 #define DEFAULT_XRES 1024
 #define DEFAULT_YRES 768
 
@@ -64,16 +102,49 @@ int main(int argc, char* argv[]) {
 	int window = wm_create_window(200, 500);
 	wm_window_set_title(window, "Files");
 
+	DIR* dir = opendir("/bin");
+	struct dirent* diren;
+	int filename_y = 2;
+	while ((diren = readdir(dir)) != NULL) {
+		char fullname[32] = "/bin/";
+		strcat(fullname, diren->d_name);
+		if (file_get_mode(fullname) & 0040000) {
+			continue;
+		}
+		wm_print_text(window, 2, filename_y, blue, diren->d_name);
+		filename_y += 20;
+	}
+	closedir(dir);
+
 	// event loop
 	struct WmEvent event;
 	int event_catched = 0;
-	for (;;) {
+	while (1) {
 		event_catched = wm_wait_event(&event);
+
 		if (event_catched && event.handle == window &&
 			event.event_type == WM_EVENT_MOUSE_BUTTON_DOWN) {
-			puts("clicked");
-		} else if (event_catched) {
-			puts("other event");
+			DIR* fmdir = opendir("/bin");
+			struct dirent* file;
+			int cnt = 0;
+			while ((file = readdir(fmdir)) != NULL) {
+				char fullname[32] = "/bin/";
+				strcat(fullname, file->d_name);
+				if (file_get_mode(fullname) & 0040000) {
+					continue;
+				}
+				if (event.y / 20 == cnt) {
+					int childpid = fork();
+					if (childpid == 0) {
+						char* args[] = {file->d_name, 0};
+						exec(fullname, args);
+						abort();
+					}
+					break;
+				}
+				cnt++;
+			}
+			closedir(fmdir);
 		}
 	}
 	fputs("Window Manager exited\n", stderr);
