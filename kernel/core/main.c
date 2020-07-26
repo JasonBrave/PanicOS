@@ -31,6 +31,7 @@
 #include <memlayout.h>
 #include <param.h>
 #include <proc/kcall.h>
+#include <proc/pty.h>
 
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
@@ -74,6 +75,7 @@ int main(void) {
 	hal_display_init();
 	hal_block_init();
 	vfs_init();
+	pty_init();
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
 }

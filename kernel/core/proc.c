@@ -124,6 +124,7 @@ found:
 	// empty file table
 	memset(p->files, 0, sizeof(p->files));
 	p->dyn_base = PROC_DYNAMIC_BOTTOM;
+	p->pty = 0;
 	// empty the message queue
 	p->msgqueue.begin = 0;
 	p->msgqueue.end = 0;
@@ -245,6 +246,7 @@ int fork(void) {
 	np->stack_size = curproc->stack_size;
 	np->heap_size = curproc->heap_size;
 	np->dyn_base = curproc->dyn_base;
+	np->pty = curproc->pty;
 	np->parent = curproc;
 	*np->tf = *curproc->tf;
 

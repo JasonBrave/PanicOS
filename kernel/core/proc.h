@@ -93,6 +93,7 @@ struct proc {
 	struct VfsPath cwd; // working directory
 	unsigned int dyn_base; // dynamic library load base
 	struct MessageQueue msgqueue; // message queue
+	int pty; // Pseudoterminal
 };
 
 #endif

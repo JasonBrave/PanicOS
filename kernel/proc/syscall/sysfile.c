@@ -24,6 +24,7 @@
 #include <filesystem/initramfs/initramfs.h>
 #include <memlayout.h>
 #include <param.h>
+#include <proc/pty.h>
 
 int sys_dup(void) {
 	return 0;
@@ -35,8 +36,13 @@ int sys_read(void) {
 
 	if (argint(0, &fd) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
 		return -1;
-	if (fd < 3)
-		return consoleread(p, n);
+	if (fd < 3) {
+		if (myproc()->pty == 0) {
+			return consoleread(p, n);
+		} else {
+			return pty_read(myproc()->pty - 1, p, n);
+		}
+	}
 	return vfs_fd_read(&myproc()->files[fd], p, n);
 }
 
@@ -46,8 +52,14 @@ int sys_write(void) {
 
 	if (argint(0, &fd) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
 		return -1;
-	if (fd < 3)
-		return consolewrite(p, n);
+	if (fd < 3) {
+		if (myproc()->pty == 0) {
+			return consolewrite(p, n);
+		} else {
+			return pty_write(myproc()->pty - 1, p, n);
+		}
+	}
+
 	return 0;
 }
 

@@ -114,6 +114,11 @@ extern int sys_message_receive(void);
 extern int sys_message_wait(void);
 extern int sys_getppid(void);
 extern int sys_proc_search(void);
+extern int sys_pty_create(void);
+extern int sys_pty_read_output(void);
+extern int sys_pty_write_input(void);
+extern int sys_pty_close(void);
+extern int sys_pty_switch(void);
 
 static int (*syscalls[])(void) = {
 	[SYS_fork] = sys_fork,
@@ -150,6 +155,11 @@ static int (*syscalls[])(void) = {
 	[SYS_message_wait] = sys_message_wait,
 	[SYS_getppid] = sys_getppid,
 	[SYS_proc_search] = sys_proc_search,
+	[SYS_pty_create] = sys_pty_create,
+	[SYS_pty_read_output] = sys_pty_read_output,
+	[SYS_pty_write_input] = sys_pty_write_input,
+	[SYS_pty_close] = sys_pty_close,
+	[SYS_pty_switch] = sys_pty_switch,
 };
 
 void syscall(void) {

@@ -26,6 +26,7 @@
 #include <memlayout.h>
 #include <param.h>
 #include <proc/kcall.h>
+#include <proc/pty.h>
 
 int sys_fork(void) {
 	return fork();
@@ -264,5 +265,44 @@ int sys_proc_search(void) {
 		}
 	}
 	release(&ptable.lock);
+	return 0;
+}
+
+int sys_pty_create(void) {
+	return pty_create() + 1;
+}
+
+int sys_pty_read_output(void) {
+	int ptyid, n;
+	char* buf;
+	if ((argint(0, &ptyid) < 0) || (argint(2, &n) < 0) || (argptr(1, &buf, n) < 0)) {
+		return -1;
+	}
+	return pty_read_output(ptyid - 1, buf, n);
+}
+
+int sys_pty_write_input(void) {
+	int ptyid, n;
+	char* buf;
+	if ((argint(0, &ptyid) < 0) || (argint(2, &n) < 0) || (argptr(1, &buf, n) < 0)) {
+		return -1;
+	}
+	return pty_write_input(ptyid - 1, buf, n);
+}
+
+int sys_pty_close(void) {
+	int ptyid;
+	if (argint(0, &ptyid) < 0) {
+		return -1;
+	}
+	return pty_close(ptyid - 1);
+}
+
+int sys_pty_switch(void) {
+	int ptyid;
+	if (argint(0, &ptyid) < 0) {
+		return -1;
+	}
+	myproc()->pty = ptyid;
 	return 0;
 }

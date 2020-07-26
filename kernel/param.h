@@ -15,6 +15,7 @@
 #define NBUF (MAXOPBLOCKS * 3) // size of disk block cache
 #define FSSIZE 1000 // size of file system in blocks
 #define PROC_FILE_MAX 8 // maxium number of file for a process
+#define PTY_MAX 8//maxnum number of Pseudo Terminal
 
 #define PROC_STACK_BOTTOM 0x20000000 // bottom of stack in user space
 #define PROC_HEAP_BOTTOM 0x20000000 // bottom of process heap

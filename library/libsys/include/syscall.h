@@ -54,5 +54,10 @@
 #define SYS_message_wait 32
 #define SYS_getppid 33
 #define SYS_proc_search 34
+#define SYS_pty_create 35
+#define SYS_pty_read_output 36
+#define SYS_pty_write_input 37
+#define SYS_pty_close 38
+#define SYS_pty_switch 39
 
 #endif

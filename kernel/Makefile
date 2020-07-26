@@ -42,6 +42,7 @@ OBJS = \
 	hal/display.o\
 	driver/ps2/mouse.o\
 	driver/ps2/keyboard.o\
+	proc/pty.o\
 
 CFLAGS += -I.
 ASFLAGS += -I.

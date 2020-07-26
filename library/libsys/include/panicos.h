@@ -28,7 +28,7 @@ int write(int, const void*, int);
 int read(int, void*, int);
 int close(int);
 int kill(int);
-int exec(char*, char**);
+int exec(const char*, const char**);
 int open(const char*, int);
 int mknod(const char*, short, short);
 int unlink(const char*);
@@ -54,6 +54,11 @@ int message_receive(void* data);
 int message_wait(void* data);
 int getppid(void);
 int proc_search(const char* name);
+int pty_create(void);
+int pty_read_output(int pty, char* buffer, int size);
+int pty_write_input(int pty, const char* buffer, int size);
+int pty_close(int pty);
+int pty_switch(int pty);
 
 enum OpenMode {
 	O_READ = 1,
