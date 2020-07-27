@@ -149,6 +149,11 @@ int wm_wait_event(struct WmEvent* event) {
 		event->x = msg->x;
 		event->y = msg->y;
 		return 1;
+	} else if (*(int*)buf == WM_MESSAGE_WINDOW_CLOSE_EVENT) {
+		struct MessageWindowCloseEvent* msg = (struct MessageWindowCloseEvent*)buf;
+		event->event_type = WM_EVENT_WINDOW_CLOSE;
+		event->handle = msg->sheet_id;
+		return 1;
 	} else {
 		return 0;
 	}
@@ -195,6 +200,11 @@ int wm_catch_event(struct WmEvent* event) {
 		event->handle = msg->sheet_id;
 		event->x = msg->x;
 		event->y = msg->y;
+		return 1;
+	} else if (*(int*)buf == WM_MESSAGE_WINDOW_CLOSE_EVENT) {
+		struct MessageWindowCloseEvent* msg = (struct MessageWindowCloseEvent*)buf;
+		event->event_type = WM_EVENT_WINDOW_CLOSE;
+		event->handle = msg->sheet_id;
 		return 1;
 	} else {
 		return 0;

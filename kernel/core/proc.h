@@ -94,6 +94,7 @@ struct proc {
 	unsigned int dyn_base; // dynamic library load base
 	struct MessageQueue msgqueue; // message queue
 	int pty; // Pseudoterminal
+	int exit_status;
 };
 
 #endif

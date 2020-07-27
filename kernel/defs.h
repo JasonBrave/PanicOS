@@ -63,7 +63,8 @@ void picinit(void);
 
 // proc.c
 int cpuid(void);
-void exit(void);
+void proc_free(struct proc* p);
+void exit(int status);
 int fork(void);
 int growproc(int);
 int kill(int);

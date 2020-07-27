@@ -46,6 +46,18 @@ int cpuid() {
 	return mycpu() - cpus;
 }
 
+void proc_free(struct proc* p) {
+	kfree(p->kstack);
+	p->kstack = 0;
+	freevm(p->pgdir);
+	kfree(p->cwd.pathbuf);
+	p->pid = 0;
+	p->parent = 0;
+	p->name[0] = 0;
+	p->killed = 0;
+	p->state = UNUSED;
+}
+
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu* mycpu(void) {
@@ -274,13 +286,14 @@ int fork(void) {
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
-void exit(void) {
+void exit(int status) {
 	struct proc* curproc = myproc();
 	struct proc* p;
 
 	if (curproc == initproc)
 		panic("init exiting");
 
+	curproc->exit_status = status;
 	// Close all open files.
 	for (int i = 0; i < PROC_FILE_MAX; i++) {
 		if (curproc->files[i].used) {
@@ -330,15 +343,7 @@ int wait(void) {
 			if (p->state == ZOMBIE) {
 				// Found one.
 				pid = p->pid;
-				kfree(p->kstack);
-				p->kstack = 0;
-				freevm(p->pgdir);
-				kfree(p->cwd.pathbuf);
-				p->pid = 0;
-				p->parent = 0;
-				p->name[0] = 0;
-				p->killed = 0;
-				p->state = UNUSED;
+				proc_free(p);
 				// free message queue
 				acquire(&p->msgqueue.lock);
 				for (int msg = p->msgqueue.end; msg != p->msgqueue.begin; msg++) {

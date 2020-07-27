@@ -105,6 +105,10 @@ void ps2_keyboard_intr(void) {
 		return;
 	}
 	rawkbddata = inb(PS2_DATA_PORT);
+	if (rawkbddata == 0x45) { // numlock
+		procdump();
+		print_memory_usage();
+	}
 	if (sendto_console) {
 		consoleintr(kbd_getc);
 	}

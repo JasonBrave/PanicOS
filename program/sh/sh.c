@@ -176,6 +176,9 @@ int main(void) {
 			if (chdir(buf + 3) < 0)
 				printf("cannot cd %s\n", buf + 3);
 			continue;
+		} else if (buf[0] == 'e' && buf[1] == 'x' && buf[2] == 'i' && buf[3] == 't' &&
+				   buf[4] == '\n') {
+			exit(0);
 		}
 		if (fork1() == 0)
 			runcmd(parsecmd(buf));

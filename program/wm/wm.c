@@ -142,6 +142,7 @@ struct Sheet* wm_create_sheet(int x, int y, int width, int height) {
 	sht->width = width;
 	sht->height = height;
 	sht->window = NULL;
+	sht->owner_pid = 0;
 	sht->buffer = malloc(sizeof(COLOUR) * width * height);
 	// add to linked list
 	if (sheet_list == NULL) {
@@ -219,7 +220,13 @@ void sheet_remove(struct Sheet* to_remove) {
 	}
 }
 
-void window_remove(struct Sheet* to_remove) {
+void window_close(struct Sheet* to_remove) {
+	if (to_remove->owner_pid) {
+		struct MessageWindowCloseEvent msg;
+		msg.msgtype = WM_MESSAGE_WINDOW_CLOSE_EVENT;
+		msg.sheet_id = to_remove->owner_pid;
+		message_send(to_remove->owner_pid, sizeof(msg), &msg);
+	}
 	free(to_remove->window->buffer);
 	free(to_remove->window);
 	sheet_remove(to_remove);
@@ -266,7 +273,7 @@ void window_onclick(struct Sheet* sht, unsigned int btn) {
 		if (cur_x >= sht->x + sht->width - 28 && cur_x < sht->x + sht->width - 4 &&
 			cur_y >= sht->y + 4 && cur_y < sht->y + 28) {
 			// close button
-			window_remove(sht);
+			window_close(sht);
 		} else {
 			// start to move the window
 			win_moving = sht;
@@ -407,7 +414,7 @@ void message_received(int pid, void* msg) {
 		struct MessageWindowSetTitle* message = msg;
 		struct Sheet* sheet = (struct Sheet*)message->sheet_id;
 		if (sheet->window) {
-			window_remove(sheet);
+			window_close(sheet);
 		} else {
 			sheet_remove(sheet);
 		}

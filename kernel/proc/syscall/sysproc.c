@@ -33,7 +33,9 @@ int sys_fork(void) {
 }
 
 int sys_exit(void) {
-	exit();
+	int status;
+	argint(0, &status);
+	exit(status);
 	return 0; // not reached
 }
 
@@ -305,4 +307,34 @@ int sys_pty_switch(void) {
 	}
 	myproc()->pty = ptyid;
 	return 0;
+}
+
+enum ProcStatus {
+	PROC_RUNNING,
+	PROC_EXITED,
+	PROC_NOT_EXIST,
+};
+
+int sys_proc_status(void) {
+	int pid;
+	int* exit_status;
+	if (argint(0, &pid) < 0 || argptr(1, (char**)&exit_status, sizeof(int))) {
+		return -1;
+	}
+	struct proc* p = proc_search_pid(pid);
+	if (!p) {
+		return PROC_NOT_EXIST;
+	}
+	acquire(&ptable.lock);
+	if (p->state == RUNNING || p->state == RUNNABLE) {
+		release(&ptable.lock);
+		return PROC_RUNNING;
+	} else if (p->state == ZOMBIE) {
+		*exit_status = p->exit_status;
+		proc_free(p);
+		release(&ptable.lock);
+		return PROC_EXITED;
+	}
+	release(&ptable.lock);
+	return PROC_NOT_EXIST;
 }

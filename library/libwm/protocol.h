@@ -85,6 +85,7 @@ enum WmUserMessageType {
 	WM_MESSAGE_RETURN_HANDLE,
 	WM_MESSAGE_KEYBOARD_EVENT,
 	WM_MESSAGE_MOUSE_BUTTON_EVENT,
+	WM_MESSAGE_WINDOW_CLOSE_EVENT,
 };
 
 struct MessageReturnHandle {
@@ -102,6 +103,11 @@ struct MessageMouseButtonEvent {
 	int sheet_id;
 	int x, y;
 	int button;
+};
+
+struct MessageWindowCloseEvent {
+	enum WmUserMessageType msgtype;
+	int sheet_id;
 };
 
 #endif

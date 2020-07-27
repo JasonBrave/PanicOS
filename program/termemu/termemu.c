@@ -73,9 +73,17 @@ int main(int argc, char* argv[]) {
 		pty_switch(pty);
 		const char* args[] = {"sh", 0};
 		exec(prog, args);
+		abort();
 	}
 
 	for (;;) {
+		int sh_exit_status;
+		if (proc_status(sh_pid, &sh_exit_status) == PROC_EXITED) {
+			pty_close(pty);
+			wm_remove_sheet(term_handle);
+			exit(0);
+		}
+
 		int need_update = 0;
 		char buf[1024];
 		int n = pty_read_output(pty, buf, 1024);
@@ -115,9 +123,26 @@ int main(int argc, char* argv[]) {
 		}
 
 		struct WmEvent event;
-		if (wm_catch_event(&event) && event.event_type == WM_EVENT_KEY_DOWN) {
+		int event_cached = wm_catch_event(&event);
+		if (event_cached && event.event_type == WM_EVENT_KEY_DOWN) {
 			need_update = 1;
-			if (event.keycode == 13) { // enter
+			if (event.keycode >= 'A' && event.keycode <= 'Z') {
+				term_buffer[cur_y * x_chars + cur_x] = event.keycode + ('a' - 'A');
+				cur_x++;
+				inputbuf[inputptr] = event.keycode + ('a' - 'A');
+				inputptr++;
+			} else if (event.keycode == 8) { // backspace
+				if (inputptr) {
+					term_buffer[cur_y * x_chars + cur_x] = ' ';
+					cur_x--;
+					inputptr--;
+				}
+			} else if (event.keycode == 27) { // ESC
+				kill(sh_pid);
+				pty_close(pty);
+				wm_remove_sheet(term_handle);
+				exit(0);
+			} else if (event.keycode == 13) { // enter
 				inputbuf[inputptr] = '\n';
 				inputptr++;
 				pty_write_input(pty, inputbuf, inputptr);
@@ -133,13 +158,14 @@ int main(int argc, char* argv[]) {
 					memset(term_buffer + (y_chars - 1) * x_chars, ' ', x_chars);
 					cur_y--;
 				}
-			} else if (event.keycode >= 'A' && event.keycode <= 'Z') {
-				term_buffer[cur_y * x_chars + cur_x] = event.keycode + ('a' - 'A');
-				cur_x++;
-				inputbuf[inputptr] = event.keycode + ('a' - 'A');
-				inputptr++;
 			}
+		} else if (event_cached &&
+				   event.event_type == WM_EVENT_WINDOW_CLOSE) { // window closed
+			kill(sh_pid);
+			pty_close(pty);
+			exit(0);
 		}
+
 		term_buffer[cur_y * x_chars + cur_x] = '_';
 
 		if (need_update) {

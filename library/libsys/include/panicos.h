@@ -59,6 +59,7 @@ int pty_read_output(int pty, char* buffer, int size);
 int pty_write_input(int pty, const char* buffer, int size);
 int pty_close(int pty);
 int pty_switch(int pty);
+int proc_status(int pid, int* exit_status);
 
 enum OpenMode {
 	O_READ = 1,
@@ -72,6 +73,12 @@ enum FileSeekMode {
 	FILE_SEEK_SET,
 	FILE_SEEK_CUR,
 	FILE_SEEK_END,
+};
+
+enum ProcStatus {
+	PROC_RUNNING,
+	PROC_EXITED,
+	PROC_NOT_EXIST,
 };
 
 #endif

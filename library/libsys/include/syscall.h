@@ -59,5 +59,6 @@
 #define SYS_pty_write_input 37
 #define SYS_pty_close 38
 #define SYS_pty_switch 39
+#define SYS_proc_status 40
 
 #endif
