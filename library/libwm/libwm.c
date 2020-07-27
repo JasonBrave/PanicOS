@@ -72,6 +72,20 @@ void wm_print_text(int handle, int x, int y, COLOUR colour, const char* text) {
 	message_send(wm_pid, sizeof(msg), &msg);
 }
 
+void wm_print_text_n(int handle, int x, int y, COLOUR colour, const char* text, int n) {
+	struct MessagePrintText msg;
+	msg.msgtype = WM_MESSAGE_PRINT_TEXT;
+	msg.sheet_id = handle;
+	msg.x = x;
+	msg.y = y;
+	msg.r = colour.r;
+	msg.g = colour.g;
+	msg.b = colour.b;
+	memcpy(msg.text, text, n);
+	msg.text[n] = '\0';
+	message_send(wm_pid, sizeof(msg), &msg);
+}
+
 int wm_create_window(int width, int height) {
 	struct MessageCreateWindow msg;
 	msg.msgtype = WM_MESSAGE_CREATE_WINDOW;

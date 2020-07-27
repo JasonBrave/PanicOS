@@ -31,6 +31,7 @@ int wm_init(void);
 int wm_create_sheet(int x, int y, int width, int height);
 void wm_fill_sheet(int handle, COLOUR colour);
 void wm_print_text(int handle, int x, int y, COLOUR colour, const char* text);
+void wm_print_text_n(int handle, int x, int y, COLOUR colour, const char* text, int n);
 int wm_create_window(int width, int height);
 void wm_window_set_title(int handle, const char* title);
 int wm_wait_event(struct WmEvent* event);

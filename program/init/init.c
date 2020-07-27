@@ -20,7 +20,7 @@
 #include <panicos.h>
 #include <stdio.h>
 
-char* argv[] = {"sh", 0};
+const char* argv[] = {"sh", 0};
 
 int main(void) {
 	int pid, wpid;

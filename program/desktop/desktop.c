@@ -67,7 +67,7 @@ static int closedir(DIR* dirp) {
 int xres, yres;
 
 int main(int argc, char* argv[]) {
-	char* wm_args[] = {"wm", 0, 0, 0};
+	const char* wm_args[] = {"wm", 0, 0, 0};
 	if (argc == 1) {
 		xres = DEFAULT_XRES;
 		yres = DEFAULT_YRES;
@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
 				if (event.y / 20 == cnt) {
 					int childpid = fork();
 					if (childpid == 0) {
-						char* args[] = {file->d_name, 0};
+						const char* args[] = {file->d_name, 0};
 						exec(fullname, args);
 						abort();
 					}

@@ -42,7 +42,7 @@ struct cmd {
 
 struct execcmd {
 	int type;
-	char* argv[MAXARGS];
+	const char* argv[MAXARGS];
 	char* eargv[MAXARGS];
 };
 
