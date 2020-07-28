@@ -1,6 +1,6 @@
 LIB= libwm
 OBJS= libwm.o
-HEADERS= wm.h protocol.h
+HEADERS= wm.h protocol.h keymap.h
 HEADERDIR= libwm
 DEPLIBS= -lc
 

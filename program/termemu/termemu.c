@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <libwm/keymap.h>
 #include <libwm/wm.h>
 #include <panicos.h>
 #include <stdio.h>
@@ -76,6 +77,7 @@ int main(int argc, char* argv[]) {
 		abort();
 	}
 
+	int upper = 0;
 	for (;;) {
 		int sh_exit_status;
 		if (proc_status(sh_pid, &sh_exit_status) == PROC_EXITED) {
@@ -126,12 +128,7 @@ int main(int argc, char* argv[]) {
 		int event_cached = wm_catch_event(&event);
 		if (event_cached && event.event_type == WM_EVENT_KEY_DOWN) {
 			need_update = 1;
-			if (event.keycode >= 'A' && event.keycode <= 'Z') {
-				term_buffer[cur_y * x_chars + cur_x] = event.keycode + ('a' - 'A');
-				cur_x++;
-				inputbuf[inputptr] = event.keycode + ('a' - 'A');
-				inputptr++;
-			} else if (event.keycode == 8) { // backspace
+			if (event.keycode == 8) { // backspace
 				if (inputptr) {
 					term_buffer[cur_y * x_chars + cur_x] = ' ';
 					cur_x--;
@@ -158,6 +155,25 @@ int main(int argc, char* argv[]) {
 					memset(term_buffer + (y_chars - 1) * x_chars, ' ', x_chars);
 					cur_y--;
 				}
+			} else if (event.keycode == 16) { // shift
+				upper = 1;
+			} else {
+				if (upper) {
+					term_buffer[cur_y * x_chars + cur_x] = keymap_upper[event.keycode];
+					cur_x++;
+					inputbuf[inputptr] = keymap_upper[event.keycode];
+					inputptr++;
+				} else {
+					term_buffer[cur_y * x_chars + cur_x] = keymap_lower[event.keycode];
+					cur_x++;
+					inputbuf[inputptr] = keymap_lower[event.keycode];
+					inputptr++;
+				}
+			}
+		}
+		if (event_cached && event.event_type == WM_EVENT_KEY_UP) {
+			if (event.keycode == 16) { // shift
+				upper = 0;
 			}
 		} else if (event_cached &&
 				   event.event_type == WM_EVENT_WINDOW_CLOSE) { // window closed
