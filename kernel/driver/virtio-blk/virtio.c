@@ -46,9 +46,9 @@ void virtio_enum_device(int device_id,
 }
 
 void virtio_allocate_queue(struct VirtioQueue* queue) {
-	queue->desc = (void*)kalloc();
-	queue->avail = (void*)kalloc();
-	queue->used = (void*)kalloc();
+	queue->desc = kalloc();
+	queue->avail = kalloc();
+	queue->used = kalloc();
 	memset((void*)queue->desc, 0, 4096);
 	memset((void*)queue->avail, 0, 4096);
 	memset((void*)queue->used, 0, 4096);
@@ -80,11 +80,12 @@ void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* dev) {
 	} while ((capptr = pci_read_next_cap(addr, capptr)) != 0);
 }
 
-void virtio_setup_queue(struct VirtioDevice* dev, struct VirtioQueue* queue) {
+void virtio_setup_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
+						int feature) {
 	dev->cmcfg->device_status = 0;
 	dev->cmcfg->device_status = 1;
 	dev->cmcfg->device_status |= 2;
-	dev->cmcfg->driver_feature = dev->cmcfg->device_feature;
+	dev->cmcfg->driver_feature = dev->cmcfg->device_feature & feature;
 	dev->cmcfg->device_status |= 8;
 	dev->cmcfg->device_status |= 4;
 
@@ -118,4 +119,32 @@ void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc) {
 
 void virtio_queue_notify(struct VirtioDevice* dev) {
 	*dev->notify = 0;
+}
+
+int* virtio_alloc_desc(struct VirtioQueue* queue, int* desc, int num) {
+	for (int i = 0; i < num; i++) {
+		desc[i] = -1;
+		for (int j = 0; j < queue->size; j++) {
+			if (queue->desc[j].addr == 0) {
+				queue->desc[j].addr = 0xffffffff;
+				desc[i] = j;
+				break;
+			}
+		}
+		if (desc[i] == -1) {
+			return 0;
+		}
+	}
+	return desc;
+}
+
+void virtio_free_desc(struct VirtioQueue* queue, int desc) {
+	do {
+		queue->desc[desc].addr = 0;
+		if (queue->desc[desc].flags & VIRTQ_DESC_F_NEXT) {
+			desc = queue->desc[desc].next;
+		} else {
+			desc = -1;
+		}
+	} while (desc != -1);
 }

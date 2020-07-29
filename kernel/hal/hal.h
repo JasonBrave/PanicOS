@@ -38,6 +38,9 @@ void hal_block_init(void);
 int hal_block_read(int id, int begin, int count, void* buf);
 int hal_disk_read(int id, int begin, int count, void* buf);
 int hal_partition_read(int id, int begin, int count, void* buf);
+int hal_block_write(int id, int begin, int count, const void* buf);
+int hal_disk_write(int id, int begin, int count, const void* buf);
+int hal_partition_write(int id, int begin, int count, const void* buf);
 
 // display.c
 void hal_display_init(void);

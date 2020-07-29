@@ -135,3 +135,31 @@ int hal_partition_read(int id, int begin, int count, void* buf) {
 	return hal_disk_read(hal_partition_map[id].dev, hal_partition_map[id].begin + begin,
 						 count, buf);
 }
+
+int hal_block_write(int id, int begin, int count, const void* buf) {
+	return hal_disk_write(id, begin, count, buf);
+}
+
+int hal_disk_write(int id, int begin, int count, const void* buf) {
+	if (id >= HAL_BLOCK_MAX) {
+		return -1;
+	}
+	switch (hal_block_map[id].hw_type) {
+	case HAL_BLOCK_HWTYPE_VIRTIO_BLK:
+		return virtio_blk_write(hal_block_map[id].hw_id, begin, count, buf);
+	case HAL_BLOCK_HWTYPE_NONE:
+		return -1;
+	}
+	return -1;
+}
+
+int hal_partition_write(int id, int begin, int count, const void* buf) {
+	if (id >= HAL_PARTITION_MAX) {
+		return -1;
+	}
+	if (hal_partition_map[id].fs_type == HAL_PARTITION_NONE) {
+		return -1;
+	}
+	return hal_disk_write(hal_partition_map[id].dev,
+						  hal_partition_map[id].begin + begin, count, buf);
+}

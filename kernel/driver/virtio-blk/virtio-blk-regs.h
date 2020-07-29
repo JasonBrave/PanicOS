@@ -119,4 +119,32 @@ struct VirtioPciCap {
 /* PCI configuration access */
 #define VIRTIO_PCI_CAP_PCI_CFG 5
 
+// VirtIO Block device feature bits
+enum VirtioBlockFeatureBits {
+	VIRTIO_BLK_F_SIZE_MAX = (1 << 1),
+	VIRTIO_BLK_F_SEG_MAX = (1 << 2),
+	VIRTIO_BLK_F_GEOMETRY = (1 << 4),
+	VIRTIO_BLK_F_RO = (1 << 5),
+	VIRTIO_BLK_F_BLK_SIZE = (1 << 6),
+	VIRTIO_BLK_F_FLUSH = (1 << 9),
+	VIRTIO_BLK_F_TOPOLOGY = (1 << 10),
+	VIRTIO_BLK_F_CONFIG_WCE = (1 << 11),
+	VIRTIO_BLK_F_DISCARD = (1 << 13),
+	VIRTIO_BLK_F_WRITE_ZEROES = (1 << 14),
+};
+
+enum VirtioBlockRequestType {
+	VIRTIO_BLK_T_IN = 0,
+	VIRTIO_BLK_T_OUT = 1,
+	VIRTIO_BLK_T_FLUSH = 4,
+	VIRTIO_BLK_T_DISCARD = 11,
+	VIRTIO_BLK_T_WRITE_ZEROES = 13,
+};
+
+enum VirtioBlockRequestStatus {
+	VIRTIO_BLK_S_OK = 0,
+	VIRTIO_BLK_S_IOERR = 1,
+	VIRTIO_BLK_S_UNSUPP = 2,
+};
+
 #endif

@@ -61,11 +61,12 @@ static void virtio_blk_intr(const struct PciAddress* addr) {
 			desc = &dev->virtio_queue.desc[desc->next];
 			wakeup(P2V((phyaddr_t)desc->addr));
 		}
+		virtio_free_desc(&dev->virtio_queue, id);
 	}
 	release(&dev->lock);
 }
 
-static void virtio_blk_req(struct VirtioBlockDevice* dev, unsigned int sect,
+static void virtio_blk_req(struct VirtioBlockDevice* dev, int type, unsigned int sect,
 						   unsigned int count, phyaddr_t dest, uint8_t* status) {
 	volatile struct {
 		uint32_t type;
@@ -73,26 +74,34 @@ static void virtio_blk_req(struct VirtioBlockDevice* dev, unsigned int sect,
 		uint64_t sector;
 	} __attribute__((packed)) buf0;
 
-	buf0.type = 0;
+	buf0.type = type;
 	buf0.reserved = 0;
 	buf0.sector = sect;
 
-	dev->virtio_queue.desc[0].addr = V2P(&buf0);
-	dev->virtio_queue.desc[0].len = 16;
-	dev->virtio_queue.desc[0].flags = VIRTQ_DESC_F_NEXT;
-	dev->virtio_queue.desc[0].next = 1;
+	int desc[3];
+	if (!virtio_alloc_desc(&dev->virtio_queue, desc, 3)) {
+		panic("virtio-blk out of desc");
+	}
 
-	dev->virtio_queue.desc[1].addr = dest;
-	dev->virtio_queue.desc[1].len = 512 * count;
-	dev->virtio_queue.desc[1].flags = VIRTQ_DESC_F_NEXT | VIRTQ_DESC_F_WRITE;
-	dev->virtio_queue.desc[1].next = 2;
+	dev->virtio_queue.desc[desc[0]].addr = V2P(&buf0);
+	dev->virtio_queue.desc[desc[0]].len = 16;
+	dev->virtio_queue.desc[desc[0]].flags = VIRTQ_DESC_F_NEXT;
+	dev->virtio_queue.desc[desc[0]].next = desc[1];
 
-	dev->virtio_queue.desc[2].addr = V2P(status);
-	dev->virtio_queue.desc[2].len = 1;
-	dev->virtio_queue.desc[2].flags = VIRTQ_DESC_F_WRITE;
-	dev->virtio_queue.desc[2].next = 0;
+	dev->virtio_queue.desc[desc[1]].addr = dest;
+	dev->virtio_queue.desc[desc[1]].len = 512 * count;
+	dev->virtio_queue.desc[desc[1]].flags = VIRTQ_DESC_F_NEXT;
+	if (type == VIRTIO_BLK_T_IN) {
+		dev->virtio_queue.desc[desc[1]].flags |= VIRTQ_DESC_F_WRITE;
+	}
+	dev->virtio_queue.desc[desc[1]].next = desc[2];
 
-	virtio_queue_avail_insert(&dev->virtio_queue, 0);
+	dev->virtio_queue.desc[desc[2]].addr = V2P(status);
+	dev->virtio_queue.desc[desc[2]].len = 1;
+	dev->virtio_queue.desc[desc[2]].flags = VIRTQ_DESC_F_WRITE;
+	dev->virtio_queue.desc[desc[2]].next = 0;
+
+	virtio_queue_avail_insert(&dev->virtio_queue, desc[0]);
 
 	// do not sleep at boot time
 	if (myproc()) {
@@ -115,7 +124,27 @@ int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
 	uint8_t status;
 	// start request
 	acquire(&dev->lock);
-	virtio_blk_req(dev, begin, count, dest, &status);
+	virtio_blk_req(dev, VIRTIO_BLK_T_IN, begin, count, dest, &status);
+	release(&dev->lock);
+	if (status) {
+		return ERROR_READ_FAIL;
+	}
+	return 0;
+}
+
+int virtio_blk_write(int id, unsigned int begin, int count, const void* buf) {
+	// check buf for DMA
+	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+		(phyaddr_t)buf % PGSIZE)
+		panic("virtio dma");
+	if (count == 0 || count > 8)
+		panic("virtio count");
+	phyaddr_t dest = V2P(buf);
+	struct VirtioBlockDevice* dev = &virtio_blk_dev[id];
+	uint8_t status;
+	// start request
+	acquire(&dev->lock);
+	virtio_blk_req(dev, VIRTIO_BLK_T_OUT, begin, count, dest, &status);
 	release(&dev->lock);
 	if (status) {
 		return ERROR_READ_FAIL;
@@ -154,7 +183,8 @@ static void virtio_blk_dev_init(const struct PciAddress* addr) {
 	// allocate memory for queues
 	virtio_read_cap(addr, &dev->virtio_dev);
 	virtio_allocate_queue(&dev->virtio_queue);
-	virtio_setup_queue(&dev->virtio_dev, &dev->virtio_queue);
+	virtio_setup_queue(&dev->virtio_dev, &dev->virtio_queue,
+					   VIRTIO_BLK_F_RO | VIRTIO_BLK_F_BLK_SIZE);
 	// print a message
 	cprintf("[virtio-blk] Virtio Block device %d:%d.%d capacity %d "
 			"blk_size %d\n",
