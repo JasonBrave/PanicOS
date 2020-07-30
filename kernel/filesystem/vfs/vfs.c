@@ -93,7 +93,7 @@ int vfs_file_get_size(const char* filename) {
 	} else {
 		return ERROR_INVAILD;
 	}
-	kfree(path.pathbuf);
+	kfree(filepath.pathbuf);
 	return sz;
 }
 
@@ -115,6 +115,26 @@ int vfs_file_get_mode(const char* filename) {
 	} else {
 		return ERROR_INVAILD;
 	}
-	kfree(path.pathbuf);
+	kfree(filepath.pathbuf);
 	return sz;
+}
+
+int vfs_mkdir(const char* dirname) {
+	struct VfsPath filepath;
+	filepath.pathbuf = kalloc();
+	filepath.parts = vfs_path_split(dirname, filepath.pathbuf);
+	if (dirname[0] != '/') {
+		vfs_get_absolute_path(&filepath);
+	}
+	struct VfsPath path;
+	int fs_id = vfs_path_to_fs(filepath, &path);
+
+	int ret;
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+		ret = fat32_mkdir(vfs_mount_table[fs_id].partition_id, path);
+	} else {
+		ret = ERROR_INVAILD;
+	}
+	kfree(filepath.pathbuf);
+	return ret;
 }

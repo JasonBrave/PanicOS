@@ -100,7 +100,11 @@ int sys_open(void) {
 }
 
 int sys_mkdir(void) {
-	return 0;
+	char* name;
+	if (argstr(0, &name) < 0) {
+		return -1;
+	}
+	return vfs_mkdir(name);
 }
 
 int sys_mknod(void) {

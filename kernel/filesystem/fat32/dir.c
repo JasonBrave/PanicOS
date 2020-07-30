@@ -197,3 +197,118 @@ int fat32_file_mode(int partition_id, struct VfsPath path) {
 	}
 	return mode;
 }
+
+static char* fat32_file_get_short_name(char* shortname, const char* longname) {
+	strncpy(shortname, "           ", 12);
+	const char* s = longname;
+	int p = 0;
+	while (*s) {
+		if (*s == '.') {
+			s++;
+			p = 8;
+		}
+		if (*s >= 'a' && *s <= 'z') {
+			shortname[p] = *s - ('a' - 'A');
+		} else {
+			shortname[p] = *s;
+		}
+		p++;
+		s++;
+		if (p == 11) {
+			break;
+		}
+	}
+	return shortname;
+}
+
+static int fat32_dir_insert_entry(int partition_id, unsigned int cluster,
+								  struct FAT32DirEntry* dirent) {
+	for (int i = 0;; i += 32) {
+		struct FAT32DirEntry dir;
+		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		if (clus == 0) {
+			break;
+		}
+		if (fat32_read_cluster(partition_id, &dir, clus,
+							   i % (fat32_superblock->sector_per_cluster * SECTORSIZE),
+							   sizeof(dir)) < 0) {
+			return ERROR_READ_FAIL;
+		}
+		if (dir.name[0] == 0xe5 || dir.name[0] == 0x00) {
+			if (fat32_write_cluster(
+					partition_id, dirent, clus,
+					i % (fat32_superblock->sector_per_cluster * SECTORSIZE),
+					sizeof(dir)) < 0) {
+				return ERROR_WRITE_FAIL;
+			}
+			return 0;
+		}
+	}
+	// allocate a new cluster and attrach
+	unsigned int alloc = fat32_allocate_cluster(partition_id);
+	if (alloc == 0) {
+		return ERROR_OUT_OF_SPACE;
+	}
+	fat32_write_cluster(partition_id, dirent, alloc, 0, sizeof(struct FAT32DirEntry));
+	fat32_append_cluster(partition_id, cluster, alloc);
+	return 0;
+}
+
+int fat32_mkdir(int partition_id, struct VfsPath path) {
+	// get target directory
+	unsigned int cluster;
+	char* filename;
+	if (path.parts > 1) {
+		struct VfsPath prevpath;
+		prevpath.parts = path.parts - 1;
+		prevpath.pathbuf = path.pathbuf;
+		struct FAT32DirEntry dir;
+		fat32_path_search(partition_id, prevpath, &dir);
+		cluster = (dir.cluster_hi << 16) | dir.cluster_lo;
+		filename = path.pathbuf + prevpath.parts * 128;
+	} else {
+		cluster = fat32_superblock->root_cluster;
+		filename = path.pathbuf;
+	}
+	// check exist
+	struct FAT32DirEntry search_dir;
+	if (fat32_dir_search(partition_id, cluster, filename, &search_dir) >= 0) {
+		return ERROR_EXIST;
+	}
+	// create inode
+	char shortname[12];
+	fat32_file_get_short_name(shortname, filename);
+	struct FAT32DirEntry dir;
+	memset(&dir, 0, sizeof(dir));
+	memmove(dir.name, shortname, 11);
+	unsigned int alloc = fat32_allocate_cluster(partition_id);
+	if (alloc == 0) {
+		return ERROR_OUT_OF_SPACE;
+	}
+	dir.cluster_lo = alloc & 0xffff;
+	dir.cluster_hi = (alloc >> 16) & 0xffff;
+	dir.attr = ATTR_DIRECTORY;
+	int ret;
+	if ((ret = fat32_dir_insert_entry(partition_id, cluster, &dir)) < 0) {
+		return ret;
+	}
+	// dot entry
+	memset(&dir, 0, sizeof(dir));
+	memmove(dir.name, ".          ", 11);
+	dir.cluster_lo = alloc & 0xffff;
+	dir.cluster_hi = (alloc >> 16) & 0xffff;
+	dir.attr = ATTR_DIRECTORY;
+	if ((ret = fat32_dir_insert_entry(partition_id, alloc, &dir)) < 0) {
+		return ret;
+	}
+	// dotdot entry
+	memset(&dir, 0, sizeof(dir));
+	memmove(dir.name, "..         ", 11);
+	if (cluster != fat32_superblock->root_cluster) {
+		// not root cluster
+		dir.cluster_lo = cluster & 0xffff;
+		dir.cluster_hi = (cluster >> 16) & 0xffff;
+	}
+	dir.attr = ATTR_DIRECTORY;
+	return fat32_dir_insert_entry(partition_id, alloc, &dir);
+}

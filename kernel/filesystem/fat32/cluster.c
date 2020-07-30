@@ -74,3 +74,59 @@ int fat32_read(int partition_id, unsigned int cluster, void* buf, unsigned int o
 	}
 	return size;
 }
+
+int fat32_write_cluster(int partition_id, const void* src, unsigned int cluster,
+						unsigned int begin, unsigned int size) {
+	void* sect = kalloc();
+	unsigned int off = 0;
+	while (off < size) {
+		int copysize;
+		if ((begin + off) / SECTORSIZE < (begin + size) / SECTORSIZE) {
+			copysize = ((begin + off) / SECTORSIZE + 1) * SECTORSIZE - (begin + off);
+		} else {
+			copysize = size - off;
+		}
+		unsigned int sector =
+			fat32_cluster_to_sector(cluster) + (begin + off) / SECTORSIZE;
+		if (hal_partition_read(partition_id, sector, 1, sect) < 0) {
+			kfree(sect);
+			return ERROR_READ_FAIL;
+		}
+		memmove(sect + (begin + off) % SECTORSIZE, src + off, copysize);
+		if (hal_partition_write(partition_id, sector, 1, sect) < 0) {
+			kfree(sect);
+			return ERROR_WRITE_FAIL;
+		}
+		off += copysize;
+	}
+	kfree(sect);
+	return 0;
+}
+
+unsigned int fat32_allocate_cluster(int partition_id) {
+	unsigned int* buf = kalloc();
+	for (unsigned int fat = 0; fat < fat32_superblock->fat_size; fat++) {
+		int sect = fat32_superblock->reserved_sector + fat;
+		if (hal_partition_read(partition_id, sect, 1, buf) < 0) {
+			return ERROR_READ_FAIL;
+		}
+		for (int i = 0; i < 128; i++) {
+			if (buf[i] == 0) {
+				buf[i] = 0x0fffffff;
+				// first FAT
+				if (hal_partition_write(partition_id, sect, 1, buf) < 0) {
+					return ERROR_WRITE_FAIL;
+				}
+				// second FAT
+				if (hal_partition_write(partition_id, sect + fat32_superblock->fat_size,
+										1, buf) < 0) {
+					return ERROR_WRITE_FAIL;
+				}
+				kfree(buf);
+				return fat * 128 + i;
+			}
+		}
+	}
+	kfree(buf);
+	return 0;
+}

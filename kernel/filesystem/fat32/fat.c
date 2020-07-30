@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/errorcode.h>
 #include <defs.h>
 #include <hal/hal.h>
 
@@ -41,4 +42,32 @@ unsigned int fat32_offset_cluster(int partition_id, unsigned int cluster,
 		}
 	}
 	return cluster;
+}
+
+int fat32_write_fat(int partition_id, unsigned int cluster, unsigned int data) {
+	unsigned int buf[128];
+	int sect = fat32_superblock->reserved_sector + cluster / 128;
+	if (hal_partition_read(partition_id, sect, 1, buf) < 0) {
+		return ERROR_READ_FAIL;
+	}
+	buf[cluster % 128] = data;
+	// first fat
+	if (hal_partition_write(partition_id, sect, 1, buf) < 0) {
+		return ERROR_WRITE_FAIL;
+	}
+	// second fat
+	if (hal_partition_write(partition_id, sect + fat32_superblock->fat_size, 1, buf) <
+		0) {
+		return ERROR_WRITE_FAIL;
+	}
+	return 0;
+}
+
+int fat32_append_cluster(int partition_id, unsigned int begin_cluster,
+						 unsigned int end_cluster) {
+	unsigned int clus = begin_cluster;
+	while (fat32_fat_read(partition_id, clus) < 0x0ffffff8) {
+		clus = fat32_fat_read(partition_id, clus);
+	}
+	return fat32_write_fat(partition_id, clus, end_cluster);
 }
