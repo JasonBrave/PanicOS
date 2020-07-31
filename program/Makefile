@@ -8,6 +8,7 @@ all:
 	$(MAKE) -C desktop install
 	$(MAKE) -C termemu install
 	$(MAKE) -C mkdir install
+	$(MAKE) -C rm install
 
 .PHONY: clean
 clean:
@@ -20,3 +21,4 @@ clean:
 	$(MAKE) -C desktop clean
 	$(MAKE) -C termemu clean
 	$(MAKE) -C mkdir clean
+	$(MAKE) -C rm clean

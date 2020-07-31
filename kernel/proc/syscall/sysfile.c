@@ -77,7 +77,11 @@ int sys_link(void) {
 }
 
 int sys_unlink(void) {
-	return 0;
+	char* name;
+	if (argstr(0, &name) < 0) {
+		return -1;
+	}
+	return vfs_file_remove(name);
 }
 
 int sys_open(void) {

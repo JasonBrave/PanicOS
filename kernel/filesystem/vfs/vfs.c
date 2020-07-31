@@ -138,3 +138,23 @@ int vfs_mkdir(const char* dirname) {
 	kfree(filepath.pathbuf);
 	return ret;
 }
+
+int vfs_file_remove(const char* file) {
+	struct VfsPath filepath;
+	filepath.pathbuf = kalloc();
+	filepath.parts = vfs_path_split(file, filepath.pathbuf);
+	if (file[0] != '/') {
+		vfs_get_absolute_path(&filepath);
+	}
+	struct VfsPath path;
+	int fs_id = vfs_path_to_fs(filepath, &path);
+
+	int ret;
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+		ret = fat32_file_remove(vfs_mount_table[fs_id].partition_id, path);
+	} else {
+		ret = ERROR_INVAILD;
+	}
+	kfree(filepath.pathbuf);
+	return ret;
+}

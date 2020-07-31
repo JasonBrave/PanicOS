@@ -45,21 +45,25 @@ unsigned int fat32_offset_cluster(int partition_id, unsigned int cluster,
 }
 
 int fat32_write_fat(int partition_id, unsigned int cluster, unsigned int data) {
-	unsigned int buf[128];
+	uint32_t* buf = kalloc();
 	int sect = fat32_superblock->reserved_sector + cluster / 128;
 	if (hal_partition_read(partition_id, sect, 1, buf) < 0) {
+		kfree(buf);
 		return ERROR_READ_FAIL;
 	}
 	buf[cluster % 128] = data;
 	// first fat
 	if (hal_partition_write(partition_id, sect, 1, buf) < 0) {
+		kfree(buf);
 		return ERROR_WRITE_FAIL;
 	}
 	// second fat
 	if (hal_partition_write(partition_id, sect + fat32_superblock->fat_size, 1, buf) <
 		0) {
+		kfree(buf);
 		return ERROR_WRITE_FAIL;
 	}
+	kfree(buf);
 	return 0;
 }
 
@@ -70,4 +74,17 @@ int fat32_append_cluster(int partition_id, unsigned int begin_cluster,
 		clus = fat32_fat_read(partition_id, clus);
 	}
 	return fat32_write_fat(partition_id, clus, end_cluster);
+}
+
+int fat32_free_chain(int partition_id, unsigned int cluster) {
+	do {
+		// read it out and clear FAT entry
+		unsigned int clus = fat32_fat_read(partition_id, cluster);
+		if (fat32_write_fat(partition_id, cluster, 0) < 0) {
+			return ERROR_WRITE_FAIL;
+		}
+		// advance to next FAT entry
+		cluster = clus;
+	} while (cluster < 0x0ffffff8);
+	return 0;
 }

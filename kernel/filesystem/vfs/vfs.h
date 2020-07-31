@@ -56,6 +56,7 @@ int vfs_path_to_fs(struct VfsPath orig_path, struct VfsPath* path);
 int vfs_file_get_size(const char* filename);
 int vfs_file_get_mode(const char* filename);
 int vfs_mkdir(const char* dirname);
+int vfs_file_remove(const char* file);
 
 // filedesc.c
 int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode);
