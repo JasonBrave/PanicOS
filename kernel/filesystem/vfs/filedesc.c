@@ -25,9 +25,6 @@
 #include "vfs.h"
 
 int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
-	if (mode != O_READ) {
-		return ERROR_INVAILD;
-	}
 	memset(fd, 0, sizeof(struct FileDesc));
 	struct VfsPath filepath;
 	filepath.pathbuf = kalloc();
@@ -39,6 +36,11 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
 	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
+		// initramfs
+		if (mode & O_WRITE || mode & O_APPEND || mode & O_CREATE) {
+			kfree(filepath.pathbuf);
+			return ERROR_INVAILD; // initramfs is read-only
+		}
 		int blk = initramfs_open(path.pathbuf);
 		if (blk < 0) {
 			kfree(filepath.pathbuf);
@@ -46,23 +48,45 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 		}
 		fd->block = blk;
 		fd->size = initramfs_file_get_size(path.pathbuf);
+		fd->read = 1;
 	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+		// FAT32
 		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
 		if (fblock < 0) {
-			kfree(filepath.pathbuf);
-			return fblock;
+			if (mode & O_CREATE) {
+				// create and retry
+				fat32_file_create(vfs_mount_table[fs_id].partition_id, path);
+				fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
+			} else {
+				kfree(filepath.pathbuf);
+				return ERROR_NOT_EXIST;
+			}
 		}
 		fd->block = fblock;
 		fd->size = fat32_file_size(vfs_mount_table[fs_id].partition_id, path);
+		if (mode & O_READ) {
+			fd->read = 1;
+		}
+		if (mode & O_WRITE) {
+			fd->path.parts = path.parts;
+			fd->path.pathbuf = kalloc();
+			memmove(fd->path.pathbuf, path.pathbuf, path.parts * 128);
+			fd->write = 1;
+			if (mode & O_APPEND) {
+				fd->append = 1;
+			}
+			if (mode & O_TRUNC) {
+				fd->size = 0;
+			}
+		}
 	} else {
 		kfree(filepath.pathbuf);
 		return ERROR_INVAILD;
 	}
 
-	fd->fs_id = fs_id;
 	fd->offset = 0;
+	fd->fs_id = fs_id;
 	fd->used = 1;
-	fd->read = 1;
 	kfree(filepath.pathbuf);
 	return 0;
 }
@@ -104,12 +128,49 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 	return status;
 }
 
+int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
+	if (!fd->used) {
+		return ERROR_INVAILD;
+	}
+	if (!fd->write) {
+		return ERROR_INVAILD;
+	}
+	if (fd->dir) {
+		return ERROR_INVAILD;
+	}
+	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
+		if (fd->append) {
+			fd->offset = fd->size;
+		}
+		int ret = fat32_write(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf,
+							  fd->offset, size);
+		if (ret < 0) {
+			return ret;
+		}
+		fd->offset += ret;
+		if (fd->offset > fd->size) {
+			fd->size += fd->offset - fd->size;
+		}
+		return ret;
+	} else {
+		return ERROR_INVAILD;
+	}
+}
+
 int vfs_fd_close(struct FileDesc* fd) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}
 	if (fd->dir) {
 		return ERROR_INVAILD;
+	}
+
+	if (fd->write) {
+		if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
+			fat32_update_size(vfs_mount_table[fd->fs_id].partition_id, fd->path,
+							  fd->size);
+		}
+		kfree(fd->path.pathbuf);
 	}
 
 	fd->used = 0;

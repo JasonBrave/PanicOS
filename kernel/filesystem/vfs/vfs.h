@@ -1,6 +1,11 @@
 #ifndef _VFS_H
 #define _VFS_H
 
+struct VfsPath {
+	int parts;
+	char* pathbuf;
+};
+
 struct FileDesc {
 	struct {
 		int used : 1;
@@ -14,6 +19,8 @@ struct FileDesc {
 	unsigned int block; // file data starting block/cluster
 	unsigned int offset; // file pointer offset
 	unsigned int size; // current file size
+					   // below are not used in read-only files
+	struct VfsPath path; // for update file size,not used for read-only file
 };
 
 enum OpenMode {
@@ -28,11 +35,6 @@ enum FileSeekMode {
 	SEEK_SET,
 	SEEK_CUR,
 	SEEK_END,
-};
-
-struct VfsPath {
-	int parts;
-	char* pathbuf;
 };
 
 enum VfsFsType {
@@ -61,6 +63,7 @@ int vfs_file_remove(const char* file);
 // filedesc.c
 int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode);
 int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size);
+int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size);
 int vfs_fd_close(struct FileDesc* fd);
 int vfs_fd_seek(struct FileDesc* fd, unsigned int off, enum FileSeekMode mode);
 

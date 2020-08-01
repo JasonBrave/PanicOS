@@ -60,7 +60,7 @@ int sys_write(void) {
 		}
 	}
 
-	return 0;
+	return vfs_fd_write(&myproc()->files[fd], p, n);
 }
 
 int sys_close(void) {

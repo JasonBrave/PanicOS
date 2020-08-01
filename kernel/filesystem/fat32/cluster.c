@@ -130,3 +130,32 @@ unsigned int fat32_allocate_cluster(int partition_id) {
 	kfree(buf);
 	return 0;
 }
+
+int fat32_write(int partition_id, unsigned int cluster, const void* buf,
+				unsigned int offset, unsigned int size) {
+	int clussize = fat32_superblock->sector_per_cluster * SECTORSIZE;
+	unsigned int off = 0;
+	while (off < size) {
+		int copysize;
+		if ((offset + off) / clussize < (offset + size) / clussize) {
+			copysize = ((offset + off) / clussize + 1) * clussize - (offset + off);
+		} else {
+			copysize = size - off;
+		}
+		unsigned int clus = fat32_offset_cluster(partition_id, cluster, offset + off);
+		if (clus == 0) { // end of cluster chain
+			if ((clus = fat32_allocate_cluster(partition_id)) < 0) {
+				return ERROR_OUT_OF_SPACE;
+			}
+			if (fat32_append_cluster(partition_id, cluster, clus) < 0) {
+				return ERROR_WRITE_FAIL;
+			}
+		}
+		if (fat32_write_cluster(partition_id, buf + off, clus,
+								(offset + off) % clussize, copysize) < 0) {
+			return ERROR_WRITE_FAIL;
+		}
+		off += copysize;
+	}
+	return size;
+}

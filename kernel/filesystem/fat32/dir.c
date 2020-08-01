@@ -353,3 +353,65 @@ int fat32_file_remove(int partition_id, struct VfsPath path) {
 	}
 	return 0;
 }
+
+static int fat32_write_inode(int partition_id, struct VfsPath path,
+							 const struct FAT32DirEntry* dir_dest) {
+	unsigned int cluster = fat32_superblock->root_cluster;
+	int ino;
+	struct FAT32DirEntry dir;
+	for (int i = 0; i < path.parts - 1; i++) {
+		if ((ino = fat32_dir_search(partition_id, cluster, path.pathbuf + i * 128,
+									&dir)) < 0) {
+			return ERROR_NOT_EXIST;
+		}
+		cluster = (dir.cluster_hi << 16) | dir.cluster_lo;
+	}
+	if ((ino = fat32_dir_search(partition_id, cluster,
+								path.pathbuf + (path.parts - 1) * 128, &dir)) < 0) {
+		return ERROR_NOT_EXIST;
+	}
+	return fat32_write_cluster(
+		partition_id, dir_dest, fat32_offset_cluster(partition_id, cluster, ino * 32),
+		ino * 32 % (fat32_superblock->sector_per_cluster * SECTORSIZE),
+		sizeof(struct FAT32DirEntry));
+}
+
+int fat32_update_size(int partition_id, struct VfsPath path, unsigned int size) {
+	struct FAT32DirEntry dir;
+	if (fat32_path_search(partition_id, path, &dir) < 0) {
+		return ERROR_NOT_EXIST;
+	}
+
+	dir.size = size;
+	return fat32_write_inode(partition_id, path, &dir);
+}
+
+int fat32_file_create(int partition_id, struct VfsPath path) {
+	unsigned int cluster;
+	char* filename;
+	if (path.parts > 1) {
+		struct VfsPath prevpath;
+		prevpath.parts = path.parts - 1;
+		prevpath.pathbuf = path.pathbuf;
+		struct FAT32DirEntry dir;
+		fat32_path_search(partition_id, prevpath, &dir);
+		cluster = (dir.cluster_hi << 16) | dir.cluster_lo;
+		filename = path.pathbuf + prevpath.parts * 128;
+	} else {
+		cluster = fat32_superblock->root_cluster;
+		filename = path.pathbuf;
+	}
+
+	char shortname[12];
+	fat32_file_get_short_name(shortname, filename);
+	struct FAT32DirEntry dir;
+	memset(&dir, 0, sizeof(dir));
+	memmove(dir.name, shortname, 11);
+	unsigned int alloc = fat32_allocate_cluster(partition_id);
+	if (alloc == 0) {
+		return ERROR_OUT_OF_SPACE;
+	}
+	dir.cluster_lo = alloc & 0xffff;
+	dir.cluster_hi = (alloc >> 16) & 0xffff;
+	return fat32_dir_insert_entry(partition_id, cluster, &dir);
+}

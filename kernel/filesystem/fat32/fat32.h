@@ -14,6 +14,8 @@ int fat32_read(int partition_id, unsigned int cluster, void* buf, unsigned int o
 int fat32_write_cluster(int partition_id, const void* src, unsigned int cluster,
 						unsigned int begin, unsigned int size);
 unsigned int fat32_allocate_cluster(int partition_id);
+int fat32_write(int partition_id, unsigned int cluster, const void* buf,
+				unsigned int offset, unsigned int size);
 
 // dir.c
 int fat32_open(int partition_id, struct VfsPath path);
@@ -24,6 +26,8 @@ int fat32_file_size(int partition_id, struct VfsPath path);
 int fat32_file_mode(int partition_id, struct VfsPath path);
 int fat32_mkdir(int partition_id, struct VfsPath path);
 int fat32_file_remove(int partition_id, struct VfsPath path);
+int fat32_update_size(int partition_id, struct VfsPath path, unsigned int size);
+int fat32_file_create(int partition_id, struct VfsPath path);
 
 // fat.c
 unsigned int fat32_fat_read(int partition_id, unsigned int current);
