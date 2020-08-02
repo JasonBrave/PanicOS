@@ -6,6 +6,7 @@ all:
 	$(MAKE) -C ld install
 	$(MAKE) -C libwm install
 	$(MAKE) -C libposix install
+	$(MAKE) -C libcpp install
 	cp *.so ../rootfs/lib
 	cp *.a ../rootfs/devel/lib
 	cp crt/*.o ../rootfs/devel/lib
@@ -19,4 +20,5 @@ clean:
 	$(MAKE) -C ld clean
 	$(MAKE) -C libwm clean
 	$(MAKE) -C libposix clean
+	$(MAKE) -C libcpp clean
 	rm -f *.a *.so

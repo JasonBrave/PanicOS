@@ -1,0 +1,49 @@
+/*
+ * C++ <cstdlib> header
+ *
+ * This file is part of PanicOS.
+ *
+ * PanicOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PanicOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef _LIBCPP_CSTDLIB
+#define _LIBCPP_CSTDLIB
+
+#include <cstddef>
+
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
+
+namespace std {
+	extern "C" {
+
+	// numeric conversion functions
+	int atoi(const char* nptr);
+
+	// memory management functions
+	void* calloc(std::size_t nmemb, std::size_t size);
+	void free(void* ptr);
+	void* malloc(std::size_t size);
+
+	// communication with the environment
+	[[noreturn]] void abort(void) noexcept;
+	int atexit(void (*func)(void)) noexcept;
+	int at_quick_exit(void (*func)(void)) noexcept;
+	[[noreturn]] void exit(int status);
+	[[noreturn]] void _Exit(int status) noexcept;
+	[[noreturn]] void quick_exit(int status) noexcept;
+	}
+} // namespace std
+
+#endif

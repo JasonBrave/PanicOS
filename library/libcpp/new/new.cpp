@@ -1,5 +1,5 @@
 /*
- * exit function
+ * C++ operator new
  *
  * This file is part of PanicOS.
  *
@@ -17,30 +17,35 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <panicos.h>
+#include <cstdlib>
+#include <new>
 
-void (*__libc_atexit_funcs[32])(void);
-int __libc_atexit_count = -1;
+namespace {
+	std::new_handler new_handler_func = nullptr;
+}
 
-extern void (*__fini_array_start[])(void);
-extern void (*__fini_array_end[])(void);
-
-extern void _dl_fini(void);
-
-_Noreturn void exit(int status) {
-	// call atexit() registered functions
-	while (__libc_atexit_count >= 0) {
-		__libc_atexit_funcs[__libc_atexit_count]();
-		__libc_atexit_count--;
+[[nodiscard]] void* operator new(std::size_t count) {
+	void* ptr;
+	while (!(ptr = std::malloc(count))) {
+		if (new_handler_func) {
+			new_handler_func();
+		} else {
+			// throw std::bad_alloc;
+		}
 	}
-	// call global destructors
-	void (**fini)(void) = __fini_array_end - 1;
-	while (fini != __fini_array_start - 1) {
-		(*fini)();
-		fini--;
-	}
-	// call shared library destructors
-	_dl_fini();
-	// terminate the program
-	proc_exit(status);
+	return ptr;
+}
+
+[[nodiscard]] void* operator new[](std::size_t count) {
+	return ::operator new(count);
+}
+
+std::new_handler std::get_new_handler() noexcept {
+	return new_handler_func;
+}
+
+std::new_handler std::set_new_handler(std::new_handler new_p) noexcept {
+	std::new_handler prev_handler = new_handler_func;
+	new_handler_func = new_p;
+	return prev_handler;
 }

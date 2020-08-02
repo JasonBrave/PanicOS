@@ -2,6 +2,9 @@ PREFIX = i686-elf-
 export CC= $(PREFIX)gcc
 export CFLAGS= -fno-strict-aliasing -O2 -Wall -std=c17 -fno-omit-frame-pointer \
 		-fno-stack-protector -gdwarf-4 -Werror
+export CXX= $(PREFIX)g++
+export CXXFLAGS= -fno-strict-aliasing -O2 -Wall -Werror -std=c++20 -fno-omit-frame-pointer -fno-stack-protector \
+				-gdwarf-4 -fno-sized-deallocation -fno-exceptions -fno-rtti -fno-use-cxa-atexit
 export AS= $(PREFIX)as
 export ASFLAGS = -gdwarf-4 -Wa,-divide
 export LD= $(PREFIX)ld

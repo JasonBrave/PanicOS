@@ -1,4 +1,4 @@
-OBJS = crt0.o
+OBJS = crt0.o crt1.o
 
 all: $(OBJS)
 

@@ -1,4 +1,4 @@
-; program entry point
+; program entry point (with global constructors)
 ;
 ; This file is part of PanicOS.
 ;
@@ -17,6 +17,8 @@
 
 global _start
 extern main,exit,_DYNAMIC
+extern __preinit_array_start,__preinit_array_end
+extern __init_array_start,__init_array_end
 
 _start:
 	push ebp
@@ -44,6 +46,24 @@ _start:
 	add ebx,0x40000000
 	call ebx					;dl_main
 	add esp,4
+;call global constructors
+.call_preinit:
+	mov ebx,__preinit_array_start
+.call_preinit_cont:
+	cmp ebx,__preinit_array_end
+	je .call_init
+	call [ebx]
+	add ebx,4
+	jmp .call_preinit_cont
+.call_init:
+	mov ebx,__init_array_start
+.call_init_cont:
+	cmp ebx,__init_array_end
+	je .runmain
+	call [ebx]
+	add ebx,4
+	jmp .call_init_cont
+;call main function
 .runmain:
 	mov edx,[ebp+16]			;char* envp[]
 	mov esi,[ebp+12]			;char* argv[]

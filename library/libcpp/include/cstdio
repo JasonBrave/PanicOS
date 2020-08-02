@@ -1,0 +1,83 @@
+/*
+ * C++ <cstdio> header
+ *
+ * This file is part of PanicOS.
+ *
+ * PanicOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PanicOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef _LIBCPP_CSTDIO
+#define _LIBCPP_CSTDIO
+
+#include <cstddef>
+
+#define EOF -1
+
+#define SEEK_CUR 0
+#define SEEK_END 1
+#define SEEK_SET 2
+
+namespace std {
+	extern "C" {
+
+	typedef struct {
+		int fd;
+	} FILE;
+
+	typedef int fpos_t;
+
+	// operations on files
+	int remove(const char* filename);
+
+	// file access functions
+	int fclose(FILE* stream);
+	FILE* fopen(const char* filename, const char* mode);
+
+	// formatted input/output functions
+	int printf(const char* format, ...);
+
+	// character input/output functions
+	int fgetc(FILE* stream);
+	char* fgets(char* s, int n, FILE* stream);
+	int fputc(int c, FILE* stream);
+	int fputs(const char* s, FILE* stream);
+	int getc(FILE* stream);
+	int getchar(void);
+	int putc(int c, FILE* stream);
+	int putchar(int c);
+	int puts(const char* s);
+
+	// direct input/output functions
+	std::size_t fread(void* ptr, std::size_t size, std::size_t nmemb, FILE* stream);
+	std::size_t fwrite(const void* ptr, std::size_t size, std::size_t nmemb,
+					   FILE* stream);
+
+	// file positioning functions
+	int fgetpos(FILE* stream, fpos_t* pos);
+	int fseek(FILE* stream, long offset, int whence);
+	int fsetpos(FILE* stream, const fpos_t* pos);
+	long ftell(FILE* stream);
+	void rewind(FILE* stream);
+
+	// error-handling functions
+	void perror(const char* s);
+	}
+} // namespace std
+
+// standard input,output,error
+extern std::FILE* stdin;
+extern std::FILE* stdout;
+extern std::FILE* stderr;
+
+#endif

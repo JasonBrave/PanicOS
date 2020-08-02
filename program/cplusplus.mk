@@ -1,10 +1,11 @@
 CFLAGS += -I../../library/libsys/include -I../../library/libc/include \
 	-I../../library/libposix/include -I../../library
+CXXFLAGS += -I../../library/libcpp/include -I../../library/libposix/include -I../../library/libsys/include -I../../library
 
 $(APP): $(OBJS)
 	$(LD) -L../../library -rpath-link=../../library -I/lib/ld.so -e _start \
-	-u _dl_fini -Ttext-segment=0 -o $(APP) $(OBJS) ../../library/crt/crt0.o \
-	$(LIB) -lposix -lc -lsys
+	-u _dl_fini -Ttext-segment=0 -o $(APP) $(OBJS) ../../library/crt/crt1.o \
+	$(LIB) -lcpp -lposix -lc -lsys
 
 %.o : %.asm
 	nasm -felf32 $< -o $@

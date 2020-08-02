@@ -1,4 +1,5 @@
 CFLAGS += -I../libsys/include -I../libc/include -I../libposix/include -I.. -fPIC
+CXXFLAGS += -I../libsys/include -I../libcpp/include -I../libposix/include -I.. -fPIC
 
 $(LIB).a : $(OBJS)
 	$(AR) -rcs $(LIB).a $(OBJS)

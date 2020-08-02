@@ -36,6 +36,8 @@ typedef struct {
 	int reldyn_num; // number of relocation entry
 	Elf32_Rel* relplt; // PLT relocation tab
 	int relplt_num; // number of PLT relocation
+	void (**fini_array)(void); // global destructor
+	int fini_array_size;
 } DlInfo;
 
 typedef struct {
@@ -144,6 +146,8 @@ DlInfo* ld_load_library(const char* name) {
 
 	int needed[16];
 	memset(needed, 0, sizeof(needed));
+	void (**init_array)(void) = 0;
+	int init_array_size = 0;
 	// load data into dl_info
 	while (dyn->d_tag) {
 		switch (dyn->d_tag) {
@@ -172,6 +176,18 @@ DlInfo* ld_load_library(const char* name) {
 			break;
 		case DT_PLTRELSZ:
 			dl->relplt_num = dyn->d_un.d_val / sizeof(Elf32_Rel);
+			break;
+		case DT_INIT_ARRAY:
+			init_array = dl->load + dyn->d_un.d_ptr;
+			break;
+		case DT_INIT_ARRAYSZ:
+			init_array_size = dyn->d_un.d_val / sizeof(void (*)(void));
+			break;
+		case DT_FINI_ARRAY:
+			dl->fini_array = dl->load + dyn->d_un.d_ptr;
+			break;
+		case DT_FINI_ARRAYSZ:
+			dl->fini_array_size = dyn->d_un.d_val / sizeof(void (*)(void));
 			break;
 		}
 		dyn++;
@@ -209,8 +225,25 @@ DlInfo* ld_load_library(const char* name) {
 			return NULL;
 		}
 	}
+	// call global constructors
+	if (init_array && init_array_size) {
+		for (int i = 0; i < init_array_size; i++) {
+			init_array[i]();
+		}
+	}
 
 	return dl;
+}
+
+// call global destructor of shared library
+void _dl_fini(void) {
+	for (int i = DL_INFO_MAX - 1; i >= 0; i--) {
+		if (dl_info[i].fini_array && dl_info[i].fini_array_size) {
+			for (int j = 0; j < dl_info[i].fini_array_size; j++) {
+				dl_info[i].fini_array[j]();
+			}
+		}
+	}
 }
 
 // dynamic: dynamic segment of the executeable
@@ -222,6 +255,8 @@ void ld_main(Elf32_Dyn* dynamic) {
 	int relplt_num, reldyn_num; // number of PLT relocation
 	Elf32_Sym* dynsym;
 	char* dynstr = 0;
+	void (**fini_array)(void) = 0;
+	int fini_array_size = 0;
 	int needed[16];
 	memset(needed, 0, sizeof(needed));
 
@@ -254,9 +289,24 @@ void ld_main(Elf32_Dyn* dynamic) {
 		case DT_PLTRELSZ:
 			relplt_num = dyn->d_un.d_val / sizeof(Elf32_Rel);
 			break;
+		case DT_FINI_ARRAY:
+			fini_array = (void*)dyn->d_un.d_ptr;
+			break;
+		case DT_FINI_ARRAYSZ:
+			fini_array_size = dyn->d_un.d_val / sizeof(void (*)(void));
+			break;
 		}
 		dyn++;
 	}
+	// add some symbol to global symbol table
+	if (fini_array && fini_array_size) {
+		ld_insert_symbol("__fini_array_start", fini_array);
+		ld_insert_symbol("__fini_array_end", fini_array + fini_array_size);
+	} else {
+		ld_insert_symbol("__fini_array_start", (void*)0xffffffff);
+		ld_insert_symbol("__fini_array_end", (void*)0xffffffff);
+	}
+	ld_insert_symbol("_dl_fini", _dl_fini);
 	// load library
 	for (int i = 0; i < 16; i++) {
 		if (!needed[i]) {
