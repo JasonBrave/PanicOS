@@ -1,5 +1,5 @@
 /*
- * mkdir program
+ * fwrite function
  *
  * This file is part of PanicOS.
  *
@@ -20,16 +20,18 @@
 #include <panicos.h>
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-	if (argc <= 1) {
-		fputs("Usage: mkdir [dir]\n", stderr);
-		return 1;
+size_t fwrite(const void* restrict ptr, size_t size, size_t nmemb,
+			  FILE* restrict stream) {
+	if (!size) {
+		return 0;
 	}
-	for (int i = 1; i < argc; i++) {
-		if (mkdir(argv[i]) < 0) {
-			perror("Create directory failed");
-			return 1;
+	if (!nmemb) {
+		return 0;
+	}
+	for (size_t i = 0; i < nmemb; i++) {
+		if (write(stream->fd, ptr + i * size, size) < 0) {
+			return i;
 		}
 	}
-	return 0;
+	return nmemb;
 }

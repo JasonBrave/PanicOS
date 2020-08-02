@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <panicos.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,6 +88,7 @@ FILE* fopen(const char* restrict filename, const char* restrict mode) {
 	}
 	file->fd = open(filename, omode);
 	if (file->fd < 0) {
+		errno = file->fd;
 		free(file);
 		return NULL;
 	}

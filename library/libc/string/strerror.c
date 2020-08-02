@@ -1,5 +1,5 @@
 /*
- * mkdir program
+ * strerror function
  *
  * This file is part of PanicOS.
  *
@@ -17,19 +17,20 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <panicos.h>
-#include <stdio.h>
+#include <errorcode.h>
 
-int main(int argc, char* argv[]) {
-	if (argc <= 1) {
-		fputs("Usage: mkdir [dir]\n", stderr);
-		return 1;
-	}
-	for (int i = 1; i < argc; i++) {
-		if (mkdir(argv[i]) < 0) {
-			perror("Create directory failed");
-			return 1;
-		}
-	}
-	return 0;
+static char* error_string[] = {[-ERROR_INVAILD] = "Invaild arguments",
+							   [-ERROR_NOT_EXIST] = "File does not exist",
+							   [-ERROR_EXIST] = "File already exists",
+							   [-ERROR_NOT_FILE] = "Not a file",
+							   [-ERROR_NOT_DIRECTORY] = "Not a directory",
+							   [-ERROR_READ_FAIL] = "Disk read fail",
+							   [-ERROR_OUT_OF_SPACE] = "Filesystem out of space",
+							   [-ERROR_WRITE_FAIL] = "Disk write fail",
+							   [-ERROR_NO_PERM] = "Permission denied"
+
+};
+
+char* strerror(int errnum) {
+	return error_string[-errnum];
 }

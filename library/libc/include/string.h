@@ -43,6 +43,7 @@ char* strchr(const char* s, int c);
 
 // miscellaneous functions
 void* memset(void* s, int c, size_t n);
+char* strerror(int errnum);
 size_t strlen(const char* s);
 
 #endif

@@ -26,10 +26,9 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 	for (int i = 1; i < argc; i++) {
-		int ret;
-		if ((ret = unlink(argv[i])) < 0) {
-			printf("remove %s failed, unlink returned %d\n", argv[i], ret);
-			return 0;
+		if (remove(argv[i]) < 0) {
+			perror("remove failed");
+			return 1;
 		}
 	}
 	return 0;

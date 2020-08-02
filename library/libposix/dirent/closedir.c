@@ -1,5 +1,5 @@
 /*
- * mkdir program
+ * closedir function
  *
  * This file is part of PanicOS.
  *
@@ -17,19 +17,12 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <dirent.h>
 #include <panicos.h>
-#include <stdio.h>
+#include <stdlib.h>
 
-int main(int argc, char* argv[]) {
-	if (argc <= 1) {
-		fputs("Usage: mkdir [dir]\n", stderr);
-		return 1;
-	}
-	for (int i = 1; i < argc; i++) {
-		if (mkdir(argv[i]) < 0) {
-			perror("Create directory failed");
-			return 1;
-		}
-	}
+int closedir(DIR* dirp) {
+	close(dirp->fd);
+	free(dirp);
 	return 0;
 }

@@ -1,5 +1,5 @@
 /*
- * mkdir program
+ * remove function
  *
  * This file is part of PanicOS.
  *
@@ -17,19 +17,9 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <panicos.h>
-#include <stdio.h>
 
-int main(int argc, char* argv[]) {
-	if (argc <= 1) {
-		fputs("Usage: mkdir [dir]\n", stderr);
-		return 1;
-	}
-	for (int i = 1; i < argc; i++) {
-		if (mkdir(argv[i]) < 0) {
-			perror("Create directory failed");
-			return 1;
-		}
-	}
-	return 0;
+int remove(const char* filename) {
+	return errno = unlink(filename);
 }

@@ -1,5 +1,6 @@
 LIB= libc
 OBJS= assert/assert_fail.o\
+	errno/errno.o\
 	stdio/fclose.o\
 	stdio/fgetc.o\
 	stdio/fgetpos.o\
@@ -7,15 +8,19 @@ OBJS= assert/assert_fail.o\
 	stdio/fopen.o\
 	stdio/fputc.o\
 	stdio/fputs.o\
+	stdio/fread.o\
 	stdio/fseek.o\
 	stdio/fsetpos.o\
 	stdio/ftell.o\
+	stdio/fwrite.o\
 	stdio/getc.o\
 	stdio/getchar.o\
+	stdio/perror.o\
 	stdio/printf.o\
 	stdio/putc.o\
 	stdio/putchar.o\
 	stdio/puts.o\
+	stdio/remove.o\
 	stdio/rewind.o\
 	stdio/stderr.o\
 	stdio/stdin.o\
@@ -35,6 +40,7 @@ OBJS= assert/assert_fail.o\
 	string/memcpy.o\
 	string/memmove.o\
 	string/memset.o\
+	string/strerror.o\
 	string/strcat.o\
 	string/strchr.o\
 	string/strcmp.o\

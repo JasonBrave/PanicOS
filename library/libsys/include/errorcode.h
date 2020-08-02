@@ -28,5 +28,6 @@
 #define ERROR_READ_FAIL -6
 #define ERROR_OUT_OF_SPACE -7
 #define ERROR_WRITE_FAIL -8
+#define ERROR_NO_PERM -9
 
 #endif

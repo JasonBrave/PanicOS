@@ -44,7 +44,7 @@ OBJS = \
 	driver/ps2/keyboard.o\
 	proc/pty.o\
 
-CFLAGS += -I.
+CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.
 
 kernel : $(OBJS) core/entry.o entryother initcode kernel.ld

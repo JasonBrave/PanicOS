@@ -39,6 +39,9 @@ extern FILE* stdin;
 extern FILE* stdout;
 extern FILE* stderr;
 
+// operations on files
+int remove(const char* filename);
+
 // file access functions
 int fclose(FILE* stream);
 FILE* fopen(const char* restrict filename, const char* restrict mode);
@@ -57,11 +60,19 @@ int putc(int c, FILE* stream);
 int putchar(int c);
 int puts(const char* s);
 
+// direct input/output functions
+size_t fread(void* restrict ptr, size_t size, size_t nmemb, FILE* restrict stream);
+size_t fwrite(const void* restrict ptr, size_t size, size_t nmemb,
+			  FILE* restrict stream);
+
 // file positioning functions
 int fgetpos(FILE* restrict stream, fpos_t* restrict pos);
 int fseek(FILE* stream, long offset, int whence);
 int fsetpos(FILE* stream, const fpos_t* pos);
 long ftell(FILE* stream);
 void rewind(FILE* stream);
+
+// error-handling functions
+void perror(const char* s);
 
 #endif

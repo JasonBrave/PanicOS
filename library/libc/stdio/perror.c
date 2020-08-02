@@ -1,5 +1,5 @@
 /*
- * mkdir program
+ * perror function
  *
  * This file is part of PanicOS.
  *
@@ -17,19 +17,12 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <panicos.h>
+#include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
-int main(int argc, char* argv[]) {
-	if (argc <= 1) {
-		fputs("Usage: mkdir [dir]\n", stderr);
-		return 1;
+void perror(const char* s) {
+	if (errno) {
+		printf("%s: %s\n", s, strerror(errno));
 	}
-	for (int i = 1; i < argc; i++) {
-		if (mkdir(argv[i]) < 0) {
-			perror("Create directory failed");
-			return 1;
-		}
-	}
-	return 0;
 }

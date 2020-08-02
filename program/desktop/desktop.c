@@ -17,49 +17,12 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <dirent.h>
 #include <libwm/wm.h>
 #include <panicos.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// dirent.h
-typedef struct {
-	int fd;
-} DIR;
-
-struct dirent {
-	char d_name[256];
-};
-
-static DIR* opendir(const char* dirname) {
-	DIR* dir = malloc(sizeof(DIR));
-	if (!dir) {
-		return NULL;
-	}
-	dir->fd = dir_open(dirname);
-	if (dir->fd < 0) {
-		free(dir);
-		return NULL;
-	}
-	return dir;
-}
-
-static struct dirent* readdir(DIR* dirp) {
-	static struct dirent dire;
-	if (!dir_read(dirp->fd, dire.d_name)) {
-		return 0;
-	}
-	return &dire;
-}
-
-static int closedir(DIR* dirp) {
-	close(dirp->fd);
-	free(dirp);
-	return 0;
-}
-
-// end of dirent.h
 
 #define DEFAULT_XRES 1024
 #define DEFAULT_YRES 768
