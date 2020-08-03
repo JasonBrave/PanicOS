@@ -1,6 +1,5 @@
-// -*- c++ -*-
 /*
- * C++ <cstdint> header
+ * C++ standard streams
  *
  * This file is part of PanicOS.
  *
@@ -18,11 +17,18 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBCPP_CSTDINT
-#define _LIBCPP_CSTDINT
+#include <cstdio>
+#include <ostream>
+#include <streambuf>
+
+namespace {
+	std::streambuf cout_buf(stdout);
+	std::streambuf cerr_buf(stderr);
+	std::streambuf clog_buf(stderr);
+} // namespace
 
 namespace std {
-#include <stdint-gcc.h>
-}
-
-#endif
+	ostream cout(&cout_buf);
+	ostream cerr(&cerr_buf);
+	ostream clog(&clog_buf);
+} // namespace std

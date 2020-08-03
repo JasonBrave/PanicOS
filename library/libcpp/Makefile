@@ -1,5 +1,7 @@
 LIB= libcpp
-OBJS= new/new.o\
+OBJS= ios/ios_base.o\
+	iostream/iostream.o\
+	new/new.o\
 	new/delete.o\
 
 HEADERS= include/*

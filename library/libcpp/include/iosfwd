@@ -1,6 +1,6 @@
 // -*- c++ -*-
 /*
- * C++ <cstdint> header
+ * C++ <iosfwd> header
  *
  * This file is part of PanicOS.
  *
@@ -18,11 +18,29 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBCPP_CSTDINT
-#define _LIBCPP_CSTDINT
+#ifndef _LIBCPP_IOSFWD
+#define _LIBCPP_IOSFWD
 
 namespace std {
-#include <stdint-gcc.h>
-}
+	template <class CharT>
+	struct char_traits;
+	template <>
+	struct char_traits<char>;
+
+	template <class CharT, class Traits = std::char_traits<CharT>>
+	class basic_ios;
+	template <class CharT, class Traits = std::char_traits<CharT>>
+	class basic_streambuf;
+	template <class CharT, class Traits = std::char_traits<CharT>>
+	class basic_ostream;
+
+	typedef int streamoff;
+	typedef int streamsize;
+	typedef void streampos;
+
+	using ios = basic_ios<char>;
+	using streambuf = basic_streambuf<char>;
+	using ostream = basic_ostream<char>;
+} // namespace std
 
 #endif

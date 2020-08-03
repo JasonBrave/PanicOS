@@ -1,0 +1,97 @@
+// -*- c++ -*-
+/*
+ * C++ <ios> header
+ *
+ * This file is part of PanicOS.
+ *
+ * PanicOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PanicOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef _LIBCPP_IOS
+#define _LIBCPP_IOS
+
+#include <impl/char_traits.hpp>
+
+namespace std {
+	typedef int streamoff;
+	typedef int streamsize;
+
+	class ios_base {
+	public:
+		enum event {
+			erase_event,
+			imbue_event,
+			copyfmt_event,
+		};
+		typedef void (*event_callback)(event type, ios_base& ios, int index);
+
+		ios_base(const ios_base&) = delete;
+		virtual ~ios_base();
+		// miscellaneous
+		void register_callback(event_callback function, int index);
+		static bool sync_with_stdio(bool sync = true);
+
+	protected:
+		ios_base();
+
+	private:
+		event_callback callback_func = nullptr;
+		int callback_index = 0;
+	};
+
+	template <class CharT, class Traits>
+	class basic_ios : public std::ios_base {
+	public:
+		typedef CharT char_type;
+		typedef Traits traits_type;
+		typedef typename Traits::int_type int_type;
+		typedef typename Traits::pos_type pos_type;
+		typedef typename Traits::off_type off_type;
+
+		explicit basic_ios(std::basic_streambuf<CharT, Traits>* sb) {
+			init(sb);
+		}
+		basic_ios(const basic_ios&) = delete;
+		virtual ~basic_ios() {}
+		void operator=(const basic_ios&) = delete;
+		// miscellaneous
+		std::basic_streambuf<CharT, Traits>* rdbuf() const {
+			return strbuf;
+		}
+
+		std::basic_streambuf<CharT, Traits>*
+		rdbuf(std::basic_streambuf<CharT, Traits>* sb) {
+			auto prev = strbuf;
+			strbuf = sb;
+			return prev;
+		}
+
+	protected:
+		basic_ios() {
+			init(nullptr);
+		}
+
+		void init(std::basic_streambuf<CharT, Traits>* sb) {
+			strbuf = sb;
+		}
+
+		void set_rdbuf(std::basic_streambuf<CharT, Traits>* sb) {
+			strbuf = sb;
+		}
+
+		std::basic_streambuf<CharT, Traits>* strbuf = nullptr;
+	};
+} // namespace std
+
+#endif

@@ -1,0 +1,72 @@
+// -*- c++ -*-
+/*
+ * C++ <streambuf> header
+ *
+ * This file is part of PanicOS.
+ *
+ * PanicOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PanicOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef _LIBCPP_STREAMBUF
+#define _LIBCPP_STREAMBUF
+
+#include <cstdio>
+#include <iosfwd>
+
+namespace std {
+	template <class CharT, class Traits>
+	class basic_streambuf {
+	public:
+		typedef CharT char_type;
+		typedef Traits traits_type;
+		typedef typename Traits::int_type int_type;
+		typedef typename Traits::pos_type pos_type;
+		typedef typename Traits::off_type off_type;
+
+		basic_streambuf(FILE* c_stream) {
+			fd = c_stream;
+		}
+
+		virtual ~basic_streambuf() {}
+
+		// put area
+		int_type sputc(char_type ch) {
+			fputc(ch, fd);
+			return Traits::to_int_type(ch);
+		}
+
+		std::streamsize sputn(const char_type* s, std::streamsize count) {
+			return xsputn(s, count);
+		}
+
+	protected:
+		basic_streambuf() {}
+		basic_streambuf(const basic_streambuf& rhs) {}
+
+		// put area
+		virtual std::streamsize xsputn(const char_type* s, std::streamsize count) {
+			for (int i = 0; i < count; i++) {
+				sputc(s[i]);
+			}
+			return count;
+		}
+
+	private:
+		FILE* fd = nullptr;
+	};
+
+	using streambuf = basic_streambuf<char>;
+} // namespace std
+
+#endif

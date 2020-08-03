@@ -1,6 +1,5 @@
-// -*- c++ -*-
 /*
- * C++ <cstdint> header
+ * C++ std::ios_base
  *
  * This file is part of PanicOS.
  *
@@ -18,11 +17,23 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBCPP_CSTDINT
-#define _LIBCPP_CSTDINT
+#include <ios>
+#include <iostream>
+#include <streambuf>
 
-namespace std {
-#include <stdint-gcc.h>
+std::ios_base::ios_base() {}
+
+std::ios_base::~ios_base() {
+	if (callback_func) {
+		callback_func(event::erase_event, *this, callback_index);
+	}
 }
 
-#endif
+void std::ios_base::register_callback(event_callback function, int index) {
+	callback_func = function;
+	callback_index = index;
+}
+
+bool std::ios_base::sync_with_stdio(bool sync) {
+	return true;
+}

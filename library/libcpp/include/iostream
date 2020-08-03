@@ -1,6 +1,6 @@
 // -*- c++ -*-
 /*
- * C++ <cstdint> header
+ * C++ <iostream> header
  *
  * This file is part of PanicOS.
  *
@@ -18,11 +18,17 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBCPP_CSTDINT
-#define _LIBCPP_CSTDINT
+#ifndef _LIBCPP_IOSTREAM
+#define _LIBCPP_IOSTREAM
+
+#include <ios>
+#include <ostream>
+#include <streambuf>
 
 namespace std {
-#include <stdint-gcc.h>
-}
+	extern ostream cout;
+	extern ostream cerr;
+	extern ostream clog;
+} // namespace std
 
 #endif
