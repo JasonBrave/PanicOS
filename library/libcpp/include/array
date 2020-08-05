@@ -1,0 +1,177 @@
+// -*- c++ -*-
+/*
+ * C++ <array> header
+ *
+ * This file is part of PanicOS.
+ *
+ * PanicOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PanicOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef _LIBCPP_ARRAY
+#define _LIBCPP_ARRAY
+
+#include <cstddef>
+#include <impl/swap.hpp>
+
+namespace std {
+
+	template <class T, std::size_t N>
+	struct array {
+	public:
+		typedef T value_type;
+		typedef std::size_t size_type;
+		typedef std::ptrdiff_t difference_type;
+		typedef value_type& reference;
+		typedef const value_type& const_reference;
+		typedef value_type* pointer;
+		typedef const value_type* const_pointer;
+		typedef value_type* iterator;
+		typedef const value_type* const_iterator;
+
+		T elements[N];
+
+		// element access
+		constexpr reference at(size_type pos) {
+			return elements[pos];
+		}
+
+		constexpr const_reference at(size_type pos) const {
+			return elements[pos];
+		}
+
+		constexpr reference operator[](size_type pos) {
+			return elements[pos];
+		}
+
+		constexpr const_reference operator[](size_type pos) const {
+			return elements[pos];
+		}
+
+		constexpr reference front() {
+			return elements[0];
+		}
+
+		constexpr const_reference front() const {
+			return elements[0];
+		}
+
+		constexpr reference back() {
+			return elements[N - 1];
+		}
+
+		constexpr const_reference back() const {
+			return elements[N - 1];
+		}
+
+		constexpr T* data() noexcept {
+			return elements;
+		}
+
+		constexpr const T* data() const noexcept {
+			return elements;
+		}
+
+		// iterators
+		constexpr iterator begin() noexcept {
+			return iterator(elements);
+		}
+
+		constexpr const_iterator begin() const noexcept {
+			return const_iterator(elements);
+		}
+
+		constexpr const_iterator cbegin() const noexcept {
+			return const_iterator(elements);
+		}
+
+		constexpr iterator end() noexcept {
+			return iterator(elements + N);
+		}
+
+		constexpr const_iterator end() const noexcept {
+			return const_iterator(elements + N);
+		}
+
+		constexpr const_iterator cend() const noexcept {
+			return const_iterator(elements + N);
+		}
+
+		// capacity
+		[[nodiscard]] constexpr bool empty() const noexcept {
+			return (size() == 0);
+		}
+
+		constexpr size_type size() const noexcept {
+			return N;
+		}
+
+		constexpr size_type max_size() const noexcept {
+			return N;
+		}
+
+		// operations
+		constexpr void fill(const T& value) {
+			for (std::size_t i = 0; i < N; i++) {
+				elements[i] = value;
+			}
+		}
+
+		constexpr void swap(array& other) noexcept {
+			for (std::size_t i = 0; i < N; i++) {
+				std::swap(elements[i], other[i]);
+			}
+		}
+	};
+
+	template <class T, std::size_t N>
+	constexpr bool operator==(const std::array<T, N>& lhs,
+							  const std::array<T, N>& rhs) {
+		for (std::size_t i = 0; i < N; i++) {
+			if (lhs[i] != rhs[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// std::get
+	template <std::size_t I, class T, std::size_t N>
+	constexpr T& get(std::array<T, N>& a) noexcept {
+		return a[I];
+	}
+
+	template <std::size_t I, class T, std::size_t N>
+	constexpr T&& get(std::array<T, N>&& a) noexcept {
+		return a[I];
+	}
+
+	template <std::size_t I, class T, std::size_t N>
+	constexpr const T& get(std::array<T, N>& a) noexcept {
+		return a[I];
+	}
+
+	template <std::size_t I, class T, std::size_t N>
+	constexpr const T&& get(std::array<T, N>&& a) noexcept {
+		return a[I];
+	}
+
+	// std::swap
+	template <class T, std::size_t N>
+	constexpr void swap(array<T, N>& lhs, array<T, N>& rhs) noexcept {
+		lhs.swap(rhs);
+	}
+
+} // namespace std
+
+#endif

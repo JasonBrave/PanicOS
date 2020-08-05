@@ -1,0 +1,100 @@
+// -*- c++ -*-
+/*
+ * C++ <utility> header
+ *
+ * This file is part of PanicOS.
+ *
+ * PanicOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PanicOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef _LIBCPP_UTILITY
+#define _LIBCPP_UTILITY
+
+#include <type_traits>
+
+#include <impl/move.hpp>
+#include <impl/swap.hpp>
+
+namespace std {
+
+	template <class T>
+	constexpr T&& forward(std::remove_reference_t<T>& t) noexcept {
+		return static_cast<T&&>(t);
+	}
+
+	template <class T>
+	constexpr T&& forward(std::remove_reference_t<T>&& t) noexcept {
+		return static_cast<T&&>(t);
+	}
+
+	template <class T, class U = T>
+	constexpr T exchange(T& obj, U&& new_value) {
+		T old_value = std::move(obj);
+		obj = std::forward<U>(new_value);
+		return old_value;
+	}
+
+	/*
+	 * class pair
+	 */
+	template <class T1, class T2>
+	struct pair {
+		typedef T1 first_type;
+		typedef T2 second_type;
+
+		T1 first;
+		T2 second;
+
+		constexpr pair() : first(), second() {}
+
+		constexpr pair(const T1& x, const T2& y) : first(x), second(y) {}
+
+		template <class U1, class U2>
+		constexpr pair(U1&& x, U2&& y) : first(x), second(y) {}
+
+		template <class U1, class U2>
+		constexpr pair(const pair<U1, U2>& p) : first(p.first), second(p.second) {}
+
+		template <class U1, class U2>
+		constexpr pair(pair<U1, U2>&& p) : first(p.first), second(p.second) {}
+
+		pair(const pair&) = default;
+		pair(pair&&) = default;
+
+		constexpr pair& operator=(const pair& other) {
+			first = other.first;
+			second = other.second;
+			return *this;
+		}
+
+		constexpr void swap(pair& other) noexcept {
+			std::swap(first, other.first);
+			std::swap(second, other.second);
+		}
+	};
+
+	template <class T1, class T2>
+	constexpr std::pair<T1, T2> make_pair(T1&& t, T2&& u) {
+		return pair<T1, T2>(t, u);
+	}
+
+	template <class T1, class T2>
+	constexpr bool operator==(const std::pair<T1, T2>& lhs,
+							  const std::pair<T1, T2>& rhs) {
+		return (lhs.first == rhs.first) && (lhs.second == rhs.second);
+	}
+
+} // namespace std
+
+#endif
