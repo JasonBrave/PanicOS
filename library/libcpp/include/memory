@@ -1,5 +1,6 @@
+// -*- c++ -*-
 /*
- * malloc function
+ * C++ <memory> header
  *
  * This file is part of PanicOS.
  *
@@ -17,9 +18,9 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <panicos.h>
-#include <stdlib.h>
+#ifndef _LIBCPP_MEMORY
+#define _LIBCPP_MEMORY
 
-void* malloc(size_t size) {
-	return sbrk(size);
-}
+#include <impl/allocator.hpp>
+
+#endif

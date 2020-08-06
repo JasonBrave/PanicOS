@@ -1,0 +1,357 @@
+// -*- c++ -*-
+/*
+ * C++ <vector> header
+ *
+ * This file is part of PanicOS.
+ *
+ * PanicOS is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PanicOS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef _LIBCPP_VECTOR
+#define _LIBCPP_VECTOR
+
+#include <impl/allocator.hpp>
+#include <impl/move.hpp>
+#include <impl/swap.hpp>
+#include <new>
+
+namespace std {
+
+	template <class T, class Allocator = std::allocator<T>>
+	class vector {
+	public:
+		typedef T value_type;
+		typedef Allocator allocator_type;
+		typedef std::size_t size_type;
+		typedef std::ptrdiff_t difference_type;
+		typedef value_type& reference;
+		typedef const value_type& const_reference;
+		typedef value_type* pointer;
+		typedef const value_type* const_pointer;
+		typedef value_type* iterator;
+		typedef const value_type* const_iterator;
+
+		// constructors
+		constexpr vector() noexcept : ptr(nullptr), sz(0), cap(0) {}
+
+		constexpr explicit vector(size_type count, const T& value)
+			: sz(count), cap(count) {
+			ptr = alloc.allocate(cap);
+			while (count--) {
+				new (ptr + count) T(value);
+			}
+		}
+
+		constexpr explicit vector(size_type count) : sz(count), cap(count) {
+			ptr = alloc.allocate(cap);
+			while (count--) {
+				new (ptr + count) T();
+			}
+		}
+
+		template <class InputIt>
+		constexpr vector(InputIt first, InputIt last) : vector() {
+			while (first != last) {
+				push_back(*first);
+				first++;
+			}
+		}
+
+		constexpr vector(const vector& other) : sz(other.sz), cap(sz) {
+			ptr = alloc.allocate(cap);
+			for (size_type i = 0; i < sz; i++) {
+				new (ptr + i) T(other.ptr[i]);
+			}
+		}
+
+		constexpr vector(vector&& other)
+			: ptr(other.ptr), sz(other.sz), cap(other.cap) {
+			other.ptr = nullptr;
+			other.sz = 0;
+			other.cap = 0;
+		}
+
+		constexpr ~vector() {
+			while (sz--) {
+				ptr[sz].~T();
+			}
+			alloc.deallocate(ptr, cap);
+		}
+
+		constexpr vector& operator=(const vector& other) {
+			clear();
+			if (other.sz > cap) {
+				reserve(other.sz);
+			}
+			sz = other.sz;
+			cap = sz;
+			for (size_type i = 0; i < sz; i++) {
+				new (ptr + i) T(other.ptr[i]);
+			}
+			return *this;
+		}
+
+		constexpr vector& operator=(vector&& other) noexcept {
+			clear();
+			alloc.deallocate(ptr, cap);
+			ptr = other.ptr;
+			sz = other.sz;
+			cap = other.cap;
+			other.ptr = nullptr;
+			other.sz = 0;
+			other.cap = 0;
+			return *this;
+		}
+
+		constexpr void assign(size_type count, const T& value) {
+			clear();
+			if (count > cap) {
+				reserve(count);
+			}
+			while (count--) {
+				new (ptr + count) T(value);
+			}
+		}
+
+		template <class InputIt>
+		constexpr void assign(InputIt first, InputIt last) {
+			clear();
+			while (first != last) {
+				push_back(*first);
+				first++;
+			}
+		}
+
+		constexpr allocator_type get_allocator() const {
+			return alloc;
+		}
+
+		// element access
+		constexpr reference at(size_type pos) {
+			if (pos < size()) {
+				return ptr[pos];
+			} else {
+				// throw std::out_of_range
+				return ptr[pos];
+			}
+		}
+
+		constexpr const_reference at(size_type pos) const {
+			if (pos < size()) {
+				return ptr[pos];
+			} else {
+				// throw std::out_of_range;
+				return ptr[pos];
+			}
+		}
+
+		constexpr reference operator[](size_type pos) {
+			return ptr[pos];
+		}
+
+		constexpr const_reference operator[](size_type pos) const {
+			return ptr[pos];
+		}
+
+		constexpr reference front() {
+			return ptr[0];
+		}
+
+		constexpr const_reference front() const {
+			return ptr[0];
+		}
+
+		constexpr reference back() {
+			return ptr[sz - 1];
+		}
+
+		constexpr const_reference back() const {
+			return ptr[sz - 1];
+		}
+
+		constexpr T* data() noexcept {
+			return ptr;
+		}
+
+		constexpr const T* data() const noexcept {
+			return ptr;
+		}
+
+		// iterators
+		constexpr iterator begin() noexcept {
+			return iterator(ptr);
+		}
+
+		constexpr const_iterator begin() const noexcept {
+			return const_iterator(ptr);
+		}
+
+		constexpr const_iterator cbegin() const noexcept {
+			return const_iterator(ptr);
+		}
+
+		constexpr iterator end() noexcept {
+			return iterator(ptr + sz);
+		}
+
+		constexpr const_iterator end() const noexcept {
+			return const_iterator(ptr + sz);
+		}
+
+		constexpr const_iterator cend() const noexcept {
+			return const_iterator(ptr + sz);
+		}
+
+		// capacity
+		[[nodiscard]] constexpr bool empty() const noexcept {
+			return (size() == 0);
+		}
+
+		constexpr size_type size() const noexcept {
+			return sz;
+		}
+
+		constexpr void reserve(size_type new_cap) {
+			if (new_cap > cap) {
+				T* newptr = alloc.allocate(new_cap);
+				for (size_type i = 0; i < sz; i++) {
+					new (newptr + i) T(std::move(ptr[i]));
+					ptr[i].~T();
+				}
+				alloc.deallocate(ptr, cap);
+				ptr = newptr;
+				cap = new_cap;
+			}
+		}
+
+		constexpr size_type capacity() const noexcept {
+			return cap;
+		}
+
+		constexpr void shrink_to_fit() {
+			T* newptr = alloc.allocate(sz);
+			for (size_type i = 0; i < sz; i++) {
+				new (newptr + i) T(std::move(ptr[i]));
+				ptr[i].~T();
+			}
+			alloc.deallocate(ptr, cap);
+			ptr = newptr;
+			cap = sz;
+		}
+
+		// modifiers
+		constexpr void clear() noexcept {
+			for (size_type i = 0; i < sz; i++) {
+				ptr[i].~T();
+			}
+			sz = 0;
+		}
+
+		constexpr void push_back(const T& value) {
+			if (sz + 1 > cap) {
+				if (cap) {
+					reserve(cap * 2);
+				} else {
+					reserve(1);
+				}
+			}
+			new (ptr + sz) T(value);
+			sz++;
+		}
+
+		constexpr void push_back(T&& value) {
+			if (sz + 1 > cap) {
+				if (cap) {
+					reserve(cap * 2);
+				} else {
+					reserve(1);
+				}
+			}
+			new (ptr + sz) T(value);
+			sz++;
+		}
+
+		constexpr void pop_back() {
+			sz--;
+			ptr[sz].~T();
+		}
+
+		constexpr void resize(size_type count) {
+			if (sz > count) {
+				for (size_type i = count; i < sz; i++) {
+					ptr[i].~T();
+				}
+			} else if (sz < count) {
+				if (count > cap) {
+					reserve(count);
+				}
+				for (size_type i = sz; i < count; i++) {
+					new (ptr + i) T();
+				}
+			}
+			sz = count;
+		}
+
+		constexpr void resize(size_type count, const value_type& value) {
+			if (sz > count) {
+				for (size_type i = count; i < sz; i++) {
+					ptr[i].~T();
+				}
+			} else if (sz < count) {
+				if (count > cap) {
+					reserve(count);
+				}
+				for (size_type i = sz; i < count; i++) {
+					new (ptr + i) T(value);
+				}
+			}
+			sz = count;
+		}
+
+		constexpr void swap(vector& other) noexcept {
+			std::swap(ptr, other.ptr);
+			std::swap(sz, other.sz);
+			std::swap(cap, other.cap);
+			std::swap(alloc, other.alloc);
+		}
+
+	private:
+		pointer ptr;
+		size_type sz;
+		size_type cap;
+		Allocator alloc;
+	};
+
+	template <class T, class Alloc>
+	constexpr bool operator==(const std::vector<T, Alloc>& lhs,
+							  const std::vector<T, Alloc>& rhs) {
+		if (lhs.size() != rhs.size()) {
+			return false;
+		}
+		for (std::size_t i = 0; i < lhs.size(); i++) {
+			if (lhs[i] != rhs[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	template <class T, class Alloc>
+	constexpr void swap(vector<T, Alloc>& lhs, vector<T, Alloc>& rhs) noexcept {
+		lhs.swap(rhs);
+	}
+
+} // namespace std
+
+#endif
