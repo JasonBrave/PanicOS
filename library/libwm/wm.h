@@ -1,10 +1,19 @@
 #ifndef _LIBWM_WM_H
 #define _LIBWM_WM_H
 
+#ifdef __cplusplus
+#include <cstdint>
+extern "C" {
+#else
 #include <stdint.h>
+#endif
 
 typedef struct {
+#ifdef __cplusplus
+	std::uint8_t b, g, r;
+#else
 	uint8_t b, g, r;
+#endif
 } __attribute__((packed)) COLOUR;
 
 enum WmEventType {
@@ -40,5 +49,9 @@ int wm_catch_event(struct WmEvent* event);
 void wm_remove_sheet(int handle);
 void wm_fill_rect(int handle, int x, int y, int width, int height, COLOUR colour);
 void wm_draw_buffer(int handle, int x, int y, int width, int height, COLOUR* buffer);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
