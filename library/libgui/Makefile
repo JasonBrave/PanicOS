@@ -1,5 +1,6 @@
 LIB= libgui
 OBJS= button.o\
+	imagebox.o\
 	label.o\
 	wmbase.o\
 	window.o\
