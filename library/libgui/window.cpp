@@ -86,6 +86,7 @@ void GUI::start_application(GUI::Window& win) {
 			win.on_mouse_up(ev.keycode, ev.x, ev.y);
 			break;
 		case WM_EVENT_WINDOW_CLOSE:
+			std::exit(0);
 			break;
 		}
 		win.render();

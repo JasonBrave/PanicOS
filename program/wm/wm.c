@@ -221,12 +221,6 @@ void sheet_remove(struct Sheet* to_remove) {
 }
 
 void window_close(struct Sheet* to_remove) {
-	if (to_remove->owner_pid) {
-		struct MessageWindowCloseEvent msg;
-		msg.msgtype = WM_MESSAGE_WINDOW_CLOSE_EVENT;
-		msg.sheet_id = to_remove->owner_pid;
-		message_send(to_remove->owner_pid, sizeof(msg), &msg);
-	}
 	free(to_remove->window->buffer);
 	free(to_remove->window);
 	sheet_remove(to_remove);
@@ -272,8 +266,13 @@ void window_onclick(struct Sheet* sht, unsigned int btn) {
 	if (btn & 1 && cur_y < sht->y + 32 && !win_moving) {
 		if (cur_x >= sht->x + sht->width - 28 && cur_x < sht->x + sht->width - 4 &&
 			cur_y >= sht->y + 4 && cur_y < sht->y + 28) {
-			// close button
-			window_close(sht);
+			// close button event
+			if (sht->owner_pid) {
+				struct MessageWindowCloseEvent msg;
+				msg.msgtype = WM_MESSAGE_WINDOW_CLOSE_EVENT;
+				msg.sheet_id = (int)sht;
+				message_send(sht->owner_pid, sizeof(msg), &msg);
+			}
 		} else {
 			// start to move the window
 			win_moving = sht;
@@ -522,21 +521,6 @@ int main(int argc, char* argv[]) {
 		wm_fill_buffer(fb, cur_x, cur_y, CURSOR_WIDTH, CURSOR_HEIGHT, xres, red);
 		// mouse buttons
 		int btn = (m >> 24) & 7;
-		if (btn & 1) {
-			wm_fill_buffer(fb, 0, 0, 50, 50, xres, red);
-		} else {
-			wm_fill_buffer(fb, 0, 0, 50, 50, xres, green);
-		}
-		if (btn & 4) {
-			wm_fill_buffer(fb, 50, 0, 50, 50, xres, red);
-		} else {
-			wm_fill_buffer(fb, 50, 0, 50, 50, xres, green);
-		}
-		if (btn & 2) {
-			wm_fill_buffer(fb, 100, 0, 50, 50, xres, red);
-		} else {
-			wm_fill_buffer(fb, 100, 0, 50, 50, xres, green);
-		}
 		static int prevbtn = 0;
 		if (prevbtn != btn) {
 			mouse_button_event(btn);

@@ -179,6 +179,7 @@ int main(int argc, char* argv[]) {
 				   event.event_type == WM_EVENT_WINDOW_CLOSE) { // window closed
 			kill(sh_pid);
 			pty_close(pty);
+			wm_remove_sheet(term_handle);
 			exit(0);
 		}
 
