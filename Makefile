@@ -25,7 +25,7 @@ qemu-kvm: panicos.img
 	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
 	-smp 2 -m 256 -accel kvm -cpu host -net none
 
-panicos.img: boot/mbr.bin kernel/kernel rootfs program
+panicos.img: boot/mbr.bin kernel/kernel rootfs program share
 	dd if=/dev/zero of=fs.img bs=1M count=63
 	mkfs.vfat -F32 -s8 -nPanicOS fs.img
 	mcopy -i fs.img -bs rootfs/* ::
@@ -48,9 +48,14 @@ program: library rootfs
 library: rootfs
 	$(MAKE) -C library
 
+.PHONY: share
+share: rootfs
+	$(MAKE) -C share install
+
 .PHONY: rootfs
 rootfs:
-	mkdir -p rootfs/bin rootfs/lib rootfs/devel/include rootfs/devel/lib
+	mkdir -p rootfs/bin rootfs/lib rootfs/devel/include rootfs/devel/lib \
+	rootfs/share
 
 .PHONY: clean
 clean:
