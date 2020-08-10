@@ -43,6 +43,8 @@ OBJS = \
 	driver/ps2/mouse.o\
 	driver/ps2/keyboard.o\
 	proc/pty.o\
+	driver/pci/intel-pcie-mmcfg.o\
+	driver/pci/pci-legacy.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.
