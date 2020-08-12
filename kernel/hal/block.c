@@ -18,6 +18,7 @@
  */
 
 #include <defs.h>
+#include <driver/ata/ata.h>
 #include <driver/virtio-blk/virtio-blk.h>
 
 #include "hal.h"
@@ -67,6 +68,8 @@ void hal_block_init(void) {
 	memset(hal_partition_map, 0, sizeof(hal_partition_map));
 	// virtio block device initialization
 	virtio_blk_init();
+	// ATA initialization
+	ata_init();
 	// find virtio-blk devices
 	for (int i = 0; i < VIRTIO_BLK_NUM_MAX; i++) {
 		if (!virtio_blk_dev[i].virtio_dev.cmcfg) {

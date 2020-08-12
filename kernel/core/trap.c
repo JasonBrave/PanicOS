@@ -23,6 +23,7 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
+#include <driver/ata/ata.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
 #include <memlayout.h>
@@ -75,10 +76,9 @@ void trap(struct trapframe* tf) {
 		lapiceoi();
 		break;
 	case T_IRQ0 + IRQ_IDE:
-		lapiceoi();
-		break;
 	case T_IRQ0 + IRQ_IDE + 1:
-		// Bochs generates spurious IDE1 interrupts.
+		ata_legacy_intr(tf->trapno - T_IRQ0);
+		lapiceoi();
 		break;
 	case T_IRQ0 + IRQ_KBD:
 		ps2_keyboard_intr();
