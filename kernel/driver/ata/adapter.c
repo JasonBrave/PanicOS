@@ -23,76 +23,79 @@
 
 #include "ata.h"
 
-struct AtaAdapter {
-	ioport_t cmdblock_base[2];
-	ioport_t control_base[2];
-	ioport_t bus_master_base;
-	struct {
-		unsigned short bus_master : 1;
-		unsigned short pci_native : 1;
-		unsigned short mode_switch : 1;
-	};
-};
-
-struct AtaAdapter adapter;
+struct ATAAdapter ata_adapter[ATA_ADAPTER_MAX];
 
 const static char* bus_master_str[] = {"Non-Bus Mastering", "Bus Mastering"};
 const static char* pci_native_str[] = {"ISA Compatibility", "PCI Native"};
-const static char* mode_switch_str[] = {"Fixed mode", "Switchable"};
 
-void ata_adapter_init(const struct PciAddress* addr) {
-	memset(&adapter, 0, sizeof(adapter));
+static struct ATAAdapter* ata_adapter_alloc(void) {
+	for (int i = 0; i < ATA_ADAPTER_MAX; i++) {
+		if (!ata_adapter[i].cmdblock_base[0]) {
+			return &ata_adapter[i];
+		}
+	}
+	return 0;
+}
+
+void ata_adapter_dev_init(const struct PciAddress* addr) {
+	struct ATAAdapter* adapter = ata_adapter_alloc();
+	if (!adapter) {
+		panic("too many ATA adapter");
+	}
 
 	const uint8_t progif = pci_read_config_reg8(addr, PCI_CONF_PROGIF);
 	if (progif & (1 << 7)) {
-		adapter.bus_master = 1;
+		adapter->bus_master = 1;
 	}
 	if ((progif & (1 << 0)) && (progif & (1 << 2))) {
-		adapter.pci_native = 1;
+		adapter->pci_native = 1;
 	}
-	if ((progif & (1 << 1)) && (progif & (1 << 3))) {
-		adapter.mode_switch = 1;
-	}
-	cprintf("[ata] Adapter %d:%d.%d %s %s %s IDE Controller\n", addr->bus, addr->device,
-			addr->function, bus_master_str[adapter.bus_master],
-			mode_switch_str[adapter.mode_switch], pci_native_str[adapter.pci_native]);
+	cprintf("[ata] Adapter %d:%d.%d %s %s IDE Controller\n", addr->bus, addr->device,
+			addr->function, bus_master_str[adapter->bus_master],
+			pci_native_str[adapter->pci_native]);
 
 	// read base addresses
-	if (adapter.pci_native) {
-		adapter.cmdblock_base[0] = pci_read_bar(addr, 0);
-		adapter.control_base[0] = pci_read_bar(addr, 1);
-		adapter.cmdblock_base[1] = pci_read_bar(addr, 2);
-		adapter.control_base[1] = pci_read_bar(addr, 3);
+	if (adapter->pci_native) {
+		adapter->cmdblock_base[0] = pci_read_bar(addr, 0);
+		adapter->control_base[0] = pci_read_bar(addr, 1);
+		adapter->cmdblock_base[1] = pci_read_bar(addr, 2);
+		adapter->control_base[1] = pci_read_bar(addr, 3);
 	} else {
-		adapter.cmdblock_base[0] = 0x1f0;
-		adapter.control_base[0] = 0x3f6;
-		adapter.cmdblock_base[1] = 0x170;
-		adapter.control_base[1] = 0x376;
+		adapter->cmdblock_base[0] = 0x1f0;
+		adapter->control_base[0] = 0x3f6;
+		adapter->cmdblock_base[1] = 0x170;
+		adapter->control_base[1] = 0x376;
 	}
-	if (adapter.bus_master) {
-		adapter.bus_master_base = pci_read_bar(addr, 4);
+	if (adapter->bus_master) {
+		adapter->bus_master_base = pci_read_bar(addr, 4);
 	}
 	cprintf("[ata] cmd0 0x%x ctl0 0x%x cmd1 0x%x ctl1 0x%x bmdma 0x%x\n",
-			adapter.cmdblock_base[0], adapter.control_base[0], adapter.cmdblock_base[1],
-			adapter.control_base[1], adapter.bus_master_base);
+			adapter->cmdblock_base[0], adapter->control_base[0],
+			adapter->cmdblock_base[1], adapter->control_base[1],
+			adapter->bus_master_base);
 	// enable bus mastering
-	if (adapter.bus_master) {
+	if (adapter->bus_master) {
 		uint16_t pcicmd = pci_read_config_reg16(addr, PCI_CONF_COMMAND);
 		pcicmd |= PCI_CONTROL_BUS_MASTER;
 		pci_write_config_reg16(addr, PCI_CONF_COMMAND, pcicmd);
 	}
 	// enable PCI interrupt
-	if (adapter.pci_native) {
+	if (adapter->pci_native) {
 		pci_register_intr_handler(addr, ata_pci_intr);
 	}
 }
 
-void ata_init(void) {
+void ata_adapter_init(void) {
+	memset(&ata_adapter, 0, sizeof(ata_adapter));
+	// enable legacy IRQ
+	ioapicenable(14, 0);
+	ioapicenable(15, 0);
+
 	struct PciAddress addr;
 	if (pci_find_class(&addr, 1, 1)) {
-		ata_adapter_init(&addr);
+		ata_adapter_dev_init(&addr);
 		while (pci_next_class(&addr, 1, 1)) {
-			ata_adapter_init(&addr);
+			ata_adapter_dev_init(&addr);
 		}
 	}
 }

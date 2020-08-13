@@ -46,6 +46,7 @@ OBJS = \
 	driver/pci/intel-pcie-mmcfg.o\
 	driver/pci/pci-legacy.o\
 	driver/ata/adapter.o\
+	driver/ata/ata.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

@@ -40,8 +40,8 @@ static inline uint32_t indw(ioport_t port) {
 	return data;
 }
 
-static inline void insl(ioport_t port, void* addr, int cnt) {
-	__asm__ volatile("cld; rep insl"
+static inline void insw(ioport_t port, void* addr, int cnt) {
+	__asm__ volatile("cld; rep insw"
 					 : "=D"(addr), "=c"(cnt)
 					 : "d"(port), "0"(addr), "1"(cnt)
 					 : "memory", "cc");
