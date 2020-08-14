@@ -55,6 +55,11 @@ enum AtaCommands {
 	ATA_COMMAND_IDENTIFY = 0xec,
 };
 
+enum ATASignature {
+	ATA_SIGNATURE_DISK = 0x01010000,
+	ATA_SIGNATURE_PACKET = 0x010114eb,
+};
+
 struct ATADevice ata_device[ATA_DEVICE_MAX];
 
 static struct ATADevice* ata_device_alloc(void) {
@@ -79,19 +84,39 @@ void ata_init(void) {
 
 		for (int channel = 0; channel < 2; channel++) {
 			ata_bus_reset(adapter, channel);
+			uint32_t devtype[2];
 			for (int drive = 0; drive < 2; drive++) {
-				struct ATADevice* ata_dev = ata_device_alloc();
-				if (!ata_dev) {
-					panic("too many ATA device");
-				}
-				char model[50];
-				if (ata_identify(adapter, channel, drive, ata_dev, model) == 0) {
-					cprintf("[ata] Disk model %s %d sectors\n", model,
-							ata_dev->sectors);
+				devtype[drive] = ata_read_signature(adapter, channel, drive);
+			}
+			for (int drive = 0; drive < 2; drive++) {
+				if (devtype[drive] == ATA_SIGNATURE_DISK) {
+					struct ATADevice* ata_dev = ata_device_alloc();
+					if (!ata_dev) {
+						panic("too many ATA device");
+					}
+					char model[50];
+					if (ata_identify(adapter, channel, drive, ata_dev, model) == 0) {
+						cprintf("[ata] Disk model %s %d sectors\n", model,
+								ata_dev->sectors);
+						cprintf("[ata] dma %d pio %d mdma %d udma %d ata_rev %d\n",
+								ata_dev->dma, ata_dev->pio, ata_dev->mdma,
+								ata_dev->udma, ata_dev->ata_rev);
+					}
+				} else if (devtype[drive] == ATA_SIGNATURE_PACKET) {
+					cprintf("[ata] ATAPI device found\n");
 				}
 			}
 		}
 	}
+}
+
+uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int drive) {
+	outb(adapter->cmdblock_base[channel] + ATA_IO_DRIVE,
+		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT));
+	return (inb(adapter->cmdblock_base[channel] + ATA_IO_COUNT) << 24) |
+		   (inb(adapter->cmdblock_base[channel] + ATA_IO_LBALO) << 16) |
+		   (inb(adapter->cmdblock_base[channel] + ATA_IO_LBAMID) << 8) |
+		   inb(adapter->cmdblock_base[channel] + ATA_IO_LBAHI);
 }
 
 int ata_identify(const struct ATAAdapter* adapter, int channel, int drive,
@@ -118,6 +143,31 @@ int ata_identify(const struct ATAAdapter* adapter, int channel, int drive,
 	dev->channel = channel;
 	dev->drive = drive;
 	dev->sectors = identify[60] + (identify[61] << 16);
+
+	if (identify[49] & (1 << 8)) {
+		dev->dma = 1;
+	}
+	if (identify[64] & 3) {
+		dev->pio = 4;
+	} else {
+		dev->pio = 2;
+	}
+	for (int i = 0; i <= 2; i++) {
+		if (identify[63] & (1 << i)) {
+			dev->mdma = i;
+		}
+	}
+	for (int i = 1; i <= 14; i++) {
+		if (identify[80] & (1 << i)) {
+			dev->ata_rev = i;
+		}
+	}
+	for (int i = 0; i <= 6; i++) {
+		if (identify[88] & (1 << i)) {
+			dev->udma = i;
+		}
+	}
+
 	kfree(identify);
 	return 0;
 }

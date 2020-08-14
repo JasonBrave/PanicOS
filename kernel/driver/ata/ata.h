@@ -24,6 +24,7 @@ struct ATADevice {
 		unsigned char drive : 1; // master/slave
 	};
 	unsigned int sectors; // number of sectors
+	char dma, pio, mdma, udma, ata_rev;
 };
 
 #define ATA_DEVICE_MAX 8
@@ -32,6 +33,7 @@ extern struct ATADevice ata_device[ATA_DEVICE_MAX];
 
 // ata.c
 void ata_init(void);
+uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int drive);
 int ata_identify(const struct ATAAdapter* adapter, int channel, int drive,
 				 struct ATADevice* dev, char* model);
 void ata_bus_reset(const struct ATAAdapter* adapter, int channel);
