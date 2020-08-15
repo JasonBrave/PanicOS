@@ -5,6 +5,7 @@
 enum HalBlockHwType {
 	HAL_BLOCK_HWTYPE_NONE,
 	HAL_BLOCK_HWTYPE_VIRTIO_BLK,
+	HAL_BLOCK_HWTYPE_ATA,
 };
 
 struct HalBlockMap {

@@ -59,8 +59,8 @@ static inline void outdw(ioport_t port, uint32_t data) {
 	__asm__ volatile("out %0,%1" : : "a"(data), "d"(port));
 }
 
-static inline void outsl(ioport_t port, const void* addr, int cnt) {
-	__asm__ volatile("cld; rep outsl"
+static inline void outsw(ioport_t port, const void* addr, int cnt) {
+	__asm__ volatile("cld; rep outsw"
 					 : "=S"(addr), "=c"(cnt)
 					 : "d"(port), "0"(addr), "1"(cnt)
 					 : "cc");

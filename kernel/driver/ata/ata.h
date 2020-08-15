@@ -1,6 +1,7 @@
 #ifndef _DRIVER_ATA_ATA_H
 #define _DRIVER_ATA_ATA_H
 
+#include <common/spinlock.h>
 #include <driver/pci/pci.h>
 
 struct ATAAdapter {
@@ -11,6 +12,7 @@ struct ATAAdapter {
 		unsigned short bus_master : 1;
 		unsigned short pci_native : 1;
 	};
+	struct spinlock lock[2];
 };
 
 #define ATA_ADAPTER_MAX 8
@@ -18,7 +20,7 @@ struct ATAAdapter {
 extern struct ATAAdapter ata_adapter[ATA_ADAPTER_MAX];
 
 struct ATADevice {
-	const struct ATAAdapter* adapter;
+	struct ATAAdapter* adapter;
 	struct {
 		unsigned char channel : 1; // primary/secondary
 		unsigned char drive : 1; // master/slave
@@ -34,11 +36,15 @@ extern struct ATADevice ata_device[ATA_DEVICE_MAX];
 // ata.c
 void ata_init(void);
 uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int drive);
-int ata_identify(const struct ATAAdapter* adapter, int channel, int drive,
+int ata_identify(struct ATAAdapter* adapter, int channel, int drive,
 				 struct ATADevice* dev, char* model);
 void ata_bus_reset(const struct ATAAdapter* adapter, int channel);
-int ata_exec_pio_in(const struct ATAAdapter* adapter, int channel, int drive,
-					uint8_t cmd, unsigned int lba, unsigned int count, void* buf);
+int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					unsigned int lba, unsigned int count, void* buf, int blocks);
+int ata_read(int id, unsigned int begin, int count, void* buf);
+int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					 unsigned int lba, unsigned int count, const void* buf, int blocks);
+int ata_write(int id, unsigned int begin, int count, const void* buf);
 
 // adapter.c
 void ata_adapter_dev_init(const struct PciAddress* addr);

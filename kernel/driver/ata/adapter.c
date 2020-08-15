@@ -43,6 +43,9 @@ void ata_adapter_dev_init(const struct PciAddress* addr) {
 		panic("too many ATA adapter");
 	}
 
+	initlock(&adapter->lock[0], "ata");
+	initlock(&adapter->lock[1], "ata");
+	acquire(&adapter->lock[0]);
 	const uint8_t progif = pci_read_config_reg8(addr, PCI_CONF_PROGIF);
 	if (progif & (1 << 7)) {
 		adapter->bus_master = 1;
@@ -83,6 +86,7 @@ void ata_adapter_dev_init(const struct PciAddress* addr) {
 	if (adapter->pci_native) {
 		pci_register_intr_handler(addr, ata_pci_intr);
 	}
+	release(&adapter->lock[0]);
 }
 
 void ata_adapter_init(void) {
@@ -100,10 +104,6 @@ void ata_adapter_init(void) {
 	}
 }
 
-void ata_legacy_intr(int irq) {
-	cprintf("[ata] IRQ %d\n", irq);
-}
+void ata_legacy_intr(int irq) {}
 
-void ata_pci_intr(const struct PciAddress* addr) {
-	cprintf("[ata] PCI intr\n");
-}
+void ata_pci_intr(const struct PciAddress* addr) {}

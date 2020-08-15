@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/errorcode.h>
 #include <common/x86.h>
 #include <defs.h>
 
@@ -80,7 +81,7 @@ void ata_init(void) {
 		if (!ata_adapter[ada].cmdblock_base[0]) {
 			continue;
 		}
-		const struct ATAAdapter* adapter = &ata_adapter[ada];
+		struct ATAAdapter* adapter = &ata_adapter[ada];
 
 		for (int channel = 0; channel < 2; channel++) {
 			ata_bus_reset(adapter, channel);
@@ -119,11 +120,11 @@ uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int d
 		   inb(adapter->cmdblock_base[channel] + ATA_IO_LBAHI);
 }
 
-int ata_identify(const struct ATAAdapter* adapter, int channel, int drive,
+int ata_identify(struct ATAAdapter* adapter, int channel, int drive,
 				 struct ATADevice* dev, char* model) {
 	uint16_t* identify = kalloc();
-	if (ata_exec_pio_in(adapter, channel, drive, ATA_COMMAND_IDENTIFY, 0, 0,
-						identify)) {
+	if (ata_exec_pio_in(adapter, channel, drive, ATA_COMMAND_IDENTIFY, 0, 0, identify,
+						1)) {
 		kfree(identify);
 		return -1;
 	}
@@ -177,9 +178,10 @@ void ata_bus_reset(const struct ATAAdapter* adapter, int channel) {
 	outb(adapter->control_base[channel], 0);
 }
 
-int ata_exec_pio_in(const struct ATAAdapter* adapter, int channel, int drive,
-					uint8_t cmd, unsigned int lba, unsigned int count, void* buf) {
+int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					unsigned int lba, unsigned int count, void* buf, int blocks) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
+	acquire(&adapter->lock[channel]);
 	outb(iobase + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
 	outb(iobase + ATA_IO_COUNT, count);
@@ -188,12 +190,63 @@ int ata_exec_pio_in(const struct ATAAdapter* adapter, int channel, int drive,
 	outb(iobase + ATA_IO_LBAHI, (lba >> 16) & 0xff);
 	outb(iobase + ATA_IO_COMMAND, cmd);
 	// check status
+	for (int i = 0; i < blocks; i++) {
+		while (inb(iobase + ATA_IO_STATUS) & ATA_STATUS_BSY) {
+		}
+		uint8_t status = inb(iobase + ATA_IO_STATUS);
+		if (status == 0 || status & ATA_STATUS_ERR) {
+			release(&adapter->lock[channel]);
+			return -1;
+		}
+		insw(iobase + ATA_IO_DATA, buf + 512 * i, 512 / 2);
+	}
+	release(&adapter->lock[channel]);
+	return 0;
+}
+
+int ata_read(int id, unsigned int begin, int count, void* buf) {
+	if (ata_exec_pio_in(ata_device[id].adapter, ata_device[id].channel,
+						ata_device[id].drive, ATA_COMMAND_READ_SECTOR, begin, count,
+						buf, count)) {
+		return ERROR_READ_FAIL;
+	}
+	return 0;
+}
+
+int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					 unsigned int lba, unsigned int count, const void* buf,
+					 int blocks) {
+	ioport_t iobase = adapter->cmdblock_base[channel];
+	acquire(&adapter->lock[channel]);
+	outb(iobase + ATA_IO_DRIVE,
+		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	outb(iobase + ATA_IO_COUNT, count);
+	outb(iobase + ATA_IO_LBALO, lba & 0xff);
+	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
+	outb(iobase + ATA_IO_LBAHI, (lba >> 16) & 0xff);
+	outb(iobase + ATA_IO_COMMAND, cmd);
+	// check status
+	for (int i = 0; i < blocks; i++) {
+		while (inb(iobase + ATA_IO_STATUS) & ATA_STATUS_BSY) {
+		}
+		uint8_t status = inb(iobase + ATA_IO_STATUS);
+		if (status == 0 || status & ATA_STATUS_ERR) {
+			release(&adapter->lock[channel]);
+			return -1;
+		}
+		outsw(iobase + ATA_IO_DATA, buf + 512 * i, 512 / 2);
+	}
 	while (inb(iobase + ATA_IO_STATUS) & ATA_STATUS_BSY) {
 	}
-	uint8_t status = inb(iobase + ATA_IO_STATUS);
-	if (status == 0 || status & ATA_STATUS_ERR) {
-		return -1;
+	release(&adapter->lock[channel]);
+	return 0;
+}
+
+int ata_write(int id, unsigned int begin, int count, const void* buf) {
+	if (ata_exec_pio_out(ata_device[id].adapter, ata_device[id].channel,
+						 ata_device[id].drive, ATA_COMMAND_WRITE_SECTOR, begin, count,
+						 buf, count)) {
+		return ERROR_READ_FAIL;
 	}
-	insw(iobase + ATA_IO_DATA, buf, 512 / 2);
 	return 0;
 }

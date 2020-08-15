@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/errorcode.h>
 #include <defs.h>
 #include <driver/ata/ata.h>
 #include <driver/virtio-blk/virtio-blk.h>
@@ -80,13 +81,24 @@ void hal_block_init(void) {
 		}
 		cprintf("[hal] block virtio-blk.%d added\n", i);
 	}
+	for (int i = 0; i < ATA_DEVICE_MAX; i++) {
+		if (!ata_device[i].adapter) {
+			continue;
+		}
+		if (!hal_block_map_insert(HAL_BLOCK_HWTYPE_ATA, i)) {
+			panic("hal too many block device");
+		}
+		cprintf("[hal] block ata.%d added\n", i);
+	}
 	// find all partitions
 	for (int i = 0; i < HAL_BLOCK_MAX; i++) {
 		if (hal_block_map[i].hw_type == HAL_BLOCK_HWTYPE_NONE) {
 			continue;
 		}
 		void* bootsect = kalloc();
-		hal_disk_read(i, 0, 1, bootsect);
+		if (hal_disk_read(i, 0, 1, bootsect) < 0) {
+			panic("disk read error");
+		}
 		for (int j = 0; j < 4; j++) {
 			struct MbrEntry* entry = bootsect + 0x1be + j * 0x10;
 			enum HalPartitionFsType fs;
@@ -122,6 +134,8 @@ int hal_disk_read(int id, int begin, int count, void* buf) {
 	switch (hal_block_map[id].hw_type) {
 	case HAL_BLOCK_HWTYPE_VIRTIO_BLK:
 		return virtio_blk_read(hal_block_map[id].hw_id, begin, count, buf);
+	case HAL_BLOCK_HWTYPE_ATA:
+		return ata_read(hal_block_map[id].hw_id, begin, count, buf);
 	case HAL_BLOCK_HWTYPE_NONE:
 		return -1;
 	}
@@ -150,6 +164,8 @@ int hal_disk_write(int id, int begin, int count, const void* buf) {
 	switch (hal_block_map[id].hw_type) {
 	case HAL_BLOCK_HWTYPE_VIRTIO_BLK:
 		return virtio_blk_write(hal_block_map[id].hw_id, begin, count, buf);
+	case HAL_BLOCK_HWTYPE_ATA:
+		return ata_write(hal_block_map[id].hw_id, begin, count, buf);
 	case HAL_BLOCK_HWTYPE_NONE:
 		return -1;
 	}
