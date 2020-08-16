@@ -20,35 +20,61 @@
 #include <common/errorcode.h>
 #include <core/proc.h>
 #include <defs.h>
-#include <driver/bochs-display/bochs-display.h>
 #include <param.h>
 #include <proc/kcall.h>
 
-struct DisplayControl {
-	int xres;
-	int yres;
-	void* framebuffer;
-};
+#include "hal.h"
 
-void* hal_display_modeswitch(int xres, int yres) {
-	phyaddr_t fb = bochs_display_enable(xres, yres);
+#define HAL_DISPLAY_MAX 8
+
+struct FramebufferDevice {
+	struct FramebufferDriver* driver;
+	void* private;
+} framebuffer_device[HAL_DISPLAY_MAX];
+
+static void* hal_display_modeswitch(struct FramebufferDevice* fbdev, int xres,
+									int yres) {
+	phyaddr_t fb = fbdev->driver->enable(fbdev->private, xres, yres);
 	mappages(myproc()->pgdir, (void*)PROC_MMAP_BOTTOM, 16 * 1024 * 1024, fb,
 			 PTE_U | PTE_W);
 	return (void*)PROC_MMAP_BOTTOM;
 }
 
-int hal_display_kcall_handler(unsigned int display_struct) {
-	struct DisplayControl* dc = (void*)display_struct;
-	if (!bochs_display.mmio) {
-		return ERROR_NOT_EXIST;
+static int hal_display_kcall_handler(unsigned int display_struct) {
+	struct {
+		int xres;
+		int yres;
+		void* framebuffer;
+	}* dc = (void*)display_struct;
+
+	for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
+		if (framebuffer_device[i].driver) {
+			dc->framebuffer =
+				hal_display_modeswitch(&framebuffer_device[i], dc->xres, dc->yres);
+			return 0;
+		}
 	}
-	dc->framebuffer = hal_display_modeswitch(dc->xres, dc->yres);
-	return 0;
+	return ERROR_NOT_EXIST;
+}
+
+void hal_display_register_device(const char* name, void* private,
+								 struct FramebufferDriver* driver) {
+	struct FramebufferDevice* dev = 0;
+	for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
+		if (!framebuffer_device[i].driver) {
+			dev = &framebuffer_device[i];
+		}
+	}
+	if (!dev) {
+		panic("too many display device");
+	}
+
+	cprintf("[hal] Display device %s added\n", name);
+	dev->driver = driver;
+	dev->private = private;
 }
 
 void hal_display_init(void) {
-	bochs_display_init();
-	if (bochs_display.mmio) {
-		kcall_set("display", hal_display_kcall_handler);
-	}
+	memset(framebuffer_device, 0, sizeof(framebuffer_device));
+	kcall_set("display", hal_display_kcall_handler);
 }

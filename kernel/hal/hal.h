@@ -1,6 +1,8 @@
 #ifndef _HAL_HAL_H
 #define _HAL_HAL_H
 
+#include <common/types.h>
+
 // HAL Block Device
 enum HalBlockHwType {
 	HAL_BLOCK_HWTYPE_NONE,
@@ -44,6 +46,14 @@ int hal_disk_write(int id, int begin, int count, const void* buf);
 int hal_partition_write(int id, int begin, int count, const void* buf);
 
 // display.c
+
+struct FramebufferDriver {
+	phyaddr_t (*enable)(void* private, int xres, int yres);
+	void (*disable)(void* private);
+};
+
 void hal_display_init(void);
+void hal_display_register_device(const char* name, void* private,
+								 struct FramebufferDriver* driver);
 
 #endif

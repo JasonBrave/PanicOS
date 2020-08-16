@@ -19,39 +19,100 @@
 
 // Reference:
 // https://github.com/qemu/qemu/blob/master/docs/specs/standard-vga.txt
+// https://github.com/qemu/vgabios/blob/master/vbe_display_api.txt
 
+#include <common/x86.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <hal/hal.h>
 
 #include "bochs-display.h"
 
+#define VBE_DISPI_IOPORT_INDEX 0x01CE
+#define VBE_DISPI_IOPORT_DATA 0x01CF
+
+#define VBE_DISPI_INDEX_ID 0x0
+#define VBE_DISPI_INDEX_XRES 0x1
+#define VBE_DISPI_INDEX_YRES 0x2
+#define VBE_DISPI_INDEX_BPP 0x3
+#define VBE_DISPI_INDEX_ENABLE 0x4
+#define VBE_DISPI_INDEX_BANK 0x5
+#define VBE_DISPI_INDEX_VIRT_WIDTH 0x6
+#define VBE_DISPI_INDEX_VIRT_HEIGHT 0x7
+#define VBE_DISPI_INDEX_X_OFFSET 0x8
+#define VBE_DISPI_INDEX_Y_OFFSET 0x9
+
+#define VBE_DISPI_DISABLED 0x00
+#define VBE_DISPI_ENABLED 0x01
+#define VBE_DISPI_VBE_ENABLED 0x40
+#define VBE_DISPI_NOCLEARMEM 0x80
+
 #define BOCHS_DISPLAY_MMIO_OFFSET 0x500
-#define BOCHS_DISPLAY_ENABLED 0x01
-#define BOCHS_DISPLAY_LFB_ENABLED 0x40
 
-struct BochsDisplay bochs_display;
+struct BochsDisplayDevice {
+	volatile uint16_t* mmio;
+	phyaddr_t vram;
+};
 
-void bochs_display_init(void) {
-	memset(&bochs_display, 0, sizeof(bochs_display));
-
-	struct PciAddress addr;
-	if (pci_find_device(&addr, 0x1234, 0x1111)) {
-		cprintf("[bochs-display] Display at PCI %d:%d.%d\n", addr.bus, addr.device,
-				addr.function);
-
-		bochs_display.address = addr;
-		bochs_display.mmio = (void*)pci_read_bar(&addr, 2) + BOCHS_DISPLAY_MMIO_OFFSET;
+static uint16_t vbe_read(struct BochsDisplayDevice* dev, int reg) {
+	if (dev->mmio) {
+		return dev->mmio[reg];
+	} else {
+		outw(VBE_DISPI_IOPORT_INDEX, reg);
+		return inw(VBE_DISPI_IOPORT_DATA);
 	}
 }
 
-phyaddr_t bochs_display_enable(int xres, int yres) {
-	if (!bochs_display.mmio) {
-		panic("no display adapter");
+static void vbe_write(struct BochsDisplayDevice* dev, int reg, uint16_t val) {
+	if (dev->mmio) {
+		dev->mmio[reg] = val;
+	} else {
+		outw(VBE_DISPI_IOPORT_INDEX, reg);
+		outw(VBE_DISPI_IOPORT_DATA, val);
 	}
-	volatile struct BochsDisplayMMIO* mmio = bochs_display.mmio;
-	mmio->xres = xres;
-	mmio->yres = yres;
-	mmio->bpp = 24;
-	mmio->enable = BOCHS_DISPLAY_ENABLED | BOCHS_DISPLAY_LFB_ENABLED;
-	return pci_read_bar(&bochs_display.address, 0);
+}
+
+static phyaddr_t bochs_display_enable(void* private, int xres, int yres) {
+	struct BochsDisplayDevice* dev = private;
+	vbe_write(dev, VBE_DISPI_INDEX_XRES, xres);
+	vbe_write(dev, VBE_DISPI_INDEX_YRES, yres);
+	vbe_write(dev, VBE_DISPI_INDEX_BPP, 24);
+	vbe_write(dev, VBE_DISPI_INDEX_ENABLE, VBE_DISPI_ENABLED | VBE_DISPI_VBE_ENABLED);
+	return dev->vram;
+}
+
+static void bochs_display_disable(void* private) {
+	struct BochsDisplayDevice* dev = private;
+	vbe_write(dev, VBE_DISPI_INDEX_ENABLE, 0);
+	return;
+}
+
+struct FramebufferDriver bochs_display_driver = {
+	.enable = bochs_display_enable,
+	.disable = bochs_display_disable,
+};
+
+static void bochs_display_dev_init(const struct PciAddress* addr, int try_mmio) {
+	struct BochsDisplayDevice* dev = kalloc();
+	memset(dev, 0, sizeof(struct BochsDisplayDevice));
+
+	phyaddr_t mmio_bar = pci_read_bar(addr, 2);
+	if (mmio_bar && try_mmio) {
+		dev->mmio = (volatile uint16_t*)(mmio_bar + BOCHS_DISPLAY_MMIO_OFFSET);
+	}
+	dev->vram = pci_read_bar(addr, 0);
+
+	cprintf("[bochs-display] ver %x MMIO %x FB %x\n", vbe_read(dev, VBE_DISPI_INDEX_ID),
+			mmio_bar, dev->vram);
+
+	hal_display_register_device("bochs-display", dev, &bochs_display_driver);
+}
+
+void bochs_display_init(void) {
+	struct PciAddress addr;
+	if (pci_find_device(&addr, 0x1234, 0x1111)) { // QEMU and Bochs
+		bochs_display_dev_init(&addr, 1);
+	} else if (pci_find_device(&addr, 0x80ee, 0xbeef)) { // VirtualBox
+		bochs_display_dev_init(&addr, 0);
+	}
 }

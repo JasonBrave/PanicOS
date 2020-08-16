@@ -22,6 +22,7 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
+#include <driver/bochs-display/bochs-display.h>
 #include <driver/edu/edu.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
@@ -74,6 +75,7 @@ int main(void) {
 	ps2_mouse_init();
 	hal_display_init();
 	hal_block_init();
+	bochs_display_init();
 	vfs_init();
 	pty_init();
 	userinit(); // first user process
