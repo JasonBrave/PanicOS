@@ -84,7 +84,7 @@ void ata_adapter_dev_init(const struct PciAddress* addr) {
 	}
 	// enable PCI interrupt
 	if (adapter->pci_native) {
-		pci_register_intr_handler(addr, ata_pci_intr);
+		pci_register_intr_handler(addr, ata_pci_intr, adapter);
 	}
 	release(&adapter->lock[0]);
 }
@@ -106,4 +106,4 @@ void ata_adapter_init(void) {
 
 void ata_legacy_intr(int irq) {}
 
-void ata_pci_intr(const struct PciAddress* addr) {}
+void ata_pci_intr(const struct PciAddress* addr, void* private) {}

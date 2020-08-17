@@ -23,10 +23,7 @@ struct VirtioQueue {
 struct VirtioBlockDevice {
 	struct VirtioDevice virtio_dev;
 	struct VirtioQueue virtio_queue;
-	// lock
 	struct spinlock lock;
-	// PCI address of device,used by ISR
-	struct PciAddress addr;
 };
 
 // virtio.c

@@ -57,4 +57,8 @@
 #define IRQ_ERROR 19
 #define IRQ_SPURIOUS 31
 
+// Message signaled interrupt
+#define T_MSI 65
+#define T_MSI_END 0xfe
+
 #endif

@@ -40,9 +40,10 @@ void pci_interrupt(int irq) {
 			if (pci_read_config_reg8(&pci_irq_10[i].addr, PCI_CONF_STATUS) &
 				PCI_STATUS_INTERRUPT) {
 				struct PciAddress* addr = &pci_irq_10[i].addr;
-				void (*handler)(const struct PciAddress*) = pci_irq_10[i].handler;
+				void (*handler)(const struct PciAddress*, void*) =
+					pci_irq_10[i].handler;
 				if (handler) {
-					handler(addr);
+					handler(addr, pci_irq_10[i].private);
 				}
 			}
 		}
@@ -51,9 +52,10 @@ void pci_interrupt(int irq) {
 			if (pci_read_config_reg8(&pci_irq_11[i].addr, PCI_CONF_STATUS) &
 				PCI_STATUS_INTERRUPT) {
 				struct PciAddress* addr = &pci_irq_11[i].addr;
-				void (*handler)(const struct PciAddress*) = pci_irq_11[i].handler;
+				void (*handler)(const struct PciAddress*, void*) =
+					pci_irq_11[i].handler;
 				if (handler) {
-					handler(addr);
+					handler(addr, pci_irq_11[i].private);
 				}
 			}
 		}
@@ -61,13 +63,15 @@ void pci_interrupt(int irq) {
 }
 
 void pci_register_intr_handler(const struct PciAddress* addr,
-							   void (*handler)(const struct PciAddress*)) {
+							   void (*handler)(const struct PciAddress*, void*),
+							   void* private) {
 	struct PciAddress* intraddr;
 	for (int i = 0; i < pci_irq_10_top; i++) {
 		intraddr = &pci_irq_10[i].addr;
 		if ((intraddr->bus == addr->bus) && (intraddr->device == addr->device) &&
 			(intraddr->function == addr->function)) {
 			pci_irq_10[i].handler = handler;
+			pci_irq_10[i].private = private;
 		}
 	}
 	for (int i = 0; i < pci_irq_11_top; i++) {
@@ -75,6 +79,19 @@ void pci_register_intr_handler(const struct PciAddress* addr,
 		if ((intraddr->bus == addr->bus) && (intraddr->device == addr->device) &&
 			(intraddr->function == addr->function)) {
 			pci_irq_11[i].handler = handler;
+			pci_irq_11[i].private = private;
 		}
 	}
+}
+
+void pci_enable_intx_intr(const struct PciAddress* addr) {
+	uint16_t pcicmd = pci_read_config_reg16(addr, PCI_CONF_COMMAND);
+	pcicmd &= ~PCI_CONTROL_INTERRUPT_DISABLE;
+	pci_write_config_reg16(addr, PCI_CONF_COMMAND, pcicmd);
+}
+
+void pci_disable_intx_intr(const struct PciAddress* addr) {
+	uint16_t pcicmd = pci_read_config_reg16(addr, PCI_CONF_COMMAND);
+	pcicmd |= PCI_CONTROL_INTERRUPT_DISABLE;
+	pci_write_config_reg16(addr, PCI_CONF_COMMAND, pcicmd);
 }

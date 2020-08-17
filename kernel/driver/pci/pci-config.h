@@ -9,6 +9,7 @@
 #define PCI_CONF_SUBCLASS 0xa
 #define PCI_CONF_PROGIF 0x9
 #define PCI_CONF_BAR 0x10
+#define PCI_CONF_CAP_PTR 0x34
 #define PCI_CONF_INTR_LINE 0x3c
 #define PCI_CONF_INTR_PIN 0x3d
 

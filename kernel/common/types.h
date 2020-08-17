@@ -8,4 +8,13 @@ typedef uintptr_t phyaddr_t;
 
 #define PACKED __attribute__((packed))
 
+// helper functions
+static inline const char* BOOL2SIGN(int b) {
+	if (b) {
+		return "+";
+	} else {
+		return "-";
+	}
+}
+
 #endif

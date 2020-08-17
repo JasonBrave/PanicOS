@@ -12,7 +12,8 @@ struct PciAddress {
 
 struct PciIrqInfo {
 	struct PciAddress addr;
-	void (*handler)(const struct PciAddress* addr);
+	void (*handler)(const struct PciAddress* addr, void*);
+	void* private;
 };
 
 #define PCI_IRQ_MAX 64
@@ -37,6 +38,8 @@ void pci_write_config_reg8(const struct PciAddress* addr, int reg, uint8_t data)
 void pci_write_config_reg16(const struct PciAddress* addr, int reg, uint16_t data);
 void pci_write_config_reg32(const struct PciAddress* addr, int reg, uint32_t data);
 phyaddr_t pci_read_bar(const struct PciAddress* addr, int bar);
+void pci_enable_bus_mastering(const struct PciAddress* addr);
+int pci_find_capability(const struct PciAddress* addr, uint8_t cap_id);
 struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor,
 								   uint16_t device);
 struct PciAddress* pci_find_class(struct PciAddress* pciaddr, uint8_t class,
@@ -55,10 +58,31 @@ extern struct PciIrqInfo pci_irq_10[PCI_IRQ_MAX], pci_irq_11[PCI_IRQ_MAX];
 void pci_add_irq(int irq, const struct PciAddress* addr);
 void pci_interrupt(int irq);
 void pci_register_intr_handler(const struct PciAddress* addr,
-							   void (*handler)(const struct PciAddress*));
+							   void (*handler)(const struct PciAddress*, void*),
+							   void* private);
+void pci_enable_intx_intr(const struct PciAddress* addr);
+void pci_disable_intx_intr(const struct PciAddress* addr);
 
 // intel-pcie-mmcfg.c
 void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr);
+
+// msi.c
+#define PCI_MSI_VECTOR_MAX 190
+#define PCI_MSI_VECTOR_BASE 65
+
+extern struct PCIMSIVector {
+	struct {
+		unsigned char used : 1;
+	};
+	void (*handler)(void*);
+	void* private;
+} pci_msi_vector[PCI_MSI_VECTOR_MAX];
+
+void pci_msi_intr(int vector);
+int pci_msi_alloc_vector(void (*handler)(void*), void* private);
+void pci_msi_free_vector(int vector);
+int pci_msi_enable(const struct PciAddress* addr, int vector, int lapicid);
+void pci_msi_disable(const struct PciAddress* addr);
 
 // helper functions
 static inline int pci_read_capid(const struct PciAddress* addr, int capptr) {

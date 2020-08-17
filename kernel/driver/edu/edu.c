@@ -23,16 +23,12 @@
 #include <defs.h>
 #include <driver/pci/pci.h>
 
-struct PciAddress edu_addr;
-
-void edu_init(void);
-void edu_init_dev(const struct PciAddress* addr);
-void edu_intr(const struct PciAddress* addr);
+#define EDU_USE_MSI
 
 #define EDU_VENDOR 0x1234
 #define EDU_DEVICE 0x11e8
 
-struct EduDeviceMmio {
+struct EduDeviceMMIO {
 	const uint32_t id;
 	uint32_t liveness;
 	uint32_t factorial;
@@ -44,36 +40,56 @@ struct EduDeviceMmio {
 	uint32_t intr_ack;
 } PACKED;
 
-void edu_init(void) {
-	edu_addr.bus = 0;
-	edu_addr.device = 0;
-	edu_addr.function = 0;
+struct EduDevice {
+	volatile struct EduDeviceMMIO* mmio;
+};
 
+void edu_intx_intr(const struct PciAddress* addr, void* private) {
+	struct EduDevice* dev = private;
+	cprintf("[edu] INTx intr %d\n", dev->mmio->intr_status);
+	dev->mmio->intr_ack = dev->mmio->intr_status;
+}
+
+#ifdef EDU_USE_MSI
+
+void edu_msi_intr(void* private) {
+	struct EduDevice* dev = private;
+	cprintf("[edu] MSI intr %d\n", dev->mmio->intr_status);
+	dev->mmio->intr_ack = dev->mmio->intr_status;
+}
+
+#endif
+
+void edu_init_dev(const struct PciAddress* addr) {
+	struct EduDevice* dev = kalloc();
+	dev->mmio = (void*)pci_read_bar(addr, 0);
+	cprintf("[edu] Version %x\n", dev->mmio->id);
+	// legacy interrupt handler
+	pci_register_intr_handler(addr, edu_intx_intr, dev);
+// set message signaled interrupt
+#ifdef EDU_USE_MSI
+	int msi_vec = pci_msi_alloc_vector(edu_msi_intr, dev);
+	if (!msi_vec) {
+		cprintf("[edu] out of MSI interrupt vector\n");
+	} else {
+		pci_msi_enable(addr, msi_vec, 0);
+	}
+#endif
+	// try factorial
+	dev->mmio->factorial = 10;
+	while (dev->mmio->status & 1) {
+	}
+	cprintf("[edu] Factorial of 10 is %d\n", dev->mmio->factorial);
+	// try to raise an interrupt
+	dev->mmio->intr_raise = 123;
+}
+
+void edu_init(void) {
 	struct PciAddress addr;
 	if (pci_find_device(&addr, EDU_VENDOR, EDU_DEVICE)) {
 		edu_init_dev(&addr);
-		edu_addr = addr;
 		while (pci_next_device(&addr, EDU_VENDOR, EDU_DEVICE)) {
 			edu_init_dev(&addr);
 		}
 	}
-}
-
-void edu_init_dev(const struct PciAddress* addr) {
-	pci_register_intr_handler(addr, edu_intr);
-	volatile struct EduDeviceMmio* edu = (void*)pci_read_bar(addr, 0);
-	cprintf("[edu] Version %x\n", edu->id);
-	// try factorial
-	edu->factorial = 10;
-	while (edu->status & 1) {
-	}
-	cprintf("[edu] Factorial of 10 is %d\n", edu->factorial);
-	// try to raise an interrupt
-	edu->intr_raise = 123;
-}
-
-void edu_intr(const struct PciAddress* addr) {
-	volatile struct EduDeviceMmio* edu = (void*)pci_read_bar(addr, 0);
-	cprintf("[edu] intr %d\n", edu->intr_status);
-	edu->intr_ack = edu->intr_status;
 }

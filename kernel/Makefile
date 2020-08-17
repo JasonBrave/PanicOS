@@ -47,6 +47,7 @@ OBJS = \
 	driver/pci/pci-legacy.o\
 	driver/ata/adapter.o\
 	driver/ata/ata.o\
+	driver/pci/msi.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

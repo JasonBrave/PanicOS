@@ -27,23 +27,8 @@
 
 struct VirtioBlockDevice virtio_blk_dev[VIRTIO_BLK_NUM_MAX];
 
-static struct VirtioBlockDevice* virtio_blk_find_by_pci(const struct PciAddress* addr) {
-	int id = -1;
-	for (int i = 0; i < VIRTIO_BLK_NUM_MAX; i++) {
-		if ((addr->bus == virtio_blk_dev[i].addr.bus) &&
-			(addr->device == virtio_blk_dev[i].addr.device) &&
-			(addr->function == virtio_blk_dev[i].addr.function)) {
-			id = i;
-		}
-	}
-	if (id == -1) {
-		return 0;
-	}
-	return &virtio_blk_dev[id];
-}
-
-static void virtio_blk_intr(const struct PciAddress* addr) {
-	struct VirtioBlockDevice* dev = virtio_blk_find_by_pci(addr);
+static void virtio_blk_intr(const struct PciAddress* addr, void* private) {
+	struct VirtioBlockDevice* dev = private;
 	if (!dev) {
 		panic("invaild virtio block interrupt");
 	}
@@ -171,15 +156,13 @@ static void virtio_blk_dev_init(const struct PciAddress* addr) {
 	uint16_t pcicmd = pci_read_config_reg16(addr, 4);
 	pcicmd |= 4;
 	pci_write_config_reg16(addr, 4, pcicmd);
-	// register PCI interrupt handler
-	pci_register_intr_handler(addr, virtio_blk_intr);
-
+	// allocate device
 	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
+	// register PCI interrupt handler
+	pci_register_intr_handler(addr, virtio_blk_intr, dev);
 	// initialize lock
 	initlock(&dev->lock, "virtio-blk");
 	acquire(&dev->lock);
-	// copy PCI address
-	dev->addr = *addr;
 	// allocate memory for queues
 	virtio_read_cap(addr, &dev->virtio_dev);
 	virtio_allocate_queue(&dev->virtio_queue);

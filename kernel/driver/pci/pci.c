@@ -26,6 +26,7 @@ static const char* pci_intx_name[] = {
 	[1] = "INTA", [2] = "INTB", [3] = "INTC", [4] = "INTD"};
 
 void pci_init(void) {
+	memset(pci_msi_vector, 0, sizeof(pci_msi_vector));
 	memset(pci_irq_10, 0, sizeof(pci_irq_10));
 	memset(pci_irq_11, 0, sizeof(pci_irq_11));
 	// PCIe ECAM
@@ -107,6 +108,23 @@ phyaddr_t pci_read_bar(const struct PciAddress* addr, int bar) {
 	} else { // Memory BAR
 		return bar_val & 0xfffffff0;
 	}
+}
+
+void pci_enable_bus_mastering(const struct PciAddress* addr) {
+	uint16_t pcicmd = pci_read_config_reg16(addr, PCI_CONF_COMMAND);
+	pcicmd |= PCI_CONTROL_BUS_MASTER;
+	pci_write_config_reg16(addr, PCI_CONF_COMMAND, pcicmd);
+}
+
+int pci_find_capability(const struct PciAddress* addr, uint8_t cap_id) {
+	int capptr = pci_read_config_reg8(addr, PCI_CONF_CAP_PTR);
+	while (capptr) {
+		if (pci_read_config_reg8(addr, capptr) == cap_id) {
+			return capptr;
+		}
+		capptr = pci_read_config_reg8(addr, capptr + 1);
+	}
+	return 0;
 }
 
 struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor,
