@@ -24,27 +24,6 @@
 #include "virtio-blk-regs.h"
 #include "virtio-blk.h"
 
-#define VIRTIO_VID 0x1af4
-#define VIRTIO_LEGACY_DID 0x0fff
-#define VIRTIO_MODERN_DID 0x1040
-
-void virtio_enum_device(int device_id,
-						void (*devinitfunc)(const struct PciAddress* addr)) {
-	struct PciAddress addr;
-	if (pci_find_device(&addr, VIRTIO_VID, VIRTIO_LEGACY_DID + device_id)) { // legacy
-		devinitfunc(&addr);
-		while (pci_next_device(&addr, VIRTIO_VID, VIRTIO_LEGACY_DID + device_id)) {
-			devinitfunc(&addr);
-		}
-	}
-	if (pci_find_device(&addr, VIRTIO_VID, VIRTIO_MODERN_DID + device_id)) { // modern
-		devinitfunc(&addr);
-		while (pci_next_device(&addr, VIRTIO_VID, VIRTIO_MODERN_DID + device_id)) {
-			devinitfunc(&addr);
-		}
-	}
-}
-
 void virtio_allocate_queue(struct VirtioQueue* queue) {
 	queue->desc = kalloc();
 	queue->avail = kalloc();

@@ -19,6 +19,7 @@
 
 #include <common/x86.h>
 #include <defs.h>
+#include <driver/pci/pci.h>
 #include <proc/kcall.h>
 
 #include "kbd.h"
@@ -108,6 +109,7 @@ void ps2_keyboard_intr(void) {
 	if (rawkbddata == 0x45) { // numlock
 		procdump();
 		print_memory_usage();
+		pci_print_devices();
 	}
 	if (sendto_console) {
 		consoleintr(kbd_getc);

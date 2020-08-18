@@ -92,7 +92,16 @@ struct FramebufferDriver bochs_display_driver = {
 	.disable = bochs_display_disable,
 };
 
-static void bochs_display_dev_init(const struct PciAddress* addr, int try_mmio) {
+static void bochs_display_dev_init(struct PCIDevice* pcidev) {
+	const struct PciAddress* addr = &pcidev->addr;
+	int try_mmio;
+	if (pci_read_config_reg16(addr, 0) == 0x1234 &&
+		pci_read_config_reg16(addr, 2) == 0x1111) {
+		try_mmio = 1;
+	} else {
+		try_mmio = 0;
+	}
+
 	struct BochsDisplayDevice* dev = kalloc();
 	memset(dev, 0, sizeof(struct BochsDisplayDevice));
 
@@ -108,11 +117,18 @@ static void bochs_display_dev_init(const struct PciAddress* addr, int try_mmio) 
 	hal_display_register_device("bochs-display", dev, &bochs_display_driver);
 }
 
+struct PCIDeviceID bochs_display_device_id[] = {
+	{0x1234, 0x1111}, // QEMU
+	{0x80ee, 0xbeef}, // VirtualBox
+	{},
+};
+
+struct PCIDriver bochs_display_pci_driver = {
+	.name = "bochs-display",
+	.match_table = bochs_display_device_id,
+	.init = bochs_display_dev_init,
+};
+
 void bochs_display_init(void) {
-	struct PciAddress addr;
-	if (pci_find_device(&addr, 0x1234, 0x1111)) { // QEMU and Bochs
-		bochs_display_dev_init(&addr, 1);
-	} else if (pci_find_device(&addr, 0x80ee, 0xbeef)) { // VirtualBox
-		bochs_display_dev_init(&addr, 0);
-	}
+	pci_register_driver(&bochs_display_pci_driver);
 }

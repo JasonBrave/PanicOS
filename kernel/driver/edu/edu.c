@@ -44,8 +44,8 @@ struct EduDevice {
 	volatile struct EduDeviceMMIO* mmio;
 };
 
-void edu_intx_intr(const struct PciAddress* addr, void* private) {
-	struct EduDevice* dev = private;
+void edu_intx_intr(struct PCIDevice* pcidev) {
+	struct EduDevice* dev = pcidev->private;
 	cprintf("[edu] INTx intr %d\n", dev->mmio->intr_status);
 	dev->mmio->intr_ack = dev->mmio->intr_status;
 }
@@ -60,12 +60,14 @@ void edu_msi_intr(void* private) {
 
 #endif
 
-void edu_init_dev(const struct PciAddress* addr) {
+void edu_init_dev(struct PCIDevice* pcidev) {
+	const struct PciAddress* addr = &pcidev->addr;
 	struct EduDevice* dev = kalloc();
 	dev->mmio = (void*)pci_read_bar(addr, 0);
 	cprintf("[edu] Version %x\n", dev->mmio->id);
 	// legacy interrupt handler
-	pci_register_intr_handler(addr, edu_intx_intr, dev);
+	pcidev->private = dev;
+	pci_register_intr_handler(pcidev, edu_intx_intr);
 // set message signaled interrupt
 #ifdef EDU_USE_MSI
 	int msi_vec = pci_msi_alloc_vector(edu_msi_intr, dev);
@@ -84,12 +86,17 @@ void edu_init_dev(const struct PciAddress* addr) {
 	dev->mmio->intr_raise = 123;
 }
 
+const struct PCIDeviceID edu_device_table[] = {
+	{EDU_VENDOR, EDU_DEVICE},
+	{},
+};
+
+struct PCIDriver edu_driver = {
+	.name = "qemu-edu",
+	.match_table = edu_device_table,
+	.init = edu_init_dev,
+};
+
 void edu_init(void) {
-	struct PciAddress addr;
-	if (pci_find_device(&addr, EDU_VENDOR, EDU_DEVICE)) {
-		edu_init_dev(&addr);
-		while (pci_next_device(&addr, EDU_VENDOR, EDU_DEVICE)) {
-			edu_init_dev(&addr);
-		}
-	}
+	pci_register_driver(&edu_driver);
 }

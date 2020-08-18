@@ -37,12 +37,14 @@ static struct ATAAdapter* ata_adapter_alloc(void) {
 	return 0;
 }
 
-void ata_adapter_dev_init(const struct PciAddress* addr) {
+void ata_adapter_dev_init(struct PCIDevice* pcidev) {
+	const struct PciAddress* addr = &pcidev->addr;
 	struct ATAAdapter* adapter = ata_adapter_alloc();
 	if (!adapter) {
 		panic("too many ATA adapter");
 	}
 
+	pcidev->private = adapter;
 	initlock(&adapter->lock[0], "ata");
 	initlock(&adapter->lock[1], "ata");
 	acquire(&adapter->lock[0]);
@@ -84,10 +86,16 @@ void ata_adapter_dev_init(const struct PciAddress* addr) {
 	}
 	// enable PCI interrupt
 	if (adapter->pci_native) {
-		pci_register_intr_handler(addr, ata_pci_intr, adapter);
+		pci_register_intr_handler(pcidev, ata_pci_intr);
 	}
 	release(&adapter->lock[0]);
 }
+
+struct PCIDriver ata_adapter_pci_driver = {
+	.name = "pci-ide-adapter",
+	.class_type = 0x0101ff, // PCI IDE Controller
+	.init = ata_adapter_dev_init,
+};
 
 void ata_adapter_init(void) {
 	memset(&ata_adapter, 0, sizeof(ata_adapter));
@@ -95,15 +103,9 @@ void ata_adapter_init(void) {
 	ioapicenable(14, 0);
 	ioapicenable(15, 0);
 
-	struct PciAddress addr;
-	if (pci_find_class(&addr, 1, 1)) {
-		ata_adapter_dev_init(&addr);
-		while (pci_next_class(&addr, 1, 1)) {
-			ata_adapter_dev_init(&addr);
-		}
-	}
+	pci_register_driver(&ata_adapter_pci_driver);
 }
 
 void ata_legacy_intr(int irq) {}
 
-void ata_pci_intr(const struct PciAddress* addr, void* private) {}
+void ata_pci_intr(struct PCIDevice* dev) {}

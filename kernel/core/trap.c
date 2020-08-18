@@ -88,6 +88,14 @@ void trap(struct trapframe* tf) {
 		uartintr();
 		lapiceoi();
 		break;
+	case T_IRQ0 + 5:
+		pci_interrupt(5);
+		lapiceoi();
+		break;
+	case T_IRQ0 + 9:
+		pci_interrupt(9);
+		lapiceoi();
+		break;
 	case T_IRQ0 + 10:
 		pci_interrupt(10);
 		lapiceoi();

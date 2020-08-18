@@ -27,8 +27,8 @@
 
 struct VirtioBlockDevice virtio_blk_dev[VIRTIO_BLK_NUM_MAX];
 
-static void virtio_blk_intr(const struct PciAddress* addr, void* private) {
-	struct VirtioBlockDevice* dev = private;
+static void virtio_blk_intr(struct PCIDevice* pcidev) {
+	struct VirtioBlockDevice* dev = pcidev->private;
 	if (!dev) {
 		panic("invaild virtio block interrupt");
 	}
@@ -151,15 +151,17 @@ static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
 	return &virtio_blk_dev[id];
 }
 
-static void virtio_blk_dev_init(const struct PciAddress* addr) {
+static void virtio_blk_dev_init(struct PCIDevice* pcidev) {
+	const struct PciAddress* addr = &pcidev->addr;
 	// enable bus mastering
 	uint16_t pcicmd = pci_read_config_reg16(addr, 4);
 	pcicmd |= 4;
 	pci_write_config_reg16(addr, 4, pcicmd);
 	// allocate device
 	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
+	pcidev->private = dev;
 	// register PCI interrupt handler
-	pci_register_intr_handler(addr, virtio_blk_intr, dev);
+	pci_register_intr_handler(pcidev, virtio_blk_intr);
 	// initialize lock
 	initlock(&dev->lock, "virtio-blk");
 	acquire(&dev->lock);
@@ -177,6 +179,19 @@ static void virtio_blk_dev_init(const struct PciAddress* addr) {
 	release(&dev->lock);
 }
 
+const struct PCIDeviceID virtio_blk_device_id[] = {
+	{0x1af4, 0x1001}, // Legacy
+	{0x1af4, 0x1042}, // Modern
+	{},
+};
+
+const struct PCIDriver virtio_blk_pci_driver = {
+	.name = "virtio-blk",
+	.match_table = virtio_blk_device_id,
+	.init = virtio_blk_dev_init,
+};
+
 void virtio_blk_init(void) {
-	return virtio_enum_device(2, virtio_blk_dev_init);
+	memset(virtio_blk_dev, 0, sizeof(virtio_blk_dev));
+	pci_register_driver(&virtio_blk_pci_driver);
 }

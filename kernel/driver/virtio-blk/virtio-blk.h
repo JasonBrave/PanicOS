@@ -27,8 +27,6 @@ struct VirtioBlockDevice {
 };
 
 // virtio.c
-void virtio_enum_device(int device_id,
-						void (*devinitfunc)(const struct PciAddress* addr));
 void virtio_allocate_queue(struct VirtioQueue* queue);
 void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* dev);
 void virtio_setup_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,

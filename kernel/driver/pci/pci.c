@@ -27,8 +27,7 @@ static const char* pci_intx_name[] = {
 
 void pci_init(void) {
 	memset(pci_msi_vector, 0, sizeof(pci_msi_vector));
-	memset(pci_irq_10, 0, sizeof(pci_irq_10));
-	memset(pci_irq_11, 0, sizeof(pci_irq_11));
+	memset(pci_device_table, 0, sizeof(pci_device_table));
 	// PCIe ECAM
 	const struct PciAddress pci_host_bridge_addr = {
 		.bus = 0, .device = 0, .function = 0};
@@ -42,37 +41,38 @@ void pci_init(void) {
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (addr.device = 0; addr.device < PCI_DEVICE_MAX; addr.device++) {
 			for (addr.function = 0; addr.function < PCI_FUNCTION_MAX; addr.function++) {
-				uint16_t vendor = pci_read_config_reg16(&addr, PCI_CONF_VENDOR);
-				if (vendor == 0xffff) {
+				uint16_t vendor_id = pci_read_config_reg16(&addr, PCI_CONF_VENDOR);
+				if (vendor_id == 0xffff) {
 					continue;
 				}
 				uint8_t intr_pin = pci_read_config_reg8(&addr, PCI_CONF_INTR_PIN);
+				uint16_t device_id = pci_read_config_reg16(&addr, PCI_CONF_DEVICE);
+				uint8_t class = pci_read_config_reg8(&addr, PCI_CONF_CLASS);
+				uint8_t subclass = pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS);
+				uint8_t progif = pci_read_config_reg8(&addr, PCI_CONF_PROGIF);
 				if (intr_pin == 0) { // No interrupt pin for this device
 					cprintf("[pci] bus %d device %d func %d %x:%x class %x "
 							"subclass %x progif %x\n",
-							addr.bus, addr.device, addr.function, vendor,
-							pci_read_config_reg16(&addr, PCI_CONF_DEVICE),
-							pci_read_config_reg8(&addr, PCI_CONF_CLASS),
-							pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS),
-							pci_read_config_reg8(&addr, PCI_CONF_PROGIF));
+							addr.bus, addr.device, addr.function, vendor_id, device_id,
+							class, subclass, progif);
+					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif,
+								   0);
 				} else {
 					uint8_t intr_line = pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE);
 					cprintf("[pci] bus %d device %d func %d %x:%x class %x "
 							"subclass %x progif %x %s %d\n",
-							addr.bus, addr.device, addr.function, vendor,
-							pci_read_config_reg16(&addr, PCI_CONF_DEVICE),
-							pci_read_config_reg8(&addr, PCI_CONF_CLASS),
-							pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS),
-							pci_read_config_reg8(&addr, PCI_CONF_PROGIF),
-							pci_intx_name[intr_pin], intr_line);
-					if ((intr_line == 10) || (intr_line == 11)) {
-						pci_add_irq(intr_line, &addr);
-					}
+							addr.bus, addr.device, addr.function, vendor_id, device_id,
+							class, subclass, progif, pci_intx_name[intr_pin],
+							intr_line);
+					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif,
+								   intr_line);
 				}
 			}
 		}
 	}
 	// enable interrupts
+	ioapicenable(5, 0);
+	ioapicenable(9, 0);
 	ioapicenable(10, 0);
 	ioapicenable(11, 0);
 }

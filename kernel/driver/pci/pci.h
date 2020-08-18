@@ -10,14 +10,6 @@ struct PciAddress {
 	int bus, device, function;
 };
 
-struct PciIrqInfo {
-	struct PciAddress addr;
-	void (*handler)(const struct PciAddress* addr, void*);
-	void* private;
-};
-
-#define PCI_IRQ_MAX 64
-
 extern struct PciHost {
 	uint8_t (*read8)(const struct PciAddress* addr, int reg);
 	uint16_t (*read16)(const struct PciAddress* addr, int reg);
@@ -28,6 +20,31 @@ extern struct PciHost {
 	int bus_num; // number of addressable busses
 	void* pcie_ecam_base;
 } pci_host;
+
+#define PCI_DEVICE_TABLE_SIZE 64
+
+struct PCIDriver;
+
+extern struct PCIDevice {
+	struct PciAddress addr;
+	uint16_t vendor_id, device_id;
+	uint8_t class, subclass, progif;
+	uint8_t irq;
+	void* private;
+	void (*intx_intr_handler)(struct PCIDevice*);
+	const struct PCIDriver* driver;
+} pci_device_table[PCI_DEVICE_TABLE_SIZE];
+
+struct PCIDeviceID {
+	uint16_t vendor_id, device_id;
+};
+
+struct PCIDriver {
+	const char* name;
+	const struct PCIDeviceID* match_table;
+	unsigned int class_type;
+	void (*init)(struct PCIDevice*);
+};
 
 // pci.c
 void pci_init(void);
@@ -54,12 +71,9 @@ struct PciAddress* pci_next_progif(struct PciAddress* pciaddr, uint8_t class,
 								   uint8_t subclass, uint8_t progif);
 
 // intx.c
-extern struct PciIrqInfo pci_irq_10[PCI_IRQ_MAX], pci_irq_11[PCI_IRQ_MAX];
-void pci_add_irq(int irq, const struct PciAddress* addr);
 void pci_interrupt(int irq);
-void pci_register_intr_handler(const struct PciAddress* addr,
-							   void (*handler)(const struct PciAddress*, void*),
-							   void* private);
+void pci_register_intr_handler(struct PCIDevice* dev,
+							   void (*handler)(struct PCIDevice*));
 void pci_enable_intx_intr(const struct PciAddress* addr);
 void pci_disable_intx_intr(const struct PciAddress* addr);
 
@@ -83,6 +97,13 @@ int pci_msi_alloc_vector(void (*handler)(void*), void* private);
 void pci_msi_free_vector(int vector);
 int pci_msi_enable(const struct PciAddress* addr, int vector, int lapicid);
 void pci_msi_disable(const struct PciAddress* addr);
+
+// driver.c
+void pci_add_device(const struct PciAddress* addr, uint16_t vendor_id,
+					uint16_t device_id, uint8_t class, uint8_t subclass, uint8_t progif,
+					uint8_t irq);
+void pci_register_driver(const struct PCIDriver* driver);
+void pci_print_devices(void);
 
 // helper functions
 static inline int pci_read_capid(const struct PciAddress* addr, int capptr) {
