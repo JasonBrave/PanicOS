@@ -20,6 +20,7 @@
 #include <common/errorcode.h>
 #include <common/x86.h>
 #include <defs.h>
+#include <hal/hal.h>
 
 #include "ata.h"
 
@@ -61,54 +62,14 @@ enum ATASignature {
 	ATA_SIGNATURE_PACKET = 0x010114eb,
 };
 
-struct ATADevice ata_device[ATA_DEVICE_MAX];
-
 static struct ATADevice* ata_device_alloc(void) {
-	for (int i = 0; i < ATA_DEVICE_MAX; i++) {
-		if (!ata_device[i].adapter) {
-			return &ata_device[i];
-		}
-	}
-	return 0;
+	struct ATADevice* dev = kalloc();
+	memset(dev, 0, sizeof(struct ATADevice));
+	return dev;
 }
 
 void ata_init(void) {
-	memset(ata_device, 0, sizeof(ata_device));
-
 	ata_adapter_init();
-
-	for (int ada = 0; ada < ATA_ADAPTER_MAX; ada++) {
-		if (!ata_adapter[ada].cmdblock_base[0]) {
-			continue;
-		}
-		struct ATAAdapter* adapter = &ata_adapter[ada];
-
-		for (int channel = 0; channel < 2; channel++) {
-			ata_bus_reset(adapter, channel);
-			uint32_t devtype[2];
-			for (int drive = 0; drive < 2; drive++) {
-				devtype[drive] = ata_read_signature(adapter, channel, drive);
-			}
-			for (int drive = 0; drive < 2; drive++) {
-				if (devtype[drive] == ATA_SIGNATURE_DISK) {
-					struct ATADevice* ata_dev = ata_device_alloc();
-					if (!ata_dev) {
-						panic("too many ATA device");
-					}
-					char model[50];
-					if (ata_identify(adapter, channel, drive, ata_dev, model) == 0) {
-						cprintf("[ata] Disk model %s %d sectors\n", model,
-								ata_dev->sectors);
-						cprintf("[ata] dma %d pio %d mdma %d udma %d ata_rev %d\n",
-								ata_dev->dma, ata_dev->pio, ata_dev->mdma,
-								ata_dev->udma, ata_dev->ata_rev);
-					}
-				} else if (devtype[drive] == ATA_SIGNATURE_PACKET) {
-					cprintf("[ata] ATAPI device found\n");
-				}
-			}
-		}
-	}
 }
 
 uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int drive) {
@@ -204,10 +165,10 @@ int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t 
 	return 0;
 }
 
-int ata_read(int id, unsigned int begin, int count, void* buf) {
-	if (ata_exec_pio_in(ata_device[id].adapter, ata_device[id].channel,
-						ata_device[id].drive, ATA_COMMAND_READ_SECTOR, begin, count,
-						buf, count)) {
+int ata_read(void* private, unsigned int begin, int count, void* buf) {
+	struct ATADevice* dev = private;
+	if (ata_exec_pio_in(dev->adapter, dev->channel, dev->drive, ATA_COMMAND_READ_SECTOR,
+						begin, count, buf, count)) {
 		return ERROR_READ_FAIL;
 	}
 	return 0;
@@ -242,11 +203,45 @@ int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t
 	return 0;
 }
 
-int ata_write(int id, unsigned int begin, int count, const void* buf) {
-	if (ata_exec_pio_out(ata_device[id].adapter, ata_device[id].channel,
-						 ata_device[id].drive, ATA_COMMAND_WRITE_SECTOR, begin, count,
-						 buf, count)) {
+int ata_write(void* private, unsigned int begin, int count, const void* buf) {
+	struct ATADevice* dev = private;
+	if (ata_exec_pio_out(dev->adapter, dev->channel, dev->drive,
+						 ATA_COMMAND_WRITE_SECTOR, begin, count, buf, count)) {
 		return ERROR_READ_FAIL;
 	}
 	return 0;
+}
+
+const struct BlockDeviceDriver ata_block_driver = {
+	.block_read = ata_read,
+	.block_write = ata_write,
+};
+
+void ata_register_adapter(struct ATAAdapter* adapter) {
+	for (int channel = 0; channel < 2; channel++) {
+		ata_bus_reset(adapter, channel);
+		uint32_t devtype[2];
+		for (int drive = 0; drive < 2; drive++) {
+			devtype[drive] = ata_read_signature(adapter, channel, drive);
+		}
+		for (int drive = 0; drive < 2; drive++) {
+			if (devtype[drive] == ATA_SIGNATURE_DISK) {
+				struct ATADevice* ata_dev = ata_device_alloc();
+				if (!ata_dev) {
+					panic("too many ATA device");
+				}
+				char model[50];
+				if (ata_identify(adapter, channel, drive, ata_dev, model) == 0) {
+					cprintf("[ata] Disk model %s %d sectors\n", model,
+							ata_dev->sectors);
+					cprintf("[ata] dma %d pio %d mdma %d udma %d ata_rev %d\n",
+							ata_dev->dma, ata_dev->pio, ata_dev->mdma, ata_dev->udma,
+							ata_dev->ata_rev);
+					hal_block_register_device("ata", ata_dev, &ata_block_driver);
+				}
+			} else if (devtype[drive] == ATA_SIGNATURE_PACKET) {
+				cprintf("[ata] ATAPI device found\n");
+			}
+		}
+	}
 }

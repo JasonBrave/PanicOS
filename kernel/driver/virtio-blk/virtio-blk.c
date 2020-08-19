@@ -20,12 +20,11 @@
 #include <common/errorcode.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <hal/hal.h>
 #include <memlayout.h>
 
 #include "virtio-blk-regs.h"
 #include "virtio-blk.h"
-
-struct VirtioBlockDevice virtio_blk_dev[VIRTIO_BLK_NUM_MAX];
 
 static void virtio_blk_intr(struct PCIDevice* pcidev) {
 	struct VirtioBlockDevice* dev = pcidev->private;
@@ -97,7 +96,7 @@ static void virtio_blk_req(struct VirtioBlockDevice* dev, int type, unsigned int
 	}
 }
 
-int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
+int virtio_blk_read(void* private, unsigned int begin, int count, void* buf) {
 	// check buf for DMA
 	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
 		(phyaddr_t)buf % PGSIZE)
@@ -105,7 +104,7 @@ int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
 	if (count == 0 || count > 8)
 		panic("virtio count");
 	phyaddr_t dest = V2P(buf);
-	struct VirtioBlockDevice* dev = &virtio_blk_dev[id];
+	struct VirtioBlockDevice* dev = private;
 	uint8_t status;
 	// start request
 	acquire(&dev->lock);
@@ -117,7 +116,7 @@ int virtio_blk_read(int id, unsigned int begin, int count, void* buf) {
 	return 0;
 }
 
-int virtio_blk_write(int id, unsigned int begin, int count, const void* buf) {
+int virtio_blk_write(void* private, unsigned int begin, int count, const void* buf) {
 	// check buf for DMA
 	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
 		(phyaddr_t)buf % PGSIZE)
@@ -125,7 +124,7 @@ int virtio_blk_write(int id, unsigned int begin, int count, const void* buf) {
 	if (count == 0 || count > 8)
 		panic("virtio count");
 	phyaddr_t dest = V2P(buf);
-	struct VirtioBlockDevice* dev = &virtio_blk_dev[id];
+	struct VirtioBlockDevice* dev = private;
 	uint8_t status;
 	// start request
 	acquire(&dev->lock);
@@ -137,18 +136,15 @@ int virtio_blk_write(int id, unsigned int begin, int count, const void* buf) {
 	return 0;
 }
 
+const struct BlockDeviceDriver virtio_blk_block_driver = {
+	.block_read = virtio_blk_read,
+	.block_write = virtio_blk_write,
+};
+
 static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
-	int id = -1;
-	for (int i = 0; i < VIRTIO_BLK_NUM_MAX; i++) {
-		if (!virtio_blk_dev[i].virtio_dev.cmcfg) {
-			id = i;
-			break;
-		}
-	}
-	if (id == -1) {
-		panic("too many virtio block device");
-	}
-	return &virtio_blk_dev[id];
+	struct VirtioBlockDevice* dev = kalloc();
+	memset(dev, 0, sizeof(struct VirtioBlockDevice));
+	return dev;
 }
 
 static void virtio_blk_dev_init(struct PCIDevice* pcidev) {
@@ -177,6 +173,7 @@ static void virtio_blk_dev_init(struct PCIDevice* pcidev) {
 			(unsigned int)dev->virtio_dev.devcfg->capacity,
 			dev->virtio_dev.devcfg->blk_size);
 	release(&dev->lock);
+	hal_block_register_device("virtio-blk", dev, &virtio_blk_block_driver);
 }
 
 const struct PCIDeviceID virtio_blk_device_id[] = {
@@ -192,6 +189,5 @@ const struct PCIDriver virtio_blk_pci_driver = {
 };
 
 void virtio_blk_init(void) {
-	memset(virtio_blk_dev, 0, sizeof(virtio_blk_dev));
 	pci_register_driver(&virtio_blk_pci_driver);
 }

@@ -22,10 +22,12 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
+#include <driver/ata/ata.h>
 #include <driver/bochs-display/bochs-display.h>
 #include <driver/edu/edu.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
+#include <driver/virtio-blk/virtio-blk.h>
 #include <filesystem/initramfs/initramfs.h>
 #include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
@@ -68,16 +70,21 @@ int main(void) {
 	cprintf("|_|   \\__,_|_| |_|_|\\___|\\___/|____/ \n");
 	cprintf("Welcome to PanicOS pre-alpha version, this is free software licensed "
 			"under GNU General Public License v3+\n");
+	// subsystems
 	kcall_init();
 	pci_init();
-	edu_init();
-	ps2_keyboard_init();
-	ps2_mouse_init();
 	hal_display_init();
 	hal_block_init();
-	bochs_display_init();
-	vfs_init();
 	pty_init();
+	// devices
+	ps2_keyboard_init();
+	ps2_mouse_init();
+	ata_init();
+	virtio_blk_init();
+	bochs_display_init();
+	edu_init();
+	// virtual filesystem
+	vfs_init();
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
 }

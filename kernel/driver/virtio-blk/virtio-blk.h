@@ -4,8 +4,6 @@
 #include <common/spinlock.h>
 #include <driver/pci/pci.h>
 
-#define VIRTIO_BLK_NUM_MAX 8
-
 struct VirtioDevice {
 	volatile struct VirtioPciCommonConfig* cmcfg;
 	volatile unsigned int* isr;
@@ -39,9 +37,8 @@ int* virtio_alloc_desc(struct VirtioQueue* queue, int* desc, int num);
 void virtio_free_desc(struct VirtioQueue* queue, int desc);
 
 // virtio-blk.c
-extern struct VirtioBlockDevice virtio_blk_dev[VIRTIO_BLK_NUM_MAX];
 void virtio_blk_init(void);
-int virtio_blk_read(int id, unsigned int begin, int count, void* buf);
-int virtio_blk_write(int id, unsigned int begin, int count, const void* buf);
+int virtio_blk_read(void* private, unsigned int begin, int count, void* buf);
+int virtio_blk_write(void* private, unsigned int begin, int count, const void* buf);
 
 #endif

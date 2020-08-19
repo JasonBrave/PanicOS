@@ -4,15 +4,14 @@
 #include <common/types.h>
 
 // HAL Block Device
-enum HalBlockHwType {
-	HAL_BLOCK_HWTYPE_NONE,
-	HAL_BLOCK_HWTYPE_VIRTIO_BLK,
-	HAL_BLOCK_HWTYPE_ATA,
+struct BlockDeviceDriver {
+	int (*block_read)(void* private, unsigned int begin, int count, void* buf);
+	int (*block_write)(void* private, unsigned int begin, int count, const void* buf);
 };
 
-struct HalBlockMap {
-	enum HalBlockHwType hw_type;
-	unsigned int hw_id;
+struct BlockDevice {
+	const struct BlockDeviceDriver* driver;
+	void* private;
 };
 
 #define HAL_BLOCK_MAX 8
@@ -35,9 +34,11 @@ struct HalPartitionMap {
 #define HAL_PARTITION_MAX 8
 
 // block.c
-extern struct HalBlockMap hal_block_map[HAL_BLOCK_MAX];
+extern struct BlockDevice hal_block_map[HAL_BLOCK_MAX];
 extern struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
 void hal_block_init(void);
+void hal_block_register_device(const char* name, void* private,
+							   const struct BlockDeviceDriver* driver);
 int hal_block_read(int id, int begin, int count, void* buf);
 int hal_disk_read(int id, int begin, int count, void* buf);
 int hal_partition_read(int id, int begin, int count, void* buf);

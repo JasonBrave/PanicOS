@@ -19,8 +19,6 @@
 
 #include <common/errorcode.h>
 #include <defs.h>
-#include <driver/ata/ata.h>
-#include <driver/virtio-blk/virtio-blk.h>
 
 #include "hal.h"
 
@@ -33,20 +31,8 @@ struct MbrEntry {
 	uint32_t size; // number of sectors
 } PACKED;
 
-struct HalBlockMap hal_block_map[HAL_BLOCK_MAX];
+struct BlockDevice hal_block_map[HAL_BLOCK_MAX];
 struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
-
-static struct HalBlockMap* hal_block_map_insert(enum HalBlockHwType hw,
-												unsigned int id) {
-	for (int i = 0; i < HAL_BLOCK_MAX; i++) {
-		if (hal_block_map[i].hw_type == HAL_BLOCK_HWTYPE_NONE) {
-			hal_block_map[i].hw_type = hw;
-			hal_block_map[i].hw_id = id;
-			return &hal_block_map[i];
-		}
-	}
-	return 0;
-}
 
 static struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs,
 														unsigned int dev,
@@ -64,63 +50,51 @@ static struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType 
 	return 0;
 }
 
+static void hal_block_probe_partition(int block_id) {
+	void* bootsect = kalloc();
+	if (hal_disk_read(block_id, 0, 1, bootsect) < 0) {
+		panic("disk read error");
+	}
+	for (int j = 0; j < 4; j++) {
+		struct MbrEntry* entry = bootsect + 0x1be + j * 0x10;
+		enum HalPartitionFsType fs;
+		if (entry->type == 0) {
+			continue;
+		} else if ((entry->type == 0xb) || (entry->type == 0xc)) {
+			cprintf("[mbr] FAT32 partition on block device %d MBR %d\n", block_id, j);
+			fs = HAL_PARTITION_FAT32;
+		} else if (entry->type == 0x83) {
+			cprintf("[mbr] Linux partition on block device %d MBR %d\n", block_id, j);
+			fs = HAL_PARTITION_LINUX;
+		} else {
+			cprintf("[mbr] Partition on block device %d MBR %d type %x\n", block_id, j,
+					entry->type);
+			fs = HAL_PARTITION_OTHER;
+		}
+		if (!hal_partition_map_insert(fs, block_id, entry->lba, entry->size)) {
+			panic("hal too many partition");
+		}
+	}
+	kfree(bootsect);
+}
+
+void hal_block_register_device(const char* name, void* private,
+							   const struct BlockDeviceDriver* driver) {
+	for (int i = 0; i < HAL_BLOCK_MAX; i++) {
+		if (!hal_block_map[i].driver) {
+			cprintf("[hal] Block device %s added\n", name);
+			hal_block_map[i].driver = driver;
+			hal_block_map[i].private = private;
+			hal_block_probe_partition(i);
+			return;
+		}
+	}
+	panic("too many block devices");
+}
+
 void hal_block_init(void) {
 	memset(hal_block_map, 0, sizeof(hal_block_map));
 	memset(hal_partition_map, 0, sizeof(hal_partition_map));
-	// virtio block device initialization
-	virtio_blk_init();
-	// ATA initialization
-	ata_init();
-	// find virtio-blk devices
-	for (int i = 0; i < VIRTIO_BLK_NUM_MAX; i++) {
-		if (!virtio_blk_dev[i].virtio_dev.cmcfg) {
-			continue;
-		}
-		if (!hal_block_map_insert(HAL_BLOCK_HWTYPE_VIRTIO_BLK, i)) {
-			panic("hal too many block device");
-		}
-		cprintf("[hal] block virtio-blk.%d added\n", i);
-	}
-	for (int i = 0; i < ATA_DEVICE_MAX; i++) {
-		if (!ata_device[i].adapter) {
-			continue;
-		}
-		if (!hal_block_map_insert(HAL_BLOCK_HWTYPE_ATA, i)) {
-			panic("hal too many block device");
-		}
-		cprintf("[hal] block ata.%d added\n", i);
-	}
-	// find all partitions
-	for (int i = 0; i < HAL_BLOCK_MAX; i++) {
-		if (hal_block_map[i].hw_type == HAL_BLOCK_HWTYPE_NONE) {
-			continue;
-		}
-		void* bootsect = kalloc();
-		if (hal_disk_read(i, 0, 1, bootsect) < 0) {
-			panic("disk read error");
-		}
-		for (int j = 0; j < 4; j++) {
-			struct MbrEntry* entry = bootsect + 0x1be + j * 0x10;
-			enum HalPartitionFsType fs;
-			if (entry->type == 0) {
-				continue;
-			} else if ((entry->type == 0xb) || (entry->type == 0xc)) {
-				cprintf("[mbr] FAT32 partition on block device %d MBR %d\n", i, j);
-				fs = HAL_PARTITION_FAT32;
-			} else if (entry->type == 0x83) {
-				cprintf("[mbr] Linux partition on block device %d MBR %d\n", i, j);
-				fs = HAL_PARTITION_LINUX;
-			} else {
-				cprintf("[mbr] Partition on block device %d MBR %d type %x\n", i, j,
-						entry->type);
-				fs = HAL_PARTITION_OTHER;
-			}
-			if (!hal_partition_map_insert(fs, i, entry->lba, entry->size)) {
-				panic("hal too many partition");
-			}
-		}
-		kfree(bootsect);
-	}
 }
 
 int hal_block_read(int id, int begin, int count, void* buf) {
@@ -129,17 +103,14 @@ int hal_block_read(int id, int begin, int count, void* buf) {
 
 int hal_disk_read(int id, int begin, int count, void* buf) {
 	if (id >= HAL_BLOCK_MAX) {
-		return -1;
+		return ERROR_INVAILD;
 	}
-	switch (hal_block_map[id].hw_type) {
-	case HAL_BLOCK_HWTYPE_VIRTIO_BLK:
-		return virtio_blk_read(hal_block_map[id].hw_id, begin, count, buf);
-	case HAL_BLOCK_HWTYPE_ATA:
-		return ata_read(hal_block_map[id].hw_id, begin, count, buf);
-	case HAL_BLOCK_HWTYPE_NONE:
-		return -1;
+	if (!hal_block_map[id].driver) {
+		return ERROR_INVAILD;
 	}
-	return -1;
+
+	return hal_block_map[id].driver->block_read(hal_block_map[id].private, begin, count,
+												buf);
 }
 
 int hal_partition_read(int id, int begin, int count, void* buf) {
@@ -161,15 +132,12 @@ int hal_disk_write(int id, int begin, int count, const void* buf) {
 	if (id >= HAL_BLOCK_MAX) {
 		return -1;
 	}
-	switch (hal_block_map[id].hw_type) {
-	case HAL_BLOCK_HWTYPE_VIRTIO_BLK:
-		return virtio_blk_write(hal_block_map[id].hw_id, begin, count, buf);
-	case HAL_BLOCK_HWTYPE_ATA:
-		return ata_write(hal_block_map[id].hw_id, begin, count, buf);
-	case HAL_BLOCK_HWTYPE_NONE:
-		return -1;
+	if (!hal_block_map[id].driver) {
+		return ERROR_INVAILD;
 	}
-	return -1;
+
+	return hal_block_map[id].driver->block_write(hal_block_map[id].private, begin,
+												 count, buf);
 }
 
 int hal_partition_write(int id, int begin, int count, const void* buf) {

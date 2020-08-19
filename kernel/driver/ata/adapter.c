@@ -23,18 +23,13 @@
 
 #include "ata.h"
 
-struct ATAAdapter ata_adapter[ATA_ADAPTER_MAX];
-
 const static char* bus_master_str[] = {"Non-Bus Mastering", "Bus Mastering"};
 const static char* pci_native_str[] = {"ISA Compatibility", "PCI Native"};
 
 static struct ATAAdapter* ata_adapter_alloc(void) {
-	for (int i = 0; i < ATA_ADAPTER_MAX; i++) {
-		if (!ata_adapter[i].cmdblock_base[0]) {
-			return &ata_adapter[i];
-		}
-	}
-	return 0;
+	struct ATAAdapter* dev = kalloc();
+	memset(dev, 0, sizeof(struct ATAAdapter));
+	return dev;
 }
 
 void ata_adapter_dev_init(struct PCIDevice* pcidev) {
@@ -89,6 +84,7 @@ void ata_adapter_dev_init(struct PCIDevice* pcidev) {
 		pci_register_intr_handler(pcidev, ata_pci_intr);
 	}
 	release(&adapter->lock[0]);
+	ata_register_adapter(adapter);
 }
 
 struct PCIDriver ata_adapter_pci_driver = {
@@ -98,7 +94,6 @@ struct PCIDriver ata_adapter_pci_driver = {
 };
 
 void ata_adapter_init(void) {
-	memset(&ata_adapter, 0, sizeof(ata_adapter));
 	// enable legacy IRQ
 	ioapicenable(14, 0);
 	ioapicenable(15, 0);

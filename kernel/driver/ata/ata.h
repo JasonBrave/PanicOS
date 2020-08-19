@@ -15,10 +15,6 @@ struct ATAAdapter {
 	struct spinlock lock[2];
 };
 
-#define ATA_ADAPTER_MAX 8
-
-extern struct ATAAdapter ata_adapter[ATA_ADAPTER_MAX];
-
 struct ATADevice {
 	struct ATAAdapter* adapter;
 	struct {
@@ -29,22 +25,19 @@ struct ATADevice {
 	char dma, pio, mdma, udma, ata_rev;
 };
 
-#define ATA_DEVICE_MAX 8
-
-extern struct ATADevice ata_device[ATA_DEVICE_MAX];
-
 // ata.c
 void ata_init(void);
+void ata_register_adapter(struct ATAAdapter* adapter);
 uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int drive);
 int ata_identify(struct ATAAdapter* adapter, int channel, int drive,
 				 struct ATADevice* dev, char* model);
 void ata_bus_reset(const struct ATAAdapter* adapter, int channel);
 int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
 					unsigned int lba, unsigned int count, void* buf, int blocks);
-int ata_read(int id, unsigned int begin, int count, void* buf);
+int ata_read(void* private, unsigned int begin, int count, void* buf);
 int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
 					 unsigned int lba, unsigned int count, const void* buf, int blocks);
-int ata_write(int id, unsigned int begin, int count, const void* buf);
+int ata_write(void* private, unsigned int begin, int count, const void* buf);
 
 // adapter.c
 void ata_adapter_dev_init(struct PCIDevice* dev);
