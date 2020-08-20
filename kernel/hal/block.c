@@ -22,22 +22,12 @@
 
 #include "hal.h"
 
-struct MbrEntry {
-	uint8_t boot; // boot signature
-	uint8_t first[3]; // first sector CHS address
-	uint8_t type; // partition type
-	uint8_t last[3]; // last sector CHS address
-	uint32_t lba; // start sector LBA
-	uint32_t size; // number of sectors
-} PACKED;
-
 struct BlockDevice hal_block_map[HAL_BLOCK_MAX];
 struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
 
-static struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs,
-														unsigned int dev,
-														unsigned int begin,
-														unsigned int size) {
+struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs,
+												 unsigned int dev, unsigned int begin,
+												 unsigned int size) {
 	for (int i = 0; i < HAL_PARTITION_MAX; i++) {
 		if (hal_partition_map[i].fs_type == HAL_PARTITION_NONE) {
 			hal_partition_map[i].fs_type = fs;
@@ -51,31 +41,19 @@ static struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType 
 }
 
 static void hal_block_probe_partition(int block_id) {
-	void* bootsect = kalloc();
-	if (hal_disk_read(block_id, 0, 1, bootsect) < 0) {
+	uint64_t* gptsect = kalloc();
+	if (hal_disk_read(block_id, 1, 1, gptsect) < 0) {
 		panic("disk read error");
 	}
-	for (int j = 0; j < 4; j++) {
-		struct MbrEntry* entry = bootsect + 0x1be + j * 0x10;
-		enum HalPartitionFsType fs;
-		if (entry->type == 0) {
-			continue;
-		} else if ((entry->type == 0xb) || (entry->type == 0xc)) {
-			cprintf("[mbr] FAT32 partition on block device %d MBR %d\n", block_id, j);
-			fs = HAL_PARTITION_FAT32;
-		} else if (entry->type == 0x83) {
-			cprintf("[mbr] Linux partition on block device %d MBR %d\n", block_id, j);
-			fs = HAL_PARTITION_LINUX;
-		} else {
-			cprintf("[mbr] Partition on block device %d MBR %d type %x\n", block_id, j,
-					entry->type);
-			fs = HAL_PARTITION_OTHER;
-		}
-		if (!hal_partition_map_insert(fs, block_id, entry->lba, entry->size)) {
-			panic("hal too many partition");
-		}
+	if (gptsect[0] == 0x5452415020494645ULL) { // EFI PART
+		// GPT
+		cprintf("[hal] GPT partition table on block %d\n", block_id);
+	} else {
+		// MBR
+		cprintf("[hal] MBR partition table on block %d\n", block_id);
+		mbr_probe_partition(block_id);
 	}
-	kfree(bootsect);
+	kfree(gptsect);
 }
 
 void hal_block_register_device(const char* name, void* private,
