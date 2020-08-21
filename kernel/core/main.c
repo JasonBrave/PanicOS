@@ -76,6 +76,7 @@ int main(void) {
 	hal_display_init();
 	hal_block_init();
 	pty_init();
+	module_init();
 	// devices
 	ps2_keyboard_init();
 	ps2_mouse_init();

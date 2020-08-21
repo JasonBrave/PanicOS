@@ -50,6 +50,7 @@ OBJS = \
 	driver/pci/msi.o\
 	driver/pci/driver.o\
 	hal/mbr.o\
+	hal/module.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

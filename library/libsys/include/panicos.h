@@ -60,6 +60,7 @@ int pty_write_input(int pty, const char* buffer, int size);
 int pty_close(int pty);
 int pty_switch(int pty);
 int proc_status(int pid, int* exit_status);
+int module_load(const char* name);
 
 enum OpenMode {
 	O_READ = 1,

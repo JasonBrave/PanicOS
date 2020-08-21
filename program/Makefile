@@ -10,6 +10,7 @@ all:
 	$(MAKE) -C mkdir install
 	$(MAKE) -C rm install
 	$(MAKE) -C about install
+	$(MAKE) -C kmod install
 
 .PHONY: clean
 clean:
@@ -24,3 +25,4 @@ clean:
 	$(MAKE) -C mkdir clean
 	$(MAKE) -C rm clean
 	$(MAKE) -C about clean
+	$(MAKE) -C kmod clean

@@ -110,6 +110,7 @@ void ps2_keyboard_intr(void) {
 		procdump();
 		print_memory_usage();
 		pci_print_devices();
+		module_print();
 	}
 	if (sendto_console) {
 		consoleintr(kbd_getc);

@@ -120,6 +120,7 @@ extern int sys_pty_write_input(void);
 extern int sys_pty_close(void);
 extern int sys_pty_switch(void);
 extern int sys_proc_status(void);
+extern int sys_module_load(void);
 
 static int (*syscalls[])(void) = {
 	[SYS_fork] = sys_fork,
@@ -162,6 +163,7 @@ static int (*syscalls[])(void) = {
 	[SYS_pty_close] = sys_pty_close,
 	[SYS_pty_switch] = sys_pty_switch,
 	[SYS_proc_status] = sys_proc_status,
+	[SYS_module_load] = sys_module_load,
 };
 
 void syscall(void) {

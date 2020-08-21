@@ -49,7 +49,7 @@ void seginit(void) {
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc) {
+static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc, int perm) {
 	pde_t* pde;
 	pte_t* pgtab;
 
@@ -64,7 +64,7 @@ static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc) {
 		// The permissions here are overly generous, but they can
 		// be further restricted by the permissions in the page table
 		// entries, if necessary.
-		*pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+		*pde = V2P(pgtab) | PTE_P | perm;
 	}
 	return &pgtab[PTX(va)];
 }
@@ -79,7 +79,7 @@ int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int per
 	a = (char*)PGROUNDDOWN((unsigned int)va);
 	last = (char*)PGROUNDDOWN(((unsigned int)va) + size - 1);
 	for (;;) {
-		if ((pte = walkpgdir(pgdir, a, 1)) == 0)
+		if ((pte = walkpgdir(pgdir, a, 1, PTE_W | PTE_U)) == 0)
 			return -1;
 		if (*pte & PTE_P)
 			panic("remap");
@@ -88,6 +88,23 @@ int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int per
 			break;
 		a += PGSIZE;
 		pa += PGSIZE;
+	}
+	return 0;
+}
+
+int unmappages(pde_t* pgdir, void* va, unsigned int size) {
+	char *a, *last;
+	pte_t* pte;
+
+	a = (char*)PGROUNDDOWN((unsigned int)va);
+	last = (char*)PGROUNDDOWN(((unsigned int)va) + size - 1);
+	for (;;) {
+		if ((pte = walkpgdir(pgdir, a, 1, PTE_W | PTE_U)) == 0)
+			return -1;
+		*pte = 0;
+		if (a == last)
+			break;
+		a += PGSIZE;
 	}
 	return 0;
 }
@@ -127,6 +144,8 @@ static struct kmap {
 	{(void*)DEVSPACE, DEVSPACE, 0, PTE_W}, // more devices
 };
 
+extern void module_set_pgdir(pde_t* pgdir);
+
 // Set up kernel part of a page table.
 pde_t* setupkvm(void) {
 	pde_t* pgdir;
@@ -143,6 +162,8 @@ pde_t* setupkvm(void) {
 			freevm(pgdir);
 			return 0;
 		}
+	// copy kernel module map
+	module_set_pgdir(pgdir);
 	return pgdir;
 }
 
@@ -198,13 +219,14 @@ void inituvm(pde_t* pgdir, char* init, unsigned int sz) {
 // and the pages from addr to addr+sz must already be mapped.
 int loaduvm(pde_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset,
 			unsigned int sz) {
-	unsigned int i, pa, n;
+	unsigned int i, pa;
+	int n;
 	pte_t* pte;
 
 	if ((unsigned int)addr % PGSIZE != 0)
 		panic("loaduvm: addr must be page aligned");
 	for (i = 0; i < sz; i += PGSIZE) {
-		if ((pte = walkpgdir(pgdir, addr + i, 0)) == 0)
+		if ((pte = walkpgdir(pgdir, addr + i, 0, PTE_W | PTE_U)) == 0)
 			panic("loaduvm: address should exist");
 		pa = PTE_ADDR(*pte);
 		if (sz - i < PGSIZE)
@@ -227,8 +249,6 @@ int allocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz, int perm) {
 	char* mem;
 	unsigned int a;
 
-	if (newsz >= KERNBASE)
-		return 0;
 	if (newsz < oldsz)
 		return oldsz;
 
@@ -264,7 +284,7 @@ int deallocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz) {
 
 	a = PGROUNDUP(newsz);
 	for (; a < oldsz; a += PGSIZE) {
-		pte = walkpgdir(pgdir, (char*)a, 0);
+		pte = walkpgdir(pgdir, (char*)a, 0, PTE_W | PTE_U);
 		if (!pte)
 			a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
 		else if ((*pte & PTE_P) != 0) {
@@ -301,7 +321,7 @@ void freevm(pde_t* pgdir) {
 void clearpteu(pde_t* pgdir, char* uva) {
 	pte_t* pte;
 
-	pte = walkpgdir(pgdir, uva, 0);
+	pte = walkpgdir(pgdir, uva, 0, PTE_W | PTE_U);
 	if (pte == 0)
 		panic("clearpteu");
 	*pte &= ~PTE_U;
@@ -315,7 +335,7 @@ pde_t* copyuvm(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned in
 	char* mem;
 
 	for (i = begin; i < end; i += PGSIZE) {
-		if ((pte = walkpgdir(oldpgdir, (void*)i, 0)) == 0)
+		if ((pte = walkpgdir(oldpgdir, (void*)i, 0, PTE_W | PTE_U)) == 0)
 			panic("copyuvm: pte should exist");
 		if (!(*pte & PTE_P))
 			panic("copyuvm: page not present");
@@ -337,7 +357,7 @@ pde_t* copyuvm(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned in
 char* uva2ka(pde_t* pgdir, char* uva) {
 	pte_t* pte;
 
-	pte = walkpgdir(pgdir, uva, 0);
+	pte = walkpgdir(pgdir, uva, 0, PTE_W | PTE_U);
 	if ((*pte & PTE_P) == 0)
 		return 0;
 	if ((*pte & PTE_U) == 0)
@@ -367,4 +387,23 @@ int copyout(pde_t* pgdir, unsigned int va, void* p, unsigned int len) {
 		va = va0 + PGSIZE;
 	}
 	return 0;
+}
+
+pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin,
+				 unsigned int end) {
+	pte_t* pte;
+	unsigned int pa, i, flags;
+
+	for (i = begin; i < end; i += PGSIZE) {
+		if ((pte = walkpgdir(oldpgdir, (void*)i, 0, PTE_W | PTE_U)) == 0)
+			panic("copypgdir: pte should exist");
+		if (!(*pte & PTE_P))
+			panic("copypgdir: page not present");
+		pa = PTE_ADDR(*pte);
+		flags = PTE_FLAGS(*pte);
+		if (mappages(newpgdir, (void*)i, PGSIZE, pa, flags) < 0) {
+			return 0;
+		}
+	}
+	return newpgdir;
 }

@@ -338,3 +338,11 @@ int sys_proc_status(void) {
 	release(&ptable.lock);
 	return PROC_NOT_EXIST;
 }
+
+int sys_module_load(void) {
+	char* name;
+	if (argstr(0, &name) < 0) {
+		return -1;
+	}
+	return module_load(name);
+}

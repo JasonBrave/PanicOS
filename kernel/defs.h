@@ -22,6 +22,11 @@ void panic(const char*) __attribute__((noreturn));
 int consoleread(char* dst, int n);
 int consolewrite(char* buf, int n);
 
+// module.c
+void module_init(void);
+int module_load(const char* name);
+void module_print(void);
+
 // exec.c
 int exec(char*, char**);
 
@@ -132,6 +137,8 @@ void switchkvm(void);
 int copyout(pde_t*, unsigned int, void*, unsigned int);
 void clearpteu(pde_t* pgdir, char* uva);
 int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int perm);
+pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin,
+				 unsigned int end);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
