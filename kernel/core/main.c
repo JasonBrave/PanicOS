@@ -24,7 +24,6 @@
 #include <defs.h>
 #include <driver/ata/ata.h>
 #include <driver/bochs-display/bochs-display.h>
-#include <driver/edu/edu.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
 #include <driver/virtio-blk/virtio-blk.h>
@@ -83,7 +82,6 @@ int main(void) {
 	ata_init();
 	virtio_blk_init();
 	bochs_display_init();
-	edu_init();
 	// virtual filesystem
 	vfs_init();
 	userinit(); // first user process

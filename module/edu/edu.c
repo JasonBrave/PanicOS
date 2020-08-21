@@ -20,8 +20,7 @@
 // Reference:
 // https://github.com/qemu/qemu/blob/master/docs/specs/edu.txt
 
-#include <defs.h>
-#include <driver/pci/pci.h>
+#include <kernel.h>
 
 #define EDU_USE_MSI
 
@@ -91,12 +90,11 @@ const struct PCIDeviceID edu_device_table[] = {
 	{},
 };
 
-struct PCIDriver edu_driver = {
-	.name = "qemu-edu",
-	.match_table = edu_device_table,
-	.init = edu_init_dev,
-};
+struct PCIDriver edu_driver;
 
-void edu_init(void) {
+void module_init(void) {
+	edu_driver.name = "qemu-edu";
+	edu_driver.match_table = edu_device_table;
+	edu_driver.init = edu_init_dev;
 	pci_register_driver(&edu_driver);
 }

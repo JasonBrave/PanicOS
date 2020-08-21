@@ -19,7 +19,9 @@
 
 #include <common/spinlock.h>
 #include <defs.h>
+#include <driver/pci/pci.h>
 #include <filesystem/vfs/vfs.h>
+#include <hal/hal.h>
 #include <proc/exec/elf.h>
 
 #define MAX_MODULES 64
@@ -138,9 +140,63 @@ void module_print(void) {
 static struct KernerServiceTable {
 	// basic functions
 	void (*cprintf)(const char*, ...);
+	void (*panic)(const char*);
+	void* (*kalloc)(void);
+	void (*kfree)(void*);
+	// common/spinlock.h
+	void (*initlock)(struct spinlock*, const char*);
+	void (*acquire)(struct spinlock*);
+	void (*release)(struct spinlock*);
+	// driver/pci/pci.h
+	uint8_t (*pci_read_config_reg8)(const struct PciAddress*, int);
+	uint16_t (*pci_read_config_reg16)(const struct PciAddress*, int);
+	uint32_t (*pci_read_config_reg32)(const struct PciAddress*, int);
+	void (*pci_write_config_reg8)(const struct PciAddress*, int, uint8_t);
+	void (*pci_write_config_reg16)(const struct PciAddress*, int, uint16_t);
+	void (*pci_write_config_reg32)(const struct PciAddress*, int, uint32_t);
+	phyaddr_t (*pci_read_bar)(const struct PciAddress*, int);
+	void (*pci_enable_bus_mastering)(const struct PciAddress*);
+	int (*pci_find_capability)(const struct PciAddress*, uint8_t);
+	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
+	void (*pci_enable_intx_intr)(const struct PciAddress*);
+	void (*pci_disable_intx_intr)(const struct PciAddress*);
+	int (*pci_msi_alloc_vector)(void (*)(void*), void*);
+	void (*pci_msi_free_vector)(int);
+	int (*pci_msi_enable)(const struct PciAddress*, int, int);
+	void (*pci_msi_disable)(const struct PciAddress*);
+	void (*pci_register_driver)(const struct PCIDriver*);
+	// hal/hal.h
+	void (*hal_block_register_device)(const char*, void*,
+									  const struct BlockDeviceDriver*);
+	void (*hal_display_register_device)(const char*, void*, struct FramebufferDriver*);
 }* kernsrv = (void*)0x80010000;
 
 void module_init(void) {
 	memset(module_info, 0, sizeof(module_info));
 	kernsrv->cprintf = cprintf;
+	kernsrv->panic = panic;
+	kernsrv->kalloc = kalloc;
+	kernsrv->kfree = kfree;
+	kernsrv->initlock = initlock;
+	kernsrv->acquire = acquire;
+	kernsrv->release = release;
+	kernsrv->pci_read_config_reg8 = pci_read_config_reg8;
+	kernsrv->pci_read_config_reg16 = pci_read_config_reg16;
+	kernsrv->pci_read_config_reg32 = pci_read_config_reg32;
+	kernsrv->pci_write_config_reg8 = pci_write_config_reg8;
+	kernsrv->pci_write_config_reg16 = pci_write_config_reg16;
+	kernsrv->pci_write_config_reg32 = pci_write_config_reg32;
+	kernsrv->pci_read_bar = pci_read_bar;
+	kernsrv->pci_enable_bus_mastering = pci_enable_bus_mastering;
+	kernsrv->pci_find_capability = pci_find_capability;
+	kernsrv->pci_register_intr_handler = pci_register_intr_handler;
+	kernsrv->pci_enable_intx_intr = pci_enable_intx_intr;
+	kernsrv->pci_disable_intx_intr = pci_disable_intx_intr;
+	kernsrv->pci_msi_alloc_vector = pci_msi_alloc_vector;
+	kernsrv->pci_msi_free_vector = pci_msi_free_vector;
+	kernsrv->pci_msi_enable = pci_msi_enable;
+	kernsrv->pci_msi_disable = pci_msi_disable;
+	kernsrv->pci_register_driver = pci_register_driver;
+	kernsrv->hal_block_register_device = hal_block_register_device;
+	kernsrv->hal_display_register_device = hal_display_register_device;
 }

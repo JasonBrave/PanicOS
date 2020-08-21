@@ -27,7 +27,6 @@ OBJS = \
 	proc/exec/elf.o\
 	driver/pci/pci.o\
 	driver/pci/intx.o\
-	driver/edu/edu.o\
 	driver/virtio-blk/virtio-blk.o\
 	hal/block.o\
 	filesystem/fat32/mount.o\
