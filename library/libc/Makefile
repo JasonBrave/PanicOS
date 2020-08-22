@@ -27,12 +27,17 @@ OBJS= assert/assert_fail.o\
 	stdio/stdout.o\
 	stdlib/_Exit.o\
 	stdlib/abort.o\
+	stdlib/abs.o\
 	stdlib/at_quick_exit.o\
 	stdlib/atexit.o\
 	stdlib/atoi.o\
+	stdlib/atol.o\
+	stdlib/atoll.o\
 	stdlib/calloc.o\
 	stdlib/exit.o\
 	stdlib/free.o\
+	stdlib/labs.o\
+	stdlib/llabs.o\
 	stdlib/malloc.o\
 	stdlib/quick_exit.o\
 	string/memchr.o\

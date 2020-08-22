@@ -27,6 +27,8 @@
 
 // numeric conversion functions
 int atoi(const char* nptr);
+long int atol(const char* nptr);
+long long int atoll(const char* nptr);
 
 // memory management functions
 void* calloc(size_t nmemb, size_t size);
@@ -40,5 +42,10 @@ int at_quick_exit(void (*func)(void));
 _Noreturn void exit(int status);
 _Noreturn void _Exit(int status);
 _Noreturn void quick_exit(int status);
+
+// integer arithmetic functions
+int abs(int j);
+long int labs(long int j);
+long long int llabs(long long int j);
 
 #endif

@@ -1,4 +1,4 @@
-CFLAGS += -I../modlib/ -fPIE
+CFLAGS += -I../modlib/ -fPIE -fno-builtin
 
 $(MOD).mod : $(OBJS)
 	$(LD) -pie --no-dynamic-linker -e module_init $(OBJS) -o $(MOD).mod

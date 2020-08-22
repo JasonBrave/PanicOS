@@ -223,4 +223,9 @@ static inline void hal_display_register_device(const char* name, void* private,
 	return kernsrv->hal_display_register_device(name, private, driver);
 }
 
+#define KERNBASE 0x80000000 // First kernel virtual address
+
+#define V2P(a) (((unsigned int)(a)) - KERNBASE)
+#define P2V(a) ((void*)(((char*)(a)) + KERNBASE))
+
 #endif
