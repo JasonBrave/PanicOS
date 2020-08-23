@@ -76,7 +76,7 @@ static phyaddr_t bochs_display_enable(void* private, int xres, int yres) {
 	struct BochsDisplayDevice* dev = private;
 	vbe_write(dev, VBE_DISPI_INDEX_XRES, xres);
 	vbe_write(dev, VBE_DISPI_INDEX_YRES, yres);
-	vbe_write(dev, VBE_DISPI_INDEX_BPP, 24);
+	vbe_write(dev, VBE_DISPI_INDEX_BPP, 32);
 	vbe_write(dev, VBE_DISPI_INDEX_ENABLE, VBE_DISPI_ENABLED | VBE_DISPI_VBE_ENABLED);
 	return dev->vram;
 }

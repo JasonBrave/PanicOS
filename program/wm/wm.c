@@ -31,14 +31,23 @@
 
 extern unsigned char font16[256 * 16];
 
+#define DISPLAY_OP_ENABLE 0
+#define DISPLAY_OP_UPDATE 1
+#define DISPLAY_OP_FIND 2
+
+#define DISPLAY_FLAG_NEED_UPDATE (1 << 0)
+
 struct DisplayControl {
+	int op;
+	int display_id;
 	int xres;
 	int yres;
+	int flag;
 	void* framebuffer;
 };
 
 typedef struct {
-	uint8_t b, g, r;
+	uint8_t b, g, r, x;
 } __attribute__((packed)) COLOUR;
 
 struct Window {
@@ -67,6 +76,8 @@ COLOUR* fb; // framebuffer
 int xres, yres;
 int cur_x = 200, cur_y = 200;
 struct Sheet* sheet_list = NULL; // sheets linked list
+int need_update = 0; // need manual call update
+int display_id;
 
 void wm_print_char(char c, COLOUR* buf, int x, int y, int width, COLOUR colour) {
 	for (int i = 0; i < 16; i++) {
@@ -187,10 +198,26 @@ void wm_draw_sheet(struct Sheet* sht) {
 }
 
 void* wm_modeswitch(int xres, int yres) {
-	struct DisplayControl dc = {.xres = xres, .yres = yres};
+	struct DisplayControl dc = {
+		.op = DISPLAY_OP_FIND,
+	};
 	if (kcall("display", (unsigned int)&dc) < 0) {
 		fputs("wm: no display found\n", stderr);
 		exit(EXIT_FAILURE);
+	}
+	display_id = dc.display_id;
+
+	dc.op = DISPLAY_OP_ENABLE;
+	dc.xres = xres;
+	dc.yres = yres;
+	dc.display_id = display_id;
+	if (kcall("display", (unsigned int)&dc) < 0) {
+		fputs("wm: no display found\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+
+	if (dc.flag & DISPLAY_FLAG_NEED_UPDATE) {
+		need_update = 1;
 	}
 	return dc.framebuffer;
 }
@@ -499,6 +526,14 @@ int main(int argc, char* argv[]) {
 		int m;
 		kcall("mouse", (unsigned int)&m);
 		if (!m) {
+			// update framebuffer
+			if (need_update) {
+				struct DisplayControl dc = {
+					.op = DISPLAY_OP_UPDATE,
+					.display_id = display_id,
+				};
+				kcall("display", (unsigned int)&dc);
+			}
 			continue;
 		}
 		// remove old cursor
@@ -525,6 +560,14 @@ int main(int argc, char* argv[]) {
 		if (prevbtn != btn) {
 			mouse_button_event(btn);
 			prevbtn = btn;
+		}
+		// update framebuffer
+		if (need_update) {
+			struct DisplayControl dc = {
+				.op = DISPLAY_OP_UPDATE,
+				.display_id = display_id,
+			};
+			kcall("display", (unsigned int)&dc);
 		}
 	}
 

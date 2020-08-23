@@ -41,20 +41,53 @@ static void* hal_display_modeswitch(struct FramebufferDevice* fbdev, int xres,
 }
 
 static int hal_display_kcall_handler(unsigned int display_struct) {
+#define DISPLAY_OP_ENABLE 0
+#define DISPLAY_OP_UPDATE 1
+#define DISPLAY_OP_FIND 2
+
+#define DISPLAY_FLAG_NEED_UPDATE (1 << 0)
+
 	struct {
+		int op;
+		int display_id;
 		int xres;
 		int yres;
+		int flag;
 		void* framebuffer;
 	}* dc = (void*)display_struct;
 
-	for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
-		if (framebuffer_device[i].driver) {
-			dc->framebuffer =
-				hal_display_modeswitch(&framebuffer_device[i], dc->xres, dc->yres);
+	if (dc->op == DISPLAY_OP_ENABLE) {
+		if (framebuffer_device[dc->display_id].driver) {
+			dc->framebuffer = hal_display_modeswitch(
+				&framebuffer_device[dc->display_id], dc->xres, dc->yres);
+			dc->flag = 0;
+			if (framebuffer_device[dc->display_id].driver->update) {
+				dc->flag |= DISPLAY_FLAG_NEED_UPDATE;
+			}
 			return 0;
+		} else {
+			return ERROR_NOT_EXIST;
 		}
+	} else if (dc->op == DISPLAY_OP_UPDATE) {
+		if (framebuffer_device[dc->display_id].driver &&
+			framebuffer_device[dc->display_id].driver->update) {
+			framebuffer_device[dc->display_id].driver->update(
+				framebuffer_device[dc->display_id].private);
+			return 0;
+		} else {
+			return ERROR_NOT_EXIST;
+		}
+	} else if (dc->op == DISPLAY_OP_FIND) {
+		for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
+			if (framebuffer_device[i].driver) {
+				dc->display_id = i;
+				return 0;
+			}
+		}
+		dc->display_id = -1;
+		return ERROR_NOT_EXIST;
 	}
-	return ERROR_NOT_EXIST;
+	return ERROR_INVAILD;
 }
 
 void hal_display_register_device(const char* name, void* private,
@@ -63,15 +96,14 @@ void hal_display_register_device(const char* name, void* private,
 	for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
 		if (!framebuffer_device[i].driver) {
 			dev = &framebuffer_device[i];
+			cprintf("[hal] Display device %d %s update%s\n", i, name,
+					BOOL2SIGN((int)driver->update));
+			dev->driver = driver;
+			dev->private = private;
+			return;
 		}
 	}
-	if (!dev) {
-		panic("too many display device");
-	}
-
-	cprintf("[hal] Display device %s added\n", name);
-	dev->driver = driver;
-	dev->private = private;
+	panic("too many display device");
 }
 
 void hal_display_init(void) {

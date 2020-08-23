@@ -76,6 +76,8 @@ struct BlockDeviceDriver {
 struct FramebufferDriver {
 	phyaddr_t (*enable)(void* private, int xres, int yres);
 	void (*disable)(void* private);
+	void (*update)(void* private);
+	unsigned int (*read_edid)(void* private, unsigned int bytes);
 };
 
 const static struct KernerServiceTable {

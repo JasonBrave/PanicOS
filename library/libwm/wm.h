@@ -10,9 +10,9 @@ extern "C" {
 
 typedef struct {
 #ifdef __cplusplus
-	std::uint8_t b, g, r;
+	std::uint8_t b, g, r, x;
 #else
-	uint8_t b, g, r;
+	uint8_t b, g, r, x;
 #endif
 } __attribute__((packed)) COLOUR;
 
