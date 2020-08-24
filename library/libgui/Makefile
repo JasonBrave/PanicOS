@@ -4,6 +4,7 @@ OBJS= button.o\
 	label.o\
 	wmbase.o\
 	window.o\
+	imageloader/bmp.o\
 
 HEADERS= *.hpp
 HEADERDIR= libgui
