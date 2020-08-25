@@ -30,23 +30,36 @@
 int xres, yres;
 
 int main(int argc, char* argv[]) {
-	const char* wm_args[] = {"wm", 0, 0, 0};
-	if (argc == 1) {
+	const char* wm_args[] = {"wm", 0, 0, 0, 0};
+	if (argc == 1) { // desktop
 		xres = DEFAULT_XRES;
 		yres = DEFAULT_YRES;
-		wm_args[1] = 0;
-	} else if (argc == 3) {
+	} else if (argc == 2) { // desktop display_id
+		xres = DEFAULT_XRES;
+		yres = DEFAULT_YRES;
+		wm_args[1] = argv[1];
+	} else if (argc == 3) { // desktop xres yres
 		xres = atoi(argv[1]);
 		yres = atoi(argv[2]);
 		wm_args[1] = argv[1];
 		wm_args[2] = argv[2];
+	} else if (argc == 4) { // desktop display_id xres yres
+		xres = atoi(argv[2]);
+		yres = atoi(argv[3]);
+		wm_args[1] = argv[1];
+		wm_args[2] = argv[2];
+		wm_args[3] = argv[3];
 	} else {
-		fputs("Usage: desktop [xres yres]\n", stderr);
+		fputs("Usage:\n", stderr);
+		fputs(" desktop - default display and resolution", stderr);
+		fputs(" desktop display_id - custom display and default resolution", stderr);
+		fputs(" desktop xres yres - default display and custom resolution", stderr);
+		fputs(" desktop display_id xres yres - custom display and resolution", stderr);
 		exit(EXIT_FAILURE);
 	}
 
-	static COLOUR blue = {0, 0, 255};
-	static COLOUR gray = {200, 200, 200};
+	static COLOUR blue = {0, 0, 255, 0};
+	static COLOUR gray = {200, 200, 200, 0};
 	// spawn window manager
 	if (!wm_init()) {
 		int wmpid = fork();

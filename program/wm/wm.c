@@ -79,6 +79,21 @@ struct Sheet* sheet_list = NULL; // sheets linked list
 int need_update = 0; // need manual call update
 int display_id;
 
+static inline void fastmemcpy32(void* dest, const void* src, int cnt) {
+	uint32_t* d = dest;
+	const uint32_t* s = src;
+	for (int i = 0; i < cnt; i++) {
+		d[i] = s[i];
+	}
+}
+
+static inline void fastmemset32(void* dest, uint32_t val, int cnt) {
+	uint32_t* d = dest;
+	for (int i = 0; i < cnt; i++) {
+		d[i] = val;
+	}
+}
+
 void wm_print_char(char c, COLOUR* buf, int x, int y, int width, COLOUR colour) {
 	for (int i = 0; i < 16; i++) {
 		COLOUR* p = buf + (y + i) * width + x;
@@ -117,21 +132,17 @@ void wm_print_string(COLOUR* buf, const char* str, int x, int y, int width,
 }
 
 void wm_fill_buffer(COLOUR* buf, int x, int y, int w, int h, int width, COLOUR colour) {
-	for (int i = 0; i < w; i++) {
-		for (int j = 0; j < h; j++) {
-			buf[(y + j) * width + (x + i)] = colour;
-		}
+	for (int i = 0; i < h; i++) {
+		fastmemset32(buf + (y + i) * width + x, *(uint32_t*)&colour, w);
 	}
 }
 
 void wm_copy_buffer(COLOUR* dest, int dest_x, int dest_y, int dest_width,
 					const COLOUR* src, int src_x, int src_y, int src_width, int width,
 					int height) {
-	for (int i = 0; i < width; i++) {
-		for (int j = 0; j < height; j++) {
-			dest[(dest_y + j) * dest_width + (dest_x + i)] =
-				src[(src_y + j) * src_width + (src_x + i)];
-		}
+	for (int i = 0; i < height; i++) {
+		fastmemcpy32(dest + (dest_y + i) * dest_width + dest_x,
+					 src + (src_y + i) * src_width + src_x, width);
 	}
 }
 
@@ -195,31 +206,6 @@ void wm_window_set_title(struct Sheet* sht, const char* title) {
 void wm_draw_sheet(struct Sheet* sht) {
 	wm_copy_buffer(fb, sht->x, sht->y, xres, sht->buffer, 0, 0, sht->width, sht->width,
 				   sht->height);
-}
-
-void* wm_modeswitch(int xres, int yres) {
-	struct DisplayControl dc = {
-		.op = DISPLAY_OP_FIND,
-	};
-	if (kcall("display", (unsigned int)&dc) < 0) {
-		fputs("wm: no display found\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-	display_id = dc.display_id;
-
-	dc.op = DISPLAY_OP_ENABLE;
-	dc.xres = xres;
-	dc.yres = yres;
-	dc.display_id = display_id;
-	if (kcall("display", (unsigned int)&dc) < 0) {
-		fputs("wm: no display found\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-
-	if (dc.flag & DISPLAY_FLAG_NEED_UPDATE) {
-		need_update = 1;
-	}
-	return dc.framebuffer;
 }
 
 void sheet_remove(struct Sheet* to_remove) {
@@ -488,26 +474,64 @@ void message_received(int pid, void* msg) {
 	}
 }
 
+void* wm_modeswitch(int xres, int yres) {
+	struct DisplayControl dc = {
+		.op = DISPLAY_OP_ENABLE,
+		.xres = xres,
+		.yres = yres,
+		.display_id = display_id,
+	};
+
+	if (kcall("display", (unsigned int)&dc) < 0) {
+		fputs("wm: no display found\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+
+	if (dc.flag & DISPLAY_FLAG_NEED_UPDATE) {
+		need_update = 1;
+	}
+	return dc.framebuffer;
+}
+
+int wm_find_display(void) {
+	struct DisplayControl dc = {
+		.op = DISPLAY_OP_FIND,
+	};
+	if (kcall("display", (unsigned int)&dc) < 0) {
+		fputs("wm: no display found\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+	return dc.display_id;
+}
+
 int main(int argc, char* argv[]) {
-	if (argc == 1) {
+	if (argc == 1) { // wm
 		xres = DEFAULT_XRES;
 		yres = DEFAULT_YRES;
-	} else if (argc == 3) {
+		display_id = wm_find_display();
+	} else if (argc == 2) { // wm display_id
+		xres = DEFAULT_XRES;
+		yres = DEFAULT_YRES;
+		display_id = atoi(argv[1]);
+	} else if (argc == 3) { // wm xres yres
 		xres = atoi(argv[1]);
 		yres = atoi(argv[2]);
+		display_id = wm_find_display();
+	} else if (argc == 4) { // wm display_id xres yres
+		display_id = atoi(argv[1]);
+		xres = atoi(argv[2]);
+		yres = atoi(argv[3]);
 	} else {
-		fputs("Usage: wm [xres yres]\n", stderr);
+		fputs("Usage:\n", stderr);
+		fputs(" wm - default display and resolution", stderr);
+		fputs(" wm display_id - custom display and default resolution", stderr);
+		fputs(" wm xres yres - default display and custom resolution", stderr);
+		fputs(" wm display_id xres yres - custom display and resolution", stderr);
 		exit(EXIT_FAILURE);
 	}
 	fb = wm_modeswitch(xres, yres);
 
-	for (int x = 0; x < xres; x++) {
-		for (int y = 0; y < yres; y++) {
-			fb[y * xres + x].r = 40;
-			fb[y * xres + x].g = 200;
-			fb[y * xres + x].b = 255;
-		}
-	}
+	wm_fill_buffer(fb, 0, 0, xres, yres, xres, light_blue);
 
 	char* msg = malloc(1024 * 4096); // 4MiB byte buffer
 	// main loop
