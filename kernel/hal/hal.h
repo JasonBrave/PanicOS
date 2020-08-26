@@ -1,6 +1,7 @@
 #ifndef _HAL_HAL_H
 #define _HAL_HAL_H
 
+#include <common/spinlock.h>
 #include <common/types.h>
 
 // HAL Block Device
@@ -9,9 +10,19 @@ struct BlockDeviceDriver {
 	int (*block_write)(void* private, unsigned int begin, int count, const void* buf);
 };
 
+#define HAL_BLOCK_CACHE_MAX 512
+
+struct BlockCache {
+	int lba;
+	void* buf;
+};
+
 struct BlockDevice {
 	const struct BlockDeviceDriver* driver;
 	void* private;
+	struct BlockCache* cache;
+	int cache_next;
+	struct spinlock cache_lock;
 };
 
 #define HAL_BLOCK_MAX 8
