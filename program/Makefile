@@ -11,6 +11,7 @@ all:
 	$(MAKE) -C rm install
 	$(MAKE) -C about install
 	$(MAKE) -C kmod install
+	$(MAKE) -C fbcon install
 
 .PHONY: clean
 clean:
@@ -26,3 +27,4 @@ clean:
 	$(MAKE) -C rm clean
 	$(MAKE) -C about clean
 	$(MAKE) -C kmod clean
+	$(MAKE) -C fbcon clean
