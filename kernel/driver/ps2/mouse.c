@@ -20,14 +20,13 @@
 #include <common/types.h>
 #include <common/x86.h>
 #include <defs.h>
-#include <proc/kcall.h>
+#include <hal/hal.h>
 
 #include "ps2.h"
 
 static enum PS2MouseType ps2_mouse_type;
 static uint8_t mouse_buffer[4];
 static int mouse_phase = 0;
-static int mouse_updated = 0;
 
 static void ps2_wait(void) {
 	while (inb(PS2_STATUS_PORT) & 2) {
@@ -71,18 +70,6 @@ static void ps2_enable_interrupt(int port) {
 	outb(PS2_DATA_PORT, c);
 }
 
-int mouse_kcall_handler(unsigned int ptr) {
-	unsigned int* m = (unsigned int*)ptr;
-	if (!mouse_updated) {
-		*m = 0;
-		return 0;
-	}
-	mouse_updated = 0;
-	*m = mouse_buffer[0] << 24 | mouse_buffer[1] << 16 | mouse_buffer[2] << 8 |
-		 mouse_buffer[3];
-	return 0;
-}
-
 void ps2_mouse_init(void) {
 	// enable second PS/2 port
 	ps2_wait();
@@ -105,8 +92,6 @@ void ps2_mouse_init(void) {
 	ps2_mouse_write(PS2_MOUSE_CMD_ENABLE_REPORT);
 	// enable mouse IRQ
 	ioapicenable(12, 0);
-	// set "mouse" kcall
-	kcall_set("mouse", mouse_kcall_handler);
 }
 
 void ps2_mouse_intr(void) {
@@ -114,12 +99,14 @@ void ps2_mouse_intr(void) {
 	mouse_phase++;
 	if (ps2_mouse_type == PS2_MOUSE_WITH_WHEEL) {
 		if (mouse_phase == 4) {
-			mouse_updated = 1;
+			hal_mouse_update(mouse_buffer[0] << 24 | mouse_buffer[1] << 16 |
+							 mouse_buffer[2] << 8 | mouse_buffer[3]);
 			mouse_phase = 0;
 		}
 	} else if (ps2_mouse_type == PS2_MOUSE_WITHOUT_WHEEL) {
 		if (mouse_phase == 3) {
-			mouse_updated = 1;
+			hal_mouse_update(mouse_buffer[0] << 24 | mouse_buffer[1] << 16 |
+							 mouse_buffer[2] << 8);
 			mouse_phase = 0;
 		}
 	}

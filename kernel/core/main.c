@@ -74,6 +74,7 @@ int main(void) {
 	pci_init();
 	hal_display_init();
 	hal_block_init();
+	hal_hid_init();
 	pty_init();
 	module_init();
 	// devices
