@@ -59,17 +59,18 @@ void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* dev) {
 	} while ((capptr = pci_read_next_cap(addr, capptr)) != 0);
 }
 
-void virtio_setup_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
-						int feature) {
+void virtio_set_feature(struct VirtioDevice* dev, unsigned int feature) {
 	dev->cmcfg->device_status = 0;
 	dev->cmcfg->device_status = 1;
 	dev->cmcfg->device_status |= 2;
 	dev->cmcfg->driver_feature = dev->cmcfg->device_feature & feature;
 	dev->cmcfg->device_status |= 8;
 	dev->cmcfg->device_status |= 4;
+}
 
-	dev->cmcfg->queue_select = 0;
-	dev->cmcfg->queue_enable = 0;
+void virtio_setup_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
+						int queue_n) {
+	dev->cmcfg->queue_select = queue_n;
 	if (dev->cmcfg->queue_size > VIRTIO_QUEUE_SIZE_MAX) {
 		dev->cmcfg->queue_size = VIRTIO_QUEUE_SIZE_MAX;
 	}

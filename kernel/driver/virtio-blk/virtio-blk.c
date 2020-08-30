@@ -164,8 +164,8 @@ static void virtio_blk_dev_init(struct PCIDevice* pcidev) {
 	// allocate memory for queues
 	virtio_read_cap(addr, &dev->virtio_dev);
 	virtio_allocate_queue(&dev->virtio_queue);
-	virtio_setup_queue(&dev->virtio_dev, &dev->virtio_queue,
-					   VIRTIO_BLK_F_RO | VIRTIO_BLK_F_BLK_SIZE);
+	virtio_set_feature(&dev->virtio_dev, VIRTIO_BLK_F_RO | VIRTIO_BLK_F_BLK_SIZE);
+	virtio_setup_queue(&dev->virtio_dev, &dev->virtio_queue, 0);
 	// print a message
 	cprintf("[virtio-blk] Virtio Block device %d:%d.%d capacity %d "
 			"blk_size %d\n",

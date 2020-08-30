@@ -27,8 +27,9 @@ struct VirtioBlockDevice {
 // virtio.c
 void virtio_allocate_queue(struct VirtioQueue* queue);
 void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* dev);
+void virtio_set_feature(struct VirtioDevice* dev, unsigned int feature);
 void virtio_setup_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
-						int feature);
+						int queue_n);
 int virtio_intr_ack(struct VirtioDevice* dev);
 void virtio_queue_notify_wait(struct VirtioDevice* dev, struct VirtioQueue* queue);
 void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc);

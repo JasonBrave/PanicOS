@@ -103,7 +103,7 @@ static inline void virtio_read_cap(const struct PciAddress* addr,
 	} while ((capptr = pci_read_next_cap(addr, capptr)) != 0);
 }
 
-static inline void virtio_set_feature(struct VirtioDevice* dev, int feature) {
+static inline void virtio_set_feature(struct VirtioDevice* dev, unsigned int feature) {
 	dev->cmcfg->device_status = 0;
 	dev->cmcfg->device_status = 1;
 	dev->cmcfg->device_status |= 2;
@@ -115,7 +115,6 @@ static inline void virtio_set_feature(struct VirtioDevice* dev, int feature) {
 static inline void virtio_setup_queue(struct VirtioDevice* dev,
 									  struct VirtioQueue* queue, int queue_n) {
 	dev->cmcfg->queue_select = queue_n;
-	dev->cmcfg->queue_enable = 0;
 	if (dev->cmcfg->queue_size > VIRTIO_QUEUE_SIZE_MAX) {
 		dev->cmcfg->queue_size = VIRTIO_QUEUE_SIZE_MAX;
 	}
