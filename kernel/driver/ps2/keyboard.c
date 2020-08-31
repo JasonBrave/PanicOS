@@ -19,15 +19,13 @@
 
 #include <common/x86.h>
 #include <defs.h>
-#include <driver/pci/pci.h>
-#include <proc/kcall.h>
+#include <hal/hal.h>
 
 #include "kbd.h"
 #include "ps2-keyboard-map.h"
 #include "ps2.h"
 
 static unsigned int rawkbddata = 0;
-static int sendto_console = 1;
 
 static unsigned int kbd_scan_to_keycode(unsigned int data) {
 	unsigned int keycode = 0;
@@ -48,17 +46,8 @@ static unsigned int kbd_scan_to_keycode(unsigned int data) {
 	}
 }
 
-static int kbd_kcall_handler(unsigned int ptr) {
-	sendto_console = 0;
-	unsigned int* k = (unsigned int*)ptr;
-	*k = kbd_scan_to_keycode(rawkbddata);
-	rawkbddata = 0;
-	return 0;
-}
-
 void ps2_keyboard_init(void) {
 	cprintf("[ps2] PS/2 Keyboard found\n");
-	kcall_set("keyboard", kbd_kcall_handler);
 	ioapicenable(1, 0);
 }
 
@@ -106,13 +95,12 @@ void ps2_keyboard_intr(void) {
 		return;
 	}
 	rawkbddata = inb(PS2_DATA_PORT);
-	if (rawkbddata == 0x45) { // numlock
-		procdump();
-		print_memory_usage();
-		pci_print_devices();
-		module_print();
-	}
-	if (sendto_console) {
+	if (hal_kbd_send_legacy) {
+		if (rawkbddata == 0x45) {
+			hal_keyboard_update(144);
+		}
 		consoleintr(kbd_getc);
+	} else {
+		hal_keyboard_update(kbd_scan_to_keycode(rawkbddata));
 	}
 }

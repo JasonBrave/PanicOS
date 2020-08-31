@@ -77,7 +77,9 @@ void hal_display_register_device(const char* name, void* private,
 								 struct FramebufferDriver* driver);
 
 // hid.c
+extern int hal_kbd_send_legacy;
 void hal_hid_init(void);
 void hal_mouse_update(unsigned int data);
+void hal_keyboard_update(unsigned int data);
 
 #endif
