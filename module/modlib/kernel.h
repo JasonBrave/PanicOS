@@ -86,6 +86,9 @@ const static struct KernerServiceTable {
 	void (*panic)(const char*);
 	void* (*kalloc)(void);
 	void (*kfree)(void*);
+	// process control
+	void (*sleep)(void*, struct spinlock*);
+	void (*wakeup)(void*);
 	// common/spinlock.h
 	void (*initlock)(struct spinlock*, const char*);
 	void (*acquire)(struct spinlock*);
@@ -112,6 +115,8 @@ const static struct KernerServiceTable {
 	void (*hal_block_register_device)(const char*, void*,
 									  const struct BlockDeviceDriver*);
 	void (*hal_display_register_device)(const char*, void*, struct FramebufferDriver*);
+	void (*hal_mouse_update)(unsigned int);
+	void (*hal_keyboard_update)(unsigned int);
 }* kernsrv = (void*)0x80010000;
 
 // common functions
@@ -127,6 +132,14 @@ static inline void* kalloc(void) {
 
 static inline void kfree(void* ptr) {
 	return kernsrv->kfree(ptr);
+}
+
+static inline void sleep(void* chan, struct spinlock* lock) {
+	return kernsrv->sleep(chan, lock);
+}
+
+static inline void wakeup(void* chan) {
+	return kernsrv->wakeup(chan);
 }
 
 // common/spinlock.h
@@ -223,6 +236,14 @@ static inline void hal_block_register_device(const char* name, void* private,
 static inline void hal_display_register_device(const char* name, void* private,
 											   struct FramebufferDriver* driver) {
 	return kernsrv->hal_display_register_device(name, private, driver);
+}
+
+static inline void hal_mouse_update(unsigned int data) {
+	return kernsrv->hal_mouse_update(data);
+}
+
+static inline void hal_keyboard_update(unsigned int data) {
+	return kernsrv->hal_keyboard_update(data);
 }
 
 #define KERNBASE 0x80000000 // First kernel virtual address

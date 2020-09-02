@@ -143,6 +143,9 @@ static struct KernerServiceTable {
 	void (*panic)(const char*);
 	void* (*kalloc)(void);
 	void (*kfree)(void*);
+	// process control
+	void (*sleep)(void*, struct spinlock*);
+	void (*wakeup)(void*);
 	// common/spinlock.h
 	void (*initlock)(struct spinlock*, const char*);
 	void (*acquire)(struct spinlock*);
@@ -169,6 +172,8 @@ static struct KernerServiceTable {
 	void (*hal_block_register_device)(const char*, void*,
 									  const struct BlockDeviceDriver*);
 	void (*hal_display_register_device)(const char*, void*, struct FramebufferDriver*);
+	void (*hal_mouse_update)(unsigned int);
+	void (*hal_keyboard_update)(unsigned int);
 }* kernsrv = (void*)0x80010000;
 
 void module_init(void) {
@@ -177,6 +182,8 @@ void module_init(void) {
 	kernsrv->panic = panic;
 	kernsrv->kalloc = kalloc;
 	kernsrv->kfree = kfree;
+	kernsrv->sleep = sleep;
+	kernsrv->wakeup = wakeup;
 	kernsrv->initlock = initlock;
 	kernsrv->acquire = acquire;
 	kernsrv->release = release;
@@ -199,4 +206,6 @@ void module_init(void) {
 	kernsrv->pci_register_driver = pci_register_driver;
 	kernsrv->hal_block_register_device = hal_block_register_device;
 	kernsrv->hal_display_register_device = hal_display_register_device;
+	kernsrv->hal_mouse_update = hal_mouse_update;
+	kernsrv->hal_keyboard_update = hal_keyboard_update;
 }
