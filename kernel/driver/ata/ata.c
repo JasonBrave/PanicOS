@@ -21,6 +21,7 @@
 #include <common/x86.h>
 #include <defs.h>
 #include <hal/hal.h>
+#include <memlayout.h>
 
 #include "ata.h"
 
@@ -54,6 +55,8 @@ enum AtaStatus {
 enum AtaCommands {
 	ATA_COMMAND_READ_SECTOR = 0x20,
 	ATA_COMMAND_WRITE_SECTOR = 0x30,
+	ATA_COMMAND_READ_DMA = 0xc8,
+	ATA_COMMAND_WRITE_DMA = 0xca,
 	ATA_COMMAND_IDENTIFY = 0xec,
 };
 
@@ -101,7 +104,6 @@ int ata_identify(struct ATAAdapter* adapter, int channel, int drive,
 	}
 	model[40] = '\0';
 
-	dev->adapter = adapter;
 	dev->channel = channel;
 	dev->drive = drive;
 	dev->sectors = identify[60] + (identify[61] << 16);
@@ -165,11 +167,50 @@ int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t 
 	return 0;
 }
 
+int ata_exec_dma_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					unsigned int lba, unsigned int count, void* buf, int blocks) {
+	ioport_t iobase = adapter->cmdblock_base[channel];
+	acquire(&adapter->lock[channel]);
+	ata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
+	outb(iobase + ATA_IO_DRIVE,
+		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	outb(iobase + ATA_IO_COUNT, count);
+	outb(iobase + ATA_IO_LBALO, lba & 0xff);
+	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
+	outb(iobase + ATA_IO_LBAHI, (lba >> 16) & 0xff);
+	outb(iobase + ATA_IO_COMMAND, cmd);
+	ata_adapter_bmdma_start_write(adapter, channel);
+	// check status
+	while ((inb(iobase + ATA_IO_STATUS) & ATA_STATUS_BSY) ||
+		   ata_adapter_bmdma_busy(adapter, channel)) {
+	}
+	ata_adapter_bmdma_stop(adapter, channel);
+	uint8_t status = inb(iobase + ATA_IO_STATUS);
+	if (status == 0 || status & ATA_STATUS_ERR) {
+		release(&adapter->lock[channel]);
+		return -1;
+	}
+	release(&adapter->lock[channel]);
+	return 0;
+}
+
 int ata_read(void* private, unsigned int begin, int count, void* buf) {
 	struct ATADevice* dev = private;
-	if (ata_exec_pio_in(dev->adapter, dev->channel, dev->drive, ATA_COMMAND_READ_SECTOR,
-						begin, count, buf, count)) {
-		return ERROR_READ_FAIL;
+	if (dev->use_dma) {
+		if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+			(phyaddr_t)buf % PGSIZE)
+			panic("ata dma");
+		if (count == 0 || count > 8)
+			panic("ata count");
+		if (ata_exec_dma_in(dev->adapter, dev->channel, dev->drive,
+							ATA_COMMAND_READ_DMA, begin, count, buf, count)) {
+			return ERROR_READ_FAIL;
+		}
+	} else {
+		if (ata_exec_pio_in(dev->adapter, dev->channel, dev->drive,
+							ATA_COMMAND_READ_SECTOR, begin, count, buf, count)) {
+			return ERROR_READ_FAIL;
+		}
 	}
 	return 0;
 }
@@ -203,11 +244,51 @@ int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t
 	return 0;
 }
 
+int ata_exec_dma_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					 unsigned int lba, unsigned int count, const void* buf,
+					 int blocks) {
+	ioport_t iobase = adapter->cmdblock_base[channel];
+	acquire(&adapter->lock[channel]);
+	ata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
+	outb(iobase + ATA_IO_DRIVE,
+		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	outb(iobase + ATA_IO_COUNT, count);
+	outb(iobase + ATA_IO_LBALO, lba & 0xff);
+	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
+	outb(iobase + ATA_IO_LBAHI, (lba >> 16) & 0xff);
+	outb(iobase + ATA_IO_COMMAND, cmd);
+	ata_adapter_bmdma_start_read(adapter, channel);
+	// check status
+	while ((inb(iobase + ATA_IO_STATUS) & ATA_STATUS_BSY) ||
+		   ata_adapter_bmdma_busy(adapter, channel)) {
+	}
+	ata_adapter_bmdma_stop(adapter, channel);
+	uint8_t status = inb(iobase + ATA_IO_STATUS);
+	if (status == 0 || status & ATA_STATUS_ERR) {
+		release(&adapter->lock[channel]);
+		return -1;
+	}
+	release(&adapter->lock[channel]);
+	return 0;
+}
+
 int ata_write(void* private, unsigned int begin, int count, const void* buf) {
 	struct ATADevice* dev = private;
-	if (ata_exec_pio_out(dev->adapter, dev->channel, dev->drive,
-						 ATA_COMMAND_WRITE_SECTOR, begin, count, buf, count)) {
-		return ERROR_READ_FAIL;
+	if (dev->use_dma) {
+		if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+			(phyaddr_t)buf % PGSIZE)
+			panic("ata dma");
+		if (count == 0 || count > 8)
+			panic("ata count");
+		if (ata_exec_dma_out(dev->adapter, dev->channel, dev->drive,
+							 ATA_COMMAND_WRITE_DMA, begin, count, buf, count)) {
+			return ERROR_READ_FAIL;
+		}
+	} else {
+		if (ata_exec_pio_out(dev->adapter, dev->channel, dev->drive,
+							 ATA_COMMAND_WRITE_SECTOR, begin, count, buf, count)) {
+			return ERROR_READ_FAIL;
+		}
 	}
 	return 0;
 }
@@ -230,6 +311,7 @@ void ata_register_adapter(struct ATAAdapter* adapter) {
 				if (!ata_dev) {
 					panic("too many ATA device");
 				}
+				ata_dev->adapter = adapter;
 				char model[50];
 				if (ata_identify(adapter, channel, drive, ata_dev, model) == 0) {
 					cprintf("[ata] Disk model %s %d sectors\n", model,
@@ -237,6 +319,16 @@ void ata_register_adapter(struct ATAAdapter* adapter) {
 					cprintf("[ata] dma %d pio %d mdma %d udma %d ata_rev %d\n",
 							ata_dev->dma, ata_dev->pio, ata_dev->mdma, ata_dev->udma,
 							ata_dev->ata_rev);
+					if (ata_dev->dma && ata_dev->adapter->bus_master) {
+						ata_dev->use_dma = 1;
+						cprintf("[ata] Use DMA for channel %d drive %d\n", channel,
+								drive);
+						ata_adapter_bmdma_init(ata_dev->adapter, channel, drive);
+					} else {
+						ata_dev->use_dma = 0;
+						cprintf("[ata] Use PIO for channel %d drive %d\n", channel,
+								drive);
+					}
 					hal_block_register_device("ata", ata_dev, &ata_block_driver);
 				}
 			} else if (devtype[drive] == ATA_SIGNATURE_PACKET) {

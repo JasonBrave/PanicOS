@@ -17,14 +17,22 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/x86.h>
 #include <defs.h>
 #include <driver/pci/pci-config.h>
 #include <driver/pci/pci.h>
+#include <memlayout.h>
 
 #include "ata.h"
 
 const static char* bus_master_str[] = {"Non-Bus Mastering", "Bus Mastering"};
 const static char* pci_native_str[] = {"ISA Compatibility", "PCI Native"};
+
+struct ATABMDMAPRD {
+	uint32_t base;
+	uint16_t size;
+	uint16_t eot;
+} PACKED;
 
 static struct ATAAdapter* ata_adapter_alloc(void) {
 	struct ATAAdapter* dev = kalloc();
@@ -68,23 +76,73 @@ void ata_adapter_dev_init(struct PCIDevice* pcidev) {
 	}
 	if (adapter->bus_master) {
 		adapter->bus_master_base = pci_read_bar(addr, 4);
+		for (int i = 0; i < 2; i++) {
+			adapter->prd[i] = kalloc();
+			memset(adapter->prd[i], 0, 4096);
+		}
+		pci_enable_bus_mastering(&pcidev->addr);
 	}
 	cprintf("[ata] cmd0 0x%x ctl0 0x%x cmd1 0x%x ctl1 0x%x bmdma 0x%x\n",
 			adapter->cmdblock_base[0], adapter->control_base[0],
 			adapter->cmdblock_base[1], adapter->control_base[1],
 			adapter->bus_master_base);
-	// enable bus mastering
-	if (adapter->bus_master) {
-		uint16_t pcicmd = pci_read_config_reg16(addr, PCI_CONF_COMMAND);
-		pcicmd |= PCI_CONTROL_BUS_MASTER;
-		pci_write_config_reg16(addr, PCI_CONF_COMMAND, pcicmd);
-	}
 	// enable PCI interrupt
 	if (adapter->pci_native) {
 		pci_register_intr_handler(pcidev, ata_pci_intr);
 	}
 	release(&adapter->lock[0]);
 	ata_register_adapter(adapter);
+}
+
+void ata_adapter_bmdma_init(struct ATAAdapter* dev, int channel, int drive) {
+	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
+	uint8_t bmdma_status = inb(bmdma_base + 2);
+	bmdma_status |= 1 << (5 + drive) | 6;
+	outb(bmdma_base + 2, bmdma_status);
+}
+
+void ata_adapter_bmdma_prepare(struct ATAAdapter* dev, int channel, phyaddr_t addr,
+							   unsigned int size) {
+	volatile struct ATABMDMAPRD* prd = dev->prd[channel];
+	prd[0].base = addr;
+	prd[0].size = size;
+	prd[0].eot = 0x8000;
+	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
+	outdw(bmdma_base + 4, V2P(prd));
+	uint8_t bmdma_status = inb(bmdma_base + 2);
+	bmdma_status |= 6;
+	outb(bmdma_base + 2, bmdma_status);
+}
+
+void ata_adapter_bmdma_start_write(struct ATAAdapter* dev, int channel) {
+	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
+	uint8_t bmdma_command = inb(bmdma_base + 0);
+	bmdma_command |= 9;
+	outb(bmdma_base + 0, bmdma_command);
+}
+
+void ata_adapter_bmdma_start_read(struct ATAAdapter* dev, int channel) {
+	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
+	uint8_t bmdma_command = inb(bmdma_base + 0);
+	bmdma_command &= ~8;
+	bmdma_command |= 1;
+	outb(bmdma_base + 0, bmdma_command);
+}
+
+int ata_adapter_bmdma_busy(struct ATAAdapter* dev, int channel) {
+	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
+	return inb(bmdma_base + 2) & 1;
+}
+
+void ata_adapter_bmdma_stop(struct ATAAdapter* dev, int channel) {
+	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
+	outb(bmdma_base + 0, 0);
+	uint8_t bmdma_status = inb(bmdma_base + 2);
+	if (bmdma_status & 2) {
+		cprintf("[ata] BMDMA error\n");
+	}
+	bmdma_status |= 6;
+	outb(bmdma_base + 2, bmdma_status);
 }
 
 struct PCIDriver ata_adapter_pci_driver = {
