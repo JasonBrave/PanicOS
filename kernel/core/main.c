@@ -26,6 +26,7 @@
 #include <driver/bochs-display/bochs-display.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
+#include <driver/uhci/uhci.h>
 #include <driver/virtio-blk/virtio-blk.h>
 #include <filesystem/initramfs/initramfs.h>
 #include <filesystem/vfs/vfs.h>
@@ -82,6 +83,7 @@ int main(void) {
 	ps2_mouse_init();
 	ata_init();
 	virtio_blk_init();
+	uhci_init();
 	bochs_display_init();
 	// virtual filesystem
 	vfs_init();
