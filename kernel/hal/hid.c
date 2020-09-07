@@ -19,6 +19,7 @@
 
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <driver/usb/usb.h>
 #include <proc/kcall.h>
 
 #define MOUSE_QUEUE_SIZE 16
@@ -82,6 +83,7 @@ void hal_keyboard_update(unsigned int data) {
 		procdump();
 		print_memory_usage();
 		pci_print_devices();
+		usb_print_devices();
 		module_print();
 		return;
 	}

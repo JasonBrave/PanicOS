@@ -52,6 +52,7 @@ OBJS = \
 	hal/module.o\
 	hal/hid.o\
 	driver/uhci/uhci.o\
+	driver/usb/usb.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

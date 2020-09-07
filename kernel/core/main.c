@@ -26,7 +26,7 @@
 #include <driver/bochs-display/bochs-display.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
-#include <driver/uhci/uhci.h>
+#include <driver/usb/usb.h>
 #include <driver/virtio-blk/virtio-blk.h>
 #include <filesystem/initramfs/initramfs.h>
 #include <filesystem/vfs/vfs.h>
@@ -72,18 +72,18 @@ int main(void) {
 			"under GNU General Public License v3+\n");
 	// subsystems
 	kcall_init();
-	pci_init();
 	hal_display_init();
 	hal_block_init();
 	hal_hid_init();
 	pty_init();
+	pci_init();
+	usb_init();
 	module_init();
 	// devices
 	ps2_keyboard_init();
 	ps2_mouse_init();
 	ata_init();
 	virtio_blk_init();
-	uhci_init();
 	bochs_display_init();
 	// virtual filesystem
 	vfs_init();

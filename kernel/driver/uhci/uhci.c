@@ -20,6 +20,7 @@
 #include <common/x86.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <driver/usb/usb.h>
 #include <memlayout.h>
 
 #include "uhci-regs.h"
@@ -60,8 +61,72 @@ static void uhci_controller_init(struct PCIDevice* pcidev) {
 			} else {
 				cprintf("[uhci] full speed device on port %d\n", i);
 			}
+			usb_register_port(dev, i);
 		}
 	}
+}
+
+void uhci_port_reset(struct UHCIDevice* uhci, int port) {
+	uint16_t portstat = inw(uhci->iobase + UHCI_PORTSC + port * 2);
+	portstat |= UHCI_PORTSC_PORT_RESET;
+	outw(uhci->iobase + UHCI_PORTSC + port * 2, portstat);
+	portstat &= ~UHCI_PORTSC_PORT_RESET;
+	outw(uhci->iobase + UHCI_PORTSC + port * 2, portstat);
+	portstat |= UHCI_PORTSC_PORT_ENABLE;
+	outw(uhci->iobase + UHCI_PORTSC + port * 2, portstat);
+}
+
+static void uhci_run(struct UHCIDevice* dev, int frnum) {
+	outw(dev->iobase + UHCI_FRNUM, frnum);
+	outw(dev->iobase + UHCI_USBCMD, inw(dev->iobase + UHCI_USBCMD) | UHCI_USBCMD_RS);
+}
+
+static void uhci_stop(struct UHCIDevice* dev) {
+	outw(dev->iobase + UHCI_USBSTS, 1);
+	outw(dev->iobase + UHCI_USBCMD, inw(dev->iobase + UHCI_USBCMD) & ~UHCI_USBCMD_RS);
+}
+
+enum USBStatus uhci_transfer(struct UHCIDevice* dev, unsigned int addr,
+							 unsigned int endpoint, const struct USBPacket* packets,
+							 int num) {
+	for (int i = 0; i < 1024; i++) {
+		dev->frame_list[i] = 1;
+	}
+	volatile struct UHCITransferDesc {
+		uint32_t lnk, sta, maxlen, bufptr;
+	} PACKED* transdesc = kalloc();
+	for (int i = 0; i < num; i++) {
+		transdesc[i].lnk = 1;
+		transdesc[i].sta = UHCI_STATUS_ACTIVE;
+		if (i == num - 1) {
+			transdesc[i].sta |= (1 << 24);
+		}
+		if (inw(dev->iobase + UHCI_PORTSC) & UHCI_PORTSC_LOW_SPEED) {
+			transdesc[i].sta |= UHCI_STATUS_LOWSPEED;
+		}
+		transdesc[i].maxlen =
+			((packets[i].maxlen - 1) << 21) | (endpoint << 15) | (addr << 8);
+		if (packets[i].type == USB_PACKET_IN) {
+			transdesc[i].maxlen |= UHCI_TOKEN_PID_IN;
+		} else if (packets[i].type == USB_PACKET_OUT) {
+			transdesc[i].maxlen |= UHCI_TOKEN_PID_OUT;
+		} else if (packets[i].type == USB_PACKET_SETUP) {
+			transdesc[i].maxlen |= UHCI_TOKEN_PID_SETUP;
+		}
+		if (packets[i].toggle) {
+			transdesc[i].maxlen |= UHCI_TOKEN_TOGGLE;
+		}
+		transdesc[i].bufptr = V2P(packets[i].buffer);
+		dev->frame_list[i] = V2P(transdesc + i);
+	}
+
+	uhci_run(dev, 0);
+
+	while (!(inw(dev->iobase + UHCI_USBSTS) & 1)) {
+	}
+	uhci_stop(dev);
+	kfree((void*)transdesc);
+	return USB_STATUS_OK;
 }
 
 struct PCIDriver uhci_pci_driver = {
