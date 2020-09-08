@@ -23,6 +23,11 @@
 #include "usb-struct.h"
 #include "usb.h"
 
+struct USBInterface {
+	uint8_t class, subclass, protocol;
+	unsigned int endpoints;
+};
+
 struct USBDevice {
 	uint16_t vendor_id, product_id;
 	unsigned int num_configuration, num_interface;
@@ -94,16 +99,17 @@ static unsigned int usb_alloc_address(void) {
 
 int usb_get_device_descriptor(struct USBDevice* dev, unsigned int addr) {
 	struct USBSetupData* setup = kalloc();
-	setup->bm_request_type = (1 << 7);
+	setup->bm_request_type = USB_REQUEST_TYPE_DEVICE_TO_HOST;
 	setup->b_request = USB_REQUEST_GET_DESCRIPTOR;
 	setup->w_value = (USB_DESCRIPTOR_DEVICE << 8) | 0;
 	setup->w_index = 0;
-	setup->w_length = 18;
+	setup->w_length = sizeof(struct USBDeviceDescriptor);
 
-	volatile struct USBDevicedesc* device_desc = kalloc();
+	volatile struct USBDeviceDescriptor* device_desc = kalloc();
 
-	int status = usb_control_transfer_in(usb_bus.controller, addr, 0, setup,
-										 (void*)device_desc, 18);
+	int status =
+		usb_control_transfer_in(usb_bus.controller, addr, 0, setup, (void*)device_desc,
+								sizeof(struct USBDeviceDescriptor));
 	if (status) {
 		kfree(setup);
 		kfree((void*)device_desc);
@@ -117,6 +123,54 @@ int usb_get_device_descriptor(struct USBDevice* dev, unsigned int addr) {
 	return 0;
 }
 
+int usb_get_configuration_descriptor(struct USBDevice* dev, unsigned int addr,
+									 unsigned int index, uint8_t* configuration_value,
+									 unsigned int* num_interfaces,
+									 struct USBInterface* interfaces) {
+	struct USBSetupData* setup = kalloc();
+	setup->bm_request_type = USB_REQUEST_TYPE_DEVICE_TO_HOST;
+	setup->b_request = USB_REQUEST_GET_DESCRIPTOR;
+	setup->w_value = (USB_DESCRIPTOR_CONFIGURATION << 8) | index;
+	setup->w_index = 0;
+	setup->w_length = 1024;
+
+	volatile void* descriptor = kalloc();
+	int status = usb_control_transfer_in(usb_bus.controller, addr, 0, setup,
+										 (void*)descriptor, 1024);
+
+	if (status) {
+		kfree(setup);
+		kfree((void*)descriptor);
+		return -1;
+	}
+
+	struct USBConfigurationDescriptor* config_desc = (void*)descriptor;
+	*configuration_value = config_desc->configuration_value;
+	*num_interfaces = config_desc->num_interfaces;
+
+	void* descptr = (void*)descriptor + sizeof(struct USBConfigurationDescriptor);
+	int infcnt = 0;
+	for (; descptr < descriptor + config_desc->total_length;) {
+		struct USBGenericDescriptor {
+			uint8_t length;
+			uint8_t descriptor_type;
+		} PACKED* d = descptr;
+		if (d->descriptor_type == USB_DESCRIPTOR_INTERFACE) {
+			struct USBInterfaceDescriptor* inf = descptr;
+			interfaces[infcnt].class = inf->interface_class;
+			interfaces[infcnt].subclass = inf->interface_subclass;
+			interfaces[infcnt].protocol = inf->interface_protocol;
+			interfaces[infcnt].endpoints = inf->num_endpoints;
+			infcnt++;
+		}
+		descptr += d->length;
+	}
+
+	kfree(setup);
+	kfree((void*)descriptor);
+	return 0;
+}
+
 int usb_set_address(unsigned int oldaddr, unsigned int newaddr) {
 	struct USBSetupData* setup = kalloc();
 	setup->bm_request_type = 0;
@@ -125,6 +179,18 @@ int usb_set_address(unsigned int oldaddr, unsigned int newaddr) {
 	setup->w_index = 0;
 	setup->w_length = 0;
 	int status = usb_control_transfer_nodata(usb_bus.controller, oldaddr, 0, setup);
+	kfree(setup);
+	return status;
+}
+
+int usb_set_configuration(unsigned int addr, uint8_t configuration_value) {
+	struct USBSetupData* setup = kalloc();
+	setup->bm_request_type = 0;
+	setup->b_request = USB_REQUEST_SET_CONFIGURATION;
+	setup->w_value = configuration_value;
+	setup->w_index = 0;
+	setup->w_length = 0;
+	int status = usb_control_transfer_nodata(usb_bus.controller, addr, 0, setup);
 	kfree(setup);
 	return status;
 }
@@ -153,6 +219,22 @@ void usb_register_port(struct UHCIDevice* hci, int port) {
 
 	cprintf("[usb] port %d addr %d %x:%x numcfg %d\n", port, addr, usbdev->vendor_id,
 			usbdev->product_id, usbdev->num_configuration);
+
+	for (unsigned int cfg = 0; cfg < usbdev->num_configuration; cfg++) {
+		uint8_t configuration_value;
+		unsigned int num_interfaces;
+		struct USBInterface interfaces[16];
+		if (usb_get_configuration_descriptor(usbdev, addr, cfg, &configuration_value,
+											 &num_interfaces, interfaces) != 0) {
+			cprintf("[usb] GetConfigurationDescriptor on port %d failed\n", port);
+		}
+		for (unsigned int i = 0; i < num_interfaces; i++) {
+			cprintf("[usb] config %d interface %d class %x subclass %x protocol %x "
+					"endpoints %d\n",
+					configuration_value, i, interfaces[i].class, interfaces[i].subclass,
+					interfaces[i].protocol, interfaces[i].endpoints);
+		}
+	}
 }
 
 void usb_init(void) {

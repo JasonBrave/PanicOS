@@ -35,7 +35,7 @@ struct USBSetupData {
 	uint16_t w_length;
 } PACKED;
 
-struct USBDevicedesc {
+struct USBDeviceDescriptor {
 	uint8_t length;
 	uint8_t descriptor_type;
 	uint16_t bcdusb;
@@ -50,6 +50,38 @@ struct USBDevicedesc {
 	uint8_t product_index;
 	uint8_t serial_number_index;
 	uint8_t num_configurations;
+} PACKED;
+
+struct USBConfigurationDescriptor {
+	uint8_t length;
+	uint8_t descriptor_type;
+	uint16_t total_length;
+	uint8_t num_interfaces;
+	uint8_t configuration_value;
+	uint8_t configuration_string;
+	uint8_t attributes;
+	uint8_t max_power;
+} PACKED;
+
+struct USBInterfaceDescriptor {
+	uint8_t length;
+	uint8_t descriptor_type;
+	uint8_t interface_number;
+	uint8_t alternate_setting;
+	uint8_t num_endpoints;
+	uint8_t interface_class;
+	uint8_t interface_subclass;
+	uint8_t interface_protocol;
+	uint8_t interface_string;
+} PACKED;
+
+struct USBEndpointDescriptor {
+	uint8_t length;
+	uint8_t descriptor_type;
+	uint8_t endpoint_address;
+	uint8_t attributes;
+	uint16_t max_packet_size;
+	uint8_t interval;
 } PACKED;
 
 #endif
