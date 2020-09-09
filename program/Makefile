@@ -12,6 +12,7 @@ all:
 	$(MAKE) -C about install
 	$(MAKE) -C kmod install
 	$(MAKE) -C fbcon install
+	$(MAKE) -C lspci install
 
 .PHONY: clean
 clean:
@@ -28,3 +29,4 @@ clean:
 	$(MAKE) -C about clean
 	$(MAKE) -C kmod clean
 	$(MAKE) -C fbcon clean
+	$(MAKE) -C lspci clean

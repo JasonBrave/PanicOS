@@ -18,6 +18,7 @@
  */
 
 #include <defs.h>
+#include <proc/kcall.h>
 
 #include "pci-config.h"
 #include "pci.h"
@@ -75,6 +76,7 @@ void pci_init(void) {
 	ioapicenable(9, 0);
 	ioapicenable(10, 0);
 	ioapicenable(11, 0);
+	kcall_set("pci", pci_kcall_handler);
 }
 
 uint8_t pci_read_config_reg8(const struct PciAddress* addr, int reg) {

@@ -105,6 +105,9 @@ void pci_add_device(const struct PciAddress* addr, uint16_t vendor_id,
 void pci_register_driver(const struct PCIDriver* driver);
 void pci_print_devices(void);
 
+// pci-kcall.c
+int pci_kcall_handler(unsigned int);
+
 // helper functions
 static inline int pci_read_capid(const struct PciAddress* addr, int capptr) {
 	return pci_read_config_reg8(addr, capptr);
