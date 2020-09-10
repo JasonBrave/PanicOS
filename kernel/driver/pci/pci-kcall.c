@@ -18,6 +18,7 @@
  */
 
 #include <common/errorcode.h>
+#include <defs.h>
 
 #include "pci.h"
 
@@ -25,6 +26,7 @@ struct PciKcall {
 #define PCI_KCALL_OP_FIRST_ADDR 0
 #define PCI_KCALL_OP_NEXT_ADDR 1
 #define PCI_KCALL_OP_READ_CONFIG 2
+#define PCI_KCALL_OP_DRIVER_NAME 3
 	unsigned int op;
 	unsigned int id;
 	unsigned int bus, device, function;
@@ -68,6 +70,19 @@ static int pci_kcall_read_config(struct PciKcall* p) {
 	return 0;
 }
 
+static int pci_kcall_driver_name(struct PciKcall* p) {
+	if (!pci_device_table[p->id].vendor_id) {
+		return ERROR_NOT_EXIST;
+	}
+	char* s = p->ptr;
+	if (!pci_device_table[p->id].driver) {
+		s[0] = '\0';
+	} else {
+		safestrcpy(s, pci_device_table[p->id].driver->name, 64);
+	}
+	return 0;
+}
+
 int pci_kcall_handler(unsigned int t) {
 	struct PciKcall* p = (void*)t;
 	switch (p->op) {
@@ -79,6 +94,9 @@ int pci_kcall_handler(unsigned int t) {
 		break;
 	case PCI_KCALL_OP_READ_CONFIG:
 		return pci_kcall_read_config(p);
+		break;
+	case PCI_KCALL_OP_DRIVER_NAME:
+		return pci_kcall_driver_name(p);
 		break;
 	default:
 		return ERROR_INVAILD;
