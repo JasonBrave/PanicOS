@@ -82,4 +82,9 @@ void hal_hid_init(void);
 void hal_mouse_update(unsigned int data);
 void hal_keyboard_update(unsigned int data);
 
+// power.c
+void hal_power_init(void);
+void hal_shutdown(void);
+void hal_reboot(void);
+
 #endif

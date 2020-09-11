@@ -75,6 +75,7 @@ int main(void) {
 	hal_display_init();
 	hal_block_init();
 	hal_hid_init();
+	hal_power_init();
 	pty_init();
 	pci_init();
 	usb_init();

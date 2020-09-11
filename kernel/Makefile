@@ -54,6 +54,7 @@ OBJS = \
 	driver/uhci/uhci.o\
 	driver/usb/usb.o\
 	driver/pci/pci-kcall.o\
+	hal/power.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.
