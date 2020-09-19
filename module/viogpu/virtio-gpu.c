@@ -31,7 +31,10 @@ struct VirtioGPUDevice {
 	int xres, yres;
 };
 
-static void virtio_gpu_intr(struct PCIDevice* pcidev) {}
+static void virtio_gpu_intr(struct PCIDevice* pcidev) {
+	struct VirtioGPUDevice* dev = pcidev->private;
+	virtio_intr_ack(&dev->virtio_dev);
+}
 
 static int virtio_gpu_get_display_info(struct VirtioGPUDevice* dev) {
 	acquire(&dev->lock);

@@ -22,6 +22,7 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
+#include <driver/ioapic.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -50,7 +51,7 @@ void uartinit(void) {
 	// enable interrupts.
 	inb(COM1 + 2);
 	inb(COM1 + 0);
-	ioapicenable(IRQ_COM1, 0);
+	ioapic_enable(IRQ_COM1, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
 }
 
 void uartputc(int c) {

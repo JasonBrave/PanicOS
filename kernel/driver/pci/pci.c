@@ -18,6 +18,7 @@
  */
 
 #include <defs.h>
+#include <driver/ioapic.h>
 #include <proc/kcall.h>
 
 #include "pci-config.h"
@@ -72,10 +73,10 @@ void pci_init(void) {
 		}
 	}
 	// enable interrupts
-	ioapicenable(5, 0);
-	ioapicenable(9, 0);
-	ioapicenable(10, 0);
-	ioapicenable(11, 0);
+	ioapic_enable(5, 0, IOAPIC_LEVEL_TRIGGER, IOAPIC_ACTIVE_HIGH);
+	ioapic_enable(9, 0, IOAPIC_LEVEL_TRIGGER, IOAPIC_ACTIVE_HIGH);
+	ioapic_enable(10, 0, IOAPIC_LEVEL_TRIGGER, IOAPIC_ACTIVE_HIGH);
+	ioapic_enable(11, 0, IOAPIC_LEVEL_TRIGGER, IOAPIC_ACTIVE_HIGH);
 	kcall_set("pci", pci_kcall_handler);
 }
 

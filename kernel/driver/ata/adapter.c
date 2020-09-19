@@ -19,6 +19,7 @@
 
 #include <common/x86.h>
 #include <defs.h>
+#include <driver/ioapic.h>
 #include <driver/pci/pci-config.h>
 #include <driver/pci/pci.h>
 #include <memlayout.h>
@@ -153,8 +154,8 @@ struct PCIDriver ata_adapter_pci_driver = {
 
 void ata_adapter_init(void) {
 	// enable legacy IRQ
-	ioapicenable(14, 0);
-	ioapicenable(15, 0);
+	ioapic_enable(14, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
+	ioapic_enable(15, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
 
 	pci_register_driver(&ata_adapter_pci_driver);
 }

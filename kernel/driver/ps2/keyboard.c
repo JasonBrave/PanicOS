@@ -19,6 +19,7 @@
 
 #include <common/x86.h>
 #include <defs.h>
+#include <driver/ioapic.h>
 #include <hal/hal.h>
 
 #include "kbd.h"
@@ -48,7 +49,7 @@ static unsigned int kbd_scan_to_keycode(unsigned int data) {
 
 void ps2_keyboard_init(void) {
 	cprintf("[ps2] PS/2 Keyboard found\n");
-	ioapicenable(1, 0);
+	ioapic_enable(1, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
 }
 
 static int kbd_getc(void) {

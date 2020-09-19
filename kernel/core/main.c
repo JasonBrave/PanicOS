@@ -24,6 +24,7 @@
 #include <defs.h>
 #include <driver/ata/ata.h>
 #include <driver/bochs-display/bochs-display.h>
+#include <driver/ioapic.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
 #include <driver/usb/usb.h>
@@ -50,8 +51,7 @@ int main(void) {
 	mpinit(); // detect other processors
 	lapicinit(); // interrupt controller
 	seginit(); // segment descriptors
-	picinit(); // disable pic
-	ioapicinit(); // another interrupt controller
+	picinit(); // disable legacy PIC
 	consoleinit(); // console hardware
 	uartinit(); // serial port
 	pinit(); // process table
@@ -77,6 +77,7 @@ int main(void) {
 	hal_hid_init();
 	hal_power_init();
 	pty_init();
+	ioapic_init();
 	pci_init();
 	usb_init();
 	module_init();

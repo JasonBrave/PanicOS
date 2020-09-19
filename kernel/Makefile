@@ -1,7 +1,6 @@
 OBJS = \
 	core/console.o\
 	proc/exec/exec.o\
-	core/ioapic.o\
 	core/kalloc.o\
 	core/lapic.o\
 	core/main.o\
@@ -55,6 +54,7 @@ OBJS = \
 	driver/usb/usb.o\
 	driver/pci/pci-kcall.o\
 	hal/power.o\
+	driver/ioapic.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

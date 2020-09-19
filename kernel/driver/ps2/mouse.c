@@ -20,6 +20,7 @@
 #include <common/types.h>
 #include <common/x86.h>
 #include <defs.h>
+#include <driver/ioapic.h>
 #include <hal/hal.h>
 
 #include "ps2.h"
@@ -91,7 +92,7 @@ void ps2_mouse_init(void) {
 	// make mouse start report event
 	ps2_mouse_write(PS2_MOUSE_CMD_ENABLE_REPORT);
 	// enable mouse IRQ
-	ioapicenable(12, 0);
+	ioapic_enable(12, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
 }
 
 void ps2_mouse_intr(void) {

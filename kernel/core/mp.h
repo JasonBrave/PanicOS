@@ -20,6 +20,8 @@
 #ifndef _MP_H
 #define _MP_H
 
+#include <common/types.h>
+
 struct mp { // floating pointer
 	unsigned char signature[4]; // "_MP_"
 	void* physaddr; // phys addr of MP config table
@@ -58,11 +60,11 @@ struct mpproc { // processor table entry
 };
 
 struct mpioapic { // I/O APIC table entry
-	unsigned char type; // entry type (2)
-	unsigned char apicno; // I/O APIC id
-	unsigned char version; // I/O APIC version
-	unsigned char flags; // I/O APIC flags
-	unsigned int* addr; // I/O APIC address
+	uint8_t type; // entry type (2)
+	uint8_t id; // I/O APIC id
+	uint8_t version; // I/O APIC version
+	uint8_t flags; // I/O APIC flags
+	uint32_t addr; // I/O APIC address
 };
 
 // Table entry types

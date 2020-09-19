@@ -27,7 +27,7 @@ qemu-kvm: panicos.img
 
 panicos.img: boot/mbr.bin kernel/kernel rootfs program share module
 	dd if=/dev/zero of=fs.img bs=1M count=63
-	mkfs.vfat -F32 -s8 -nPanicOS fs.img
+	/sbin/mkfs.vfat -F32 -s8 -nPanicOS fs.img
 	mcopy -i fs.img -bs rootfs/* ::
 	dd if=/dev/zero of=panicos.img bs=1M count=64
 	dd if=boot/mbr.bin of=panicos.img conv=notrunc

@@ -120,7 +120,9 @@ void mpinit(void) {
 			continue;
 		case MPIOAPIC:
 			ioapic = (struct mpioapic*)p;
-			ioapicid = ioapic->apicno;
+			cprintf("[mp] IOAPIC id %x ver %x addr %x\n", ioapic->id, ioapic->version,
+					ioapic->addr);
+			ioapicid = ioapic->id;
 			p += sizeof(struct mpioapic);
 			continue;
 		case MPBUS:

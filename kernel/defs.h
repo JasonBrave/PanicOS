@@ -38,11 +38,6 @@ int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name,
 int proc_load_dynamic(struct proc* proc, const char* name, unsigned int* dynamic,
 					  unsigned int* entry);
 
-// ioapic.c
-void ioapicenable(int irq, int cpu);
-extern unsigned char ioapicid;
-void ioapicinit(void);
-
 // kalloc.c
 void* kalloc(void);
 void kfree(void*);
