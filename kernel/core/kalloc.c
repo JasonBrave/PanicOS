@@ -1,5 +1,5 @@
 /*
- * Physical memory allocator
+ * Physical memory page allocator
  *
  * This file is part of PanicOS.
  *
@@ -23,12 +23,12 @@
 #include <memlayout.h>
 #include <param.h>
 
-void freerange(void* vstart, void* vend);
-extern char end[]; // first address after kernel loaded from ELF file
-				   // defined by the kernel linker script in kernel.ld
+extern char end[]; // first address after kernel loaded from ELF file defined by the
+				   // kernel linker script in kernel.ld
 
 struct run {
 	struct run* next;
+	unsigned int num_pages; // size in 4K pages
 };
 
 struct {
@@ -45,72 +45,97 @@ struct {
 void kinit1(void* vstart, void* vend) {
 	initlock(&kmem.lock, "kmem");
 	kmem.use_lock = 0;
-	freerange(vstart, vend);
+	kmem.freelist = 0;
+
+	kmem.freelist = (void*)PGROUNDUP((unsigned int)vstart);
+	kmem.freelist->next = 0;
+	kmem.freelist->num_pages =
+		((unsigned int)vend - PGROUNDUP((unsigned int)vstart)) / PGSIZE;
 }
 
 void kinit2(void* vstart, void* vend) {
-	freerange(vstart, vend);
+	kmem.freelist->next = (void*)PGROUNDUP((unsigned int)vstart);
+	kmem.freelist->next->next = 0;
+	kmem.freelist->next->num_pages =
+		((unsigned int)vend - PGROUNDUP((unsigned int)vstart)) / PGSIZE;
+
 	kmem.use_lock = 1;
 }
 
-void freerange(void* vstart, void* vend) {
-	char* p;
-	p = (char*)PGROUNDUP((unsigned int)vstart);
-	for (; p + PGSIZE <= (char*)vend; p += PGSIZE)
-		kfree(p);
-}
-// PAGEBREAK: 21
-// Free the page of physical memory pointed at by v,
-// which normally should have been returned by a
-// call to kalloc().  (The exception is when
-// initializing the allocator; see kinit above.)
-void kfree(void* v) {
-	struct run* r;
-
-	if ((unsigned int)v % PGSIZE || (char*)v < end || V2P(v) >= PHYSTOP)
-		panic("kfree");
-
-	// Fill with junk to catch dangling refs.
-	memset(v, 1, PGSIZE);
-
+void* pgalloc(unsigned int num_pages) {
 	if (kmem.use_lock)
 		acquire(&kmem.lock);
-	r = (struct run*)v;
-	r->next = kmem.freelist;
-	kmem.freelist = r;
+
+	if (!kmem.freelist)
+		panic("out of memory");
+
+	void* p = 0;
+	if (kmem.freelist->num_pages >= num_pages) {
+		p = kmem.freelist;
+		if (kmem.freelist->num_pages > num_pages) {
+			struct run* newfl = (void*)kmem.freelist + num_pages * PGSIZE;
+			newfl->next = kmem.freelist->next;
+			newfl->num_pages = kmem.freelist->num_pages - num_pages;
+			kmem.freelist = newfl;
+		} else if (kmem.freelist->num_pages == num_pages) {
+			kmem.freelist = kmem.freelist->next;
+		}
+	} else {
+		struct run* r = kmem.freelist;
+		while (r->next) {
+			if (r->next->num_pages >= num_pages) {
+				p = r->next;
+				if (r->next->num_pages > num_pages) {
+					struct run* newrun = (void*)r->next + num_pages * PGSIZE;
+					newrun->next = r->next->next;
+					newrun->num_pages = r->next->num_pages - num_pages;
+					r->next = newrun;
+				} else if (r->next->num_pages == num_pages) {
+					r->next = r->next->next;
+				}
+				break;
+			}
+			r = r->next;
+		}
+	}
+
+	if (!p)
+		panic("out of memory");
+
 	if (kmem.use_lock)
 		release(&kmem.lock);
+	return p;
 }
 
-// Allocate one 4096-byte page of physical memory.
-// Returns a pointer that the kernel can use.
-// Returns 0 if the memory cannot be allocated.
-void* kalloc(void) {
-	struct run* r;
-
+void pgfree(void* ptr, unsigned int num_pages) {
 	if (kmem.use_lock)
 		acquire(&kmem.lock);
-	r = kmem.freelist;
-	if (r)
-		kmem.freelist = r->next;
+
+	memset(ptr, 1, num_pages * PGSIZE);
+
+	void* orighead = kmem.freelist;
+	kmem.freelist = ptr;
+	kmem.freelist->num_pages = num_pages;
+	kmem.freelist->next = orighead;
+
 	if (kmem.use_lock)
 		release(&kmem.lock);
-	return r;
 }
 
 void print_memory_usage(void) {
 	if (kmem.use_lock)
 		acquire(&kmem.lock);
 
-	unsigned int pages = 0;
+	unsigned int pages = 0, clusters = 0;
 	struct run* r = kmem.freelist;
 	while (r) {
+		pages += r->num_pages;
 		r = r->next;
-		pages++;
+		clusters++;
 	}
 
 	if (kmem.use_lock)
 		release(&kmem.lock);
 
-	cprintf("Free memory %d pages %d MiB\n", pages, pages / 256);
+	cprintf("Free memory %d clusters %d pages %d MiB\n", clusters, pages, pages / 256);
 }

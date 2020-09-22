@@ -65,7 +65,7 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 struct Message {
 	int pid, size;
-	void** addr;
+	void* addr;
 };
 
 struct MessageQueue {

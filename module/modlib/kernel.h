@@ -84,8 +84,8 @@ const static struct KernerServiceTable {
 	// basic functions
 	void (*cprintf)(const char*, ...);
 	void (*panic)(const char*);
-	void* (*kalloc)(void);
-	void (*kfree)(void*);
+	void* (*pgalloc)(unsigned int);
+	void (*pgfree)(void*, unsigned int);
 	// process control
 	void (*sleep)(void*, struct spinlock*);
 	void (*wakeup)(void*);
@@ -126,12 +126,12 @@ static inline void panic(const char* s) {
 	return kernsrv->panic(s);
 }
 
-static inline void* kalloc(void) {
-	return kernsrv->kalloc();
+static inline void* pgalloc(unsigned int num_pages) {
+	return kernsrv->pgalloc(num_pages);
 }
 
-static inline void kfree(void* ptr) {
-	return kernsrv->kfree(ptr);
+static inline void pgfree(void* ptr, unsigned int num_pages) {
+	return kernsrv->pgfree(ptr, num_pages);
 }
 
 static inline void sleep(void* chan, struct spinlock* lock) {
@@ -244,6 +244,13 @@ static inline void hal_mouse_update(unsigned int data) {
 
 static inline void hal_keyboard_update(unsigned int data) {
 	return kernsrv->hal_keyboard_update(data);
+}
+
+static inline void* kalloc(void) {
+	return pgalloc(1);
+}
+static inline void kfree(void* ptr) {
+	return pgfree(ptr, 1);
 }
 
 #define KERNBASE 0x80000000 // First kernel virtual address

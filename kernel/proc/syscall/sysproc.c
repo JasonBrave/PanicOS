@@ -182,13 +182,8 @@ int sys_message_send(void) {
 	struct Message* destmsg = &destproc->msgqueue.queue[destproc->msgqueue.begin];
 	destmsg->pid = myproc()->pid;
 	destmsg->size = size;
-	destmsg->addr = kalloc();
-	memset(destmsg->addr, 0, PGSIZE);
-	for (int i = 0; i < size; i += PGSIZE) {
-		destmsg->addr[i / PGSIZE] = kalloc();
-		memmove(destmsg->addr[i / PGSIZE], data + i,
-				(size - i < PGSIZE) ? (size - i) : PGSIZE);
-	}
+	destmsg->addr = pgalloc(PGROUNDUP(size) / 4096);
+	memmove(destmsg->addr, data, size);
 	destproc->msgqueue.begin++;
 	if (destproc->msgqueue.begin == MESSAGE_MAX) {
 		destproc->msgqueue.begin = 0;
@@ -210,12 +205,8 @@ int sys_message_receive(void) {
 	}
 	struct Message* thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
 	int ret = thismsg->pid;
-	for (int i = 0; i < thismsg->size; i += PGSIZE) {
-		memmove(data + i, thismsg->addr[i / PGSIZE],
-				(thismsg->size - i < PGSIZE) ? (thismsg->size - i) : PGSIZE);
-		kfree(thismsg->addr[i / PGSIZE]);
-	}
-	kfree(thismsg->addr);
+	memmove(data, thismsg->addr, thismsg->size);
+	pgfree(thismsg->addr, PGROUNDUP(thismsg->size) / 4096);
 	myproc()->msgqueue.end++;
 	if (myproc()->msgqueue.end == MESSAGE_MAX) {
 		myproc()->msgqueue.end = 0;
@@ -235,12 +226,8 @@ int sys_message_wait(void) {
 	}
 	struct Message* thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
 	int ret = thismsg->pid;
-	for (int i = 0; i < thismsg->size; i += PGSIZE) {
-		memmove(data + i, thismsg->addr[i / PGSIZE],
-				(thismsg->size - i < PGSIZE) ? (thismsg->size - i) : PGSIZE);
-		kfree(thismsg->addr[i / PGSIZE]);
-	}
-	kfree(thismsg->addr);
+	memmove(data, thismsg->addr, thismsg->size);
+	pgfree(thismsg->addr, PGROUNDUP(thismsg->size) / 4096);
 	myproc()->msgqueue.end++;
 	if (myproc()->msgqueue.end == MESSAGE_MAX) {
 		myproc()->msgqueue.end = 0;

@@ -141,8 +141,8 @@ static struct KernerServiceTable {
 	// basic functions
 	void (*cprintf)(const char*, ...);
 	void (*panic)(const char*);
-	void* (*kalloc)(void);
-	void (*kfree)(void*);
+	void* (*pgalloc)(unsigned int);
+	void (*pgfree)(void*, unsigned int);
 	// process control
 	void (*sleep)(void*, struct spinlock*);
 	void (*wakeup)(void*);
@@ -180,8 +180,8 @@ void module_init(void) {
 	memset(module_info, 0, sizeof(module_info));
 	kernsrv->cprintf = cprintf;
 	kernsrv->panic = panic;
-	kernsrv->kalloc = kalloc;
-	kernsrv->kfree = kfree;
+	kernsrv->pgalloc = pgalloc;
+	kernsrv->pgfree = pgfree;
 	kernsrv->sleep = sleep;
 	kernsrv->wakeup = wakeup;
 	kernsrv->initlock = initlock;

@@ -29,6 +29,7 @@ struct VirtioGPUDevice {
 	struct VirtioQueue cursorq;
 	struct spinlock lock;
 	int xres, yres;
+	phyaddr_t framebuffer;
 };
 
 static void virtio_gpu_intr(struct PCIDevice* pcidev) {
@@ -300,15 +301,19 @@ static void virtio_gpu_update(void* private) {
 
 static phyaddr_t virtio_gpu_display_enable(void* private, int xres, int yres) {
 	struct VirtioGPUDevice* dev = private;
+	dev->framebuffer = V2P(pgalloc(4096));
 	virtio_gpu_res_create_2d(private, xres, yres);
-	virtio_gpu_attach_banking(private, 0xE000000);
+	virtio_gpu_attach_banking(private, dev->framebuffer);
 	virtio_gpu_set_scanout(private, xres, yres);
 	dev->xres = xres;
 	dev->yres = yres;
-	return 0xE000000;
+	return dev->framebuffer;
 }
 
-static void virtio_gpu_display_disable(void* private) {}
+static void virtio_gpu_display_disable(void* private) {
+	struct VirtioGPUDevice* dev = private;
+	pgfree(P2V(dev->framebuffer), 4096);
+}
 
 struct FramebufferDriver virtio_gpu_fb_driver;
 

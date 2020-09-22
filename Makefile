@@ -15,15 +15,15 @@ all: panicos.img
 
 qemu: panicos.img
 	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 256 -net none
+	-smp 2 -m 128 -net none
 
 qemu-gdb: panicos.img
 	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 256 -s -S -net none
+	-smp 2 -m 128 -s -S -net none
 
 qemu-kvm: panicos.img
 	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 256 -accel kvm -cpu host -net none
+	-smp 2 -m 128 -accel kvm -cpu host -net none
 
 panicos.img: boot/mbr.bin kernel/kernel rootfs program share module
 	dd if=/dev/zero of=fs.img bs=1M count=63

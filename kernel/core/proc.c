@@ -351,9 +351,7 @@ int wait(void) {
 						msg = 0;
 					}
 					struct Message* thismsg = &p->msgqueue.queue[msg];
-					for (int i = 0; i < thismsg->size; i++) {
-						kfree(thismsg->addr[i / PGSIZE]);
-					}
+					pgfree(thismsg->addr, PGROUNDUP(thismsg->size) / 4096);
 				}
 				release(&p->msgqueue.lock);
 				release(&ptable.lock);
@@ -532,9 +530,9 @@ int kill(int pid) {
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
 void procdump(void) {
-	static char* states[] = {
-		[UNUSED] = "unused",   [EMBRYO] = "embryo",	 [SLEEPING] = "sleep ",
-		[RUNNABLE] = "runble", [RUNNING] = "run   ", [ZOMBIE] = "zombie"};
+	static char* states[] = {[UNUSED] = "unused",   [EMBRYO] = "embryo",
+							 [SLEEPING] = "sleep ", [RUNNABLE] = "runble",
+							 [RUNNING] = "run   ",  [ZOMBIE] = "zombie"};
 	int i;
 	struct proc* p;
 	char* state;

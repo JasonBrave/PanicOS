@@ -39,8 +39,14 @@ int proc_load_dynamic(struct proc* proc, const char* name, unsigned int* dynamic
 					  unsigned int* entry);
 
 // kalloc.c
-void* kalloc(void);
-void kfree(void*);
+void* pgalloc(unsigned int num_pages);
+void pgfree(void* ptr, unsigned int num_pages);
+static inline void* kalloc(void) {
+	return pgalloc(1);
+}
+static inline void kfree(void* ptr) {
+	return pgfree(ptr, 1);
+}
 void kinit1(void*, void*);
 void kinit2(void*, void*);
 void print_memory_usage(void);
