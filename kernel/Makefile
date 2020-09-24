@@ -16,7 +16,6 @@ OBJS = \
 	proc/syscall/sysproc.o\
 	core/trapasm.o\
 	core/trap.o\
-	core/uart.o\
 	vectors.o\
 	core/vm.o\
 	filesystem/initramfs/initramfs.o\
@@ -55,6 +54,7 @@ OBJS = \
 	driver/pci/pci-kcall.o\
 	hal/power.o\
 	driver/ioapic.o\
+	driver/uart.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

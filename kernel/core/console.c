@@ -27,6 +27,7 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
+#include <driver/uart.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -177,11 +178,11 @@ void consputc(int c) {
 	}
 
 	if (c == BACKSPACE) {
-		uartputc('\b');
-		uartputc(' ');
-		uartputc('\b');
+		uart_putc('\b');
+		uart_putc(' ');
+		uart_putc('\b');
 	} else
-		uartputc(c);
+		uart_putc(c);
 	cgaputc(c);
 }
 

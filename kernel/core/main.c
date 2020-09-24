@@ -27,6 +27,7 @@
 #include <driver/ioapic.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
+#include <driver/uart.h>
 #include <driver/usb/usb.h>
 #include <driver/virtio-blk/virtio-blk.h>
 #include <filesystem/initramfs/initramfs.h>
@@ -53,7 +54,6 @@ int main(void) {
 	seginit(); // segment descriptors
 	picinit(); // disable legacy PIC
 	consoleinit(); // console hardware
-	uartinit(); // serial port
 	pinit(); // process table
 	tvinit(); // trap vectors
 	startothers(); // start other processors
@@ -77,9 +77,13 @@ int main(void) {
 	hal_hid_init();
 	hal_power_init();
 	pty_init();
+	// onboard devices
 	ioapic_init();
+	uart_init();
+	// buses
 	pci_init();
 	usb_init();
+	// kernel module
 	module_init();
 	// devices
 	ps2_keyboard_init();

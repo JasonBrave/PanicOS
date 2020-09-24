@@ -26,6 +26,7 @@
 #include <driver/ata/ata.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
+#include <driver/uart.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -85,7 +86,8 @@ void trap(struct trapframe* tf) {
 		lapiceoi();
 		break;
 	case T_IRQ0 + IRQ_COM1:
-		uartintr();
+	case T_IRQ0 + IRQ_COM2:
+		uart_intr(tf->trapno - T_IRQ0);
 		lapiceoi();
 		break;
 	case T_IRQ0 + 5:
