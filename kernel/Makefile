@@ -55,6 +55,7 @@ OBJS = \
 	hal/power.o\
 	driver/ioapic.o\
 	driver/uart.o\
+	driver/rtc.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.
