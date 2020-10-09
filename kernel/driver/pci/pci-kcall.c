@@ -64,8 +64,15 @@ static int pci_kcall_read_config(struct PciKcall* p) {
 		return ERROR_NOT_EXIST;
 	}
 	const struct PciAddress* addr = &pci_device_table[p->id].addr;
-	for (int i = 0; i < 256; i += 4) {
-		*(uint32_t*)(p->ptr + i) = pci_read_config_reg32(addr, i);
+	if (pci_host.pcie_ecam_base) {
+		for (int i = 0; i < 4096; i += 4) {
+			*(uint32_t*)(p->ptr + i) = pci_read_config_reg32(addr, i);
+		}
+	} else {
+		for (int i = 0; i < 256; i += 4) {
+			*(uint32_t*)(p->ptr + i) = pci_read_config_reg32(addr, i);
+		}
+		memset(p->ptr + 256, 0, 4096 - 256);
 	}
 	return 0;
 }
