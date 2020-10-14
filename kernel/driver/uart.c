@@ -26,7 +26,7 @@
 struct UARTDevice {
 	ioport_t iobase;
 	unsigned int exist;
-} uart_devices[NUM_UART];
+} uart_devices[NUM_UART] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}};
 
 #define UART_REG_CHAR 0
 #define UART_REG_INTR_ENABLE 1
@@ -42,8 +42,16 @@ struct UARTDevice {
 #define UART_REG_DIVISOR_LO 0
 #define UART_REG_DIVISOR_HI 1
 
-static void uart_dev_init(struct UARTDevice* dev, ioport_t iobase) {
+static void uart_dev_init(struct UARTDevice* dev, ioport_t iobase, int irq) {
 	dev->iobase = iobase;
+
+	// If status is 0xFF, no serial port.
+	if (inb(iobase + UART_REG_LINE_STATUS) == 0xFF) {
+		return;
+	} else {
+		dev->exist = 1;
+		cprintf("[uart] UART ioport %x irq %d baud 9600\n", iobase, irq);
+	}
 
 	// Turn off the FIFO
 	outb(iobase + UART_REG_FIFO, 0);
@@ -57,13 +65,6 @@ static void uart_dev_init(struct UARTDevice* dev, ioport_t iobase) {
 	outb(iobase + UART_REG_INTR_ENABLE,
 		 UART_REG_INTR_ENABLE_DATA_READY); // Enable receive interrupts.
 
-	// If status is 0xFF, no serial port.
-	if (inb(iobase + UART_REG_LINE_STATUS) == 0xFF) {
-		return;
-	} else {
-		dev->exist = 1;
-	}
-
 	// Acknowledge pre-existing interrupt conditions;
 	inb(iobase + UART_REG_FIFO);
 	inb(iobase + UART_REG_CHAR);
@@ -71,9 +72,10 @@ static void uart_dev_init(struct UARTDevice* dev, ioport_t iobase) {
 
 void uart_init(void) {
 	ioport_t iobases[] = {0x3f8, 0x2f8, 0x3e8, 0x2e8};
+	int irqs[] = {4, 3, 4, 3};
 	memset(uart_devices, 0, sizeof(uart_devices));
 	for (int i = 0; i < NUM_UART; i++) {
-		uart_dev_init(&uart_devices[i], iobases[i]);
+		uart_dev_init(&uart_devices[i], iobases[i], irqs[i]);
 	}
 	ioapic_enable(3, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
 	ioapic_enable(4, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);

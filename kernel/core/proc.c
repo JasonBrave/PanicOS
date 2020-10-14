@@ -61,7 +61,7 @@ void proc_free(struct proc* p) {
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu* mycpu(void) {
-	int apicid, i;
+	unsigned int apicid, i;
 
 	if (readeflags() & FL_IF)
 		panic("mycpu called with interrupts enabled\n");

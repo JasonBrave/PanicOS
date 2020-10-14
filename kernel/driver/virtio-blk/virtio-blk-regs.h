@@ -97,17 +97,6 @@ struct VirtioBlockConfig {
 	uint8_t unused1[3];
 };
 
-struct VirtioPciCap {
-	uint8_t cap_vndr; /* Generic PCI field: PCI_CAP_ID_VNDR */
-	uint8_t cap_next; /* Generic PCI field: next ptr. */
-	uint8_t cap_len; /* Generic PCI field: capability length */
-	uint8_t cfg_type; /* Identifies the structure. */
-	uint8_t bar; /* Where to find it. */
-	uint8_t padding[3]; /* Pad to full dword. */
-	uint32_t offset; /* Offset within bar. */
-	uint32_t length; /* Length of the structure, in bytes. */
-};
-
 /* Common configuration */
 #define VIRTIO_PCI_CAP_COMMON_CFG 1
 /* Notifications */
@@ -118,6 +107,15 @@ struct VirtioPciCap {
 #define VIRTIO_PCI_CAP_DEVICE_CFG 4
 /* PCI configuration access */
 #define VIRTIO_PCI_CAP_PCI_CFG 5
+
+#define VIRTIO_PCI_CAP_OFF_CAP_VENDOR 0
+#define VIRTIO_PCI_CAP_OFF_CAP_NEXT 1
+#define VIRTIO_PCI_CAP_OFF_CAP_LEN 2
+#define VIRTIO_PCI_CAP_OFF_TYPE 3
+#define VIRTIO_PCI_CAP_OFF_BAR 4
+#define VIRTIO_PCI_CAP_OFF_ID 5
+#define VIRTIO_PCI_CAP_OFF_OFFSET 8
+#define VIRTIO_PCI_CAP_OFF_LENGTH 12
 
 // VirtIO Block device feature bits
 enum VirtioBlockFeatureBits {

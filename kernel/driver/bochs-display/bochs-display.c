@@ -107,7 +107,7 @@ static void bochs_display_dev_init(struct PCIDevice* pcidev) {
 
 	phyaddr_t mmio_bar = pci_read_bar(addr, 2);
 	if (mmio_bar && try_mmio) {
-		dev->mmio = (volatile uint16_t*)(mmio_bar + BOCHS_DISPLAY_MMIO_OFFSET);
+		dev->mmio = mmio_map_region(mmio_bar, 4096) + BOCHS_DISPLAY_MMIO_OFFSET;
 	}
 	dev->vram = pci_read_bar(addr, 0);
 

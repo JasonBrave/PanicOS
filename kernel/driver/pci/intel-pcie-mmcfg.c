@@ -86,12 +86,12 @@ void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
 	}
 	// ECAM base address
 	if ((pciexbar & 0xffc000000) > 0xe0000000) {
-		cprintf("[pci] PCIEXBAR to high, lo %x hi %x\n",
+		cprintf("[pci] PCIEXBAR too high, lo %x hi %x\n",
 				pciexbar); // print 64 bits integer as two 32 bits integer
 		return;
 	}
 	if ((pciexbar & 0xffc000000) < 0xb0000000) {
-		cprintf("[pci] PCIEXBAR to low, lo %x hi %x\n", pciexbar);
+		cprintf("[pci] PCIEXBAR too low, lo %x hi %x\n", pciexbar);
 		return;
 	}
 	phyaddr_t ecam_base = pciexbar & 0xfc000000;
@@ -104,5 +104,5 @@ void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
 	pci_host.write16 = intel_mmcfg_write_config_reg16;
 	pci_host.write32 = intel_mmcfg_write_config_reg32;
 	pci_host.bus_num = num_bus;
-	pci_host.pcie_ecam_base = (void*)ecam_base;
+	pci_host.pcie_ecam_base = mmio_map_region(ecam_base, num_bus * 0x100000);
 }

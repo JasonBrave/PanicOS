@@ -18,7 +18,7 @@ extern struct PciHost {
 	void (*write16)(const struct PciAddress* addr, int reg, uint16_t data);
 	void (*write32)(const struct PciAddress* addr, int reg, uint32_t data);
 	int bus_num; // number of addressable busses
-	void* pcie_ecam_base;
+	volatile void* pcie_ecam_base;
 } pci_host;
 
 #define PCI_DEVICE_TABLE_SIZE 64
@@ -55,6 +55,7 @@ void pci_write_config_reg8(const struct PciAddress* addr, int reg, uint8_t data)
 void pci_write_config_reg16(const struct PciAddress* addr, int reg, uint16_t data);
 void pci_write_config_reg32(const struct PciAddress* addr, int reg, uint32_t data);
 phyaddr_t pci_read_bar(const struct PciAddress* addr, int bar);
+size_t pci_read_bar_size(const struct PciAddress* addr, int bar);
 void pci_enable_bus_mastering(const struct PciAddress* addr);
 int pci_find_capability(const struct PciAddress* addr, uint8_t cap_id);
 struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor,
@@ -107,22 +108,5 @@ void pci_print_devices(void);
 
 // pci-kcall.c
 int pci_kcall_handler(unsigned int);
-
-// helper functions
-static inline int pci_read_capid(const struct PciAddress* addr, int capptr) {
-	return pci_read_config_reg8(addr, capptr);
-}
-
-static inline int pci_read_next_cap(const struct PciAddress* addr, int capptr) {
-	return pci_read_config_reg8(addr, capptr + 1);
-}
-
-static inline void pci_read_cap(const struct PciAddress* addr, int capptr, void* buf,
-								int size) {
-	uint8_t* p = buf;
-	for (int i = 0; i < size; i++) {
-		p[i] = pci_read_config_reg8(addr, capptr + i);
-	}
-}
 
 #endif

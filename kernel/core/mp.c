@@ -1,5 +1,5 @@
 /*
- * Multiprocessor support
+ * Multiprocessor Specification support
  *
  * This file is part of PanicOS.
  *
@@ -27,8 +27,7 @@
 #include <param.h>
 
 struct cpu cpus[NCPU];
-int ncpu;
-unsigned char ioapicid;
+unsigned int ncpu = 0;
 
 static unsigned char sum(unsigned char* addr, int len) {
 	int i, sum;
@@ -57,19 +56,6 @@ static struct mp* mpsearch1(unsigned int a, int len) {
 // 2) in the last KB of system base memory;
 // 3) in the BIOS ROM between 0xE0000 and 0xFFFFF.
 static struct mp* mpsearch(void) {
-	unsigned char* bda;
-	unsigned int p;
-	struct mp* mp;
-
-	bda = (unsigned char*)P2V(0x400);
-	if ((p = ((bda[0x0F] << 8) | bda[0x0E]) << 4)) {
-		if ((mp = mpsearch1(p, 1024)))
-			return mp;
-	} else {
-		p = ((bda[0x14] << 8) | bda[0x13]) * 1024;
-		if ((mp = mpsearch1(p - 1024, 1024)))
-			return mp;
-	}
 	return mpsearch1(0xF0000, 0x10000);
 }
 
@@ -97,16 +83,22 @@ static struct mpconf* mpconfig(struct mp** pmp) {
 
 void mpinit(void) {
 	unsigned char *p, *e;
-	int ismp;
 	struct mp* mp;
 	struct mpconf* conf;
 	struct mpproc* proc;
 	struct mpioapic* ioapic;
 
-	if ((conf = mpconfig(&mp)) == 0)
-		panic("Expect to run on an SMP");
-	ismp = 1;
+	if ((conf = mpconfig(&mp)) == 0) {
+		cprintf("[mp] MP Table not found, disable SMP\n");
+		lapic = (uint32_t*)0xfee00000;
+		cpus[0].apicid = lapicid();
+		ncpu++;
+		cprintf("[mp] Faking lapic %x lapicid %x ncpu %d\n", lapic, cpus[0].apicid,
+				ncpu);
+		return;
+	}
 	lapic = (uint32_t*)conf->lapicaddr;
+	cprintf("[mp] Local APIC %x\n", lapic);
 	for (p = (unsigned char*)(conf + 1), e = (unsigned char*)conf + conf->length;
 		 p < e;) {
 		switch (*p) {
@@ -115,6 +107,7 @@ void mpinit(void) {
 			if (ncpu < NCPU) {
 				cpus[ncpu].apicid = proc->apicid; // apicid may differ from ncpu
 				ncpu++;
+				cprintf("[mp] CPU apicid %x\n", proc->apicid);
 			}
 			p += sizeof(struct mpproc);
 			continue;
@@ -122,7 +115,6 @@ void mpinit(void) {
 			ioapic = (struct mpioapic*)p;
 			cprintf("[mp] IOAPIC id %x ver %x addr %x\n", ioapic->id, ioapic->version,
 					ioapic->addr);
-			ioapicid = ioapic->id;
 			p += sizeof(struct mpioapic);
 			continue;
 		case MPBUS:
@@ -130,13 +122,8 @@ void mpinit(void) {
 		case MPLINTR:
 			p += 8;
 			continue;
-		default:
-			ismp = 0;
-			break;
 		}
 	}
-	if (!ismp)
-		panic("Didn't find a suitable machine");
 
 	if (mp->imcrp) {
 		// Bochs doesn't support IMCR, so this doesn't run on Bochs.

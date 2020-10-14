@@ -39,23 +39,6 @@ struct VirtioQueue {
 	volatile struct VirtqUsed* used;
 };
 
-// PCI helper functions
-static inline int pci_read_capid(const struct PciAddress* addr, int capptr) {
-	return pci_read_config_reg8(addr, capptr);
-}
-
-static inline int pci_read_next_cap(const struct PciAddress* addr, int capptr) {
-	return pci_read_config_reg8(addr, capptr + 1);
-}
-
-static inline void pci_read_cap(const struct PciAddress* addr, int capptr, void* buf,
-								int size) {
-	uint8_t* p = buf;
-	for (int i = 0; i < size; i++) {
-		p[i] = pci_read_config_reg8(addr, capptr + i);
-	}
-}
-
 static inline void virtio_allocate_queue(struct VirtioQueue* queue) {
 	queue->desc = kalloc();
 	queue->avail = kalloc();
@@ -79,28 +62,39 @@ struct VirtioPciCap {
 static inline void virtio_read_cap(const struct PciAddress* addr,
 								   struct VirtioDevice* dev) {
 	int capptr = pci_read_config_reg8(addr, 0x34);
-	int capid;
+	unsigned int cmcfg_off = 0, notify_off = 0, isr_off = 0, devcfg_off = 0;
+	unsigned int mmio_bar = 0;
 	do {
-		capid = pci_read_capid(addr, capptr);
-		if (capid == 9) {
-			struct VirtioPciCap vcap;
-			pci_read_cap(addr, capptr, &vcap, sizeof(vcap));
-			switch (vcap.cfg_type) {
+		if (pci_read_config_reg8(addr, capptr + VIRTIO_PCI_CAP_OFF_CAP_VENDOR) == 9) {
+			switch (pci_read_config_reg8(addr, capptr + VIRTIO_PCI_CAP_OFF_TYPE)) {
 			case VIRTIO_PCI_CAP_COMMON_CFG:
-				dev->cmcfg = (void*)pci_read_bar(addr, vcap.bar) + vcap.offset;
+				mmio_bar = pci_read_config_reg8(addr, capptr + VIRTIO_PCI_CAP_OFF_BAR);
+				cmcfg_off =
+					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				break;
 			case VIRTIO_PCI_CAP_NOTIFY_CFG:
-				dev->notify = (void*)pci_read_bar(addr, vcap.bar) + vcap.offset;
+				notify_off =
+					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				break;
 			case VIRTIO_PCI_CAP_ISR_CFG:
-				dev->isr = (void*)pci_read_bar(addr, vcap.bar) + vcap.offset;
+				isr_off =
+					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				break;
 			case VIRTIO_PCI_CAP_DEVICE_CFG:
-				dev->devcfg = (void*)pci_read_bar(addr, vcap.bar) + vcap.offset;
+				devcfg_off =
+					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				break;
 			}
 		}
-	} while ((capptr = pci_read_next_cap(addr, capptr)) != 0);
+	} while ((capptr = pci_read_config_reg8(addr, capptr + 1)) != 0);
+	volatile void* mmio_region = mmio_map_region(pci_read_bar(addr, mmio_bar),
+												 pci_read_bar_size(addr, mmio_bar));
+	dev->cmcfg = mmio_region + cmcfg_off;
+	dev->notify = mmio_region + notify_off;
+	dev->isr = mmio_region + isr_off;
+	dev->devcfg = mmio_region + devcfg_off;
+	cprintf("[virtio-gpu] BAR %d cmcfg %x notify %x isr %x devcfg %x\n", mmio_bar,
+			cmcfg_off, notify_off, isr_off, devcfg_off);
 }
 
 static inline void virtio_set_feature(struct VirtioDevice* dev, unsigned int feature) {

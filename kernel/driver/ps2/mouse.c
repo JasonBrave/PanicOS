@@ -93,6 +93,8 @@ void ps2_mouse_init(void) {
 	ps2_mouse_write(PS2_MOUSE_CMD_ENABLE_REPORT);
 	// enable mouse IRQ
 	ioapic_enable(12, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
+	// flush buffer
+	inb(PS2_DATA_PORT);
 }
 
 void ps2_mouse_intr(void) {

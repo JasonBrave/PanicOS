@@ -16,6 +16,15 @@
 /* PCI configuration access */
 #define VIRTIO_PCI_CAP_PCI_CFG 5
 
+#define VIRTIO_PCI_CAP_OFF_CAP_VENDOR 0
+#define VIRTIO_PCI_CAP_OFF_CAP_NEXT 1
+#define VIRTIO_PCI_CAP_OFF_CAP_LEN 2
+#define VIRTIO_PCI_CAP_OFF_TYPE 3
+#define VIRTIO_PCI_CAP_OFF_BAR 4
+#define VIRTIO_PCI_CAP_OFF_ID 5
+#define VIRTIO_PCI_CAP_OFF_OFFSET 8
+#define VIRTIO_PCI_CAP_OFF_LENGTH 12
+
 struct VirtqDesc {
 	/* Address (guest-physical). */
 	uint64_t addr;

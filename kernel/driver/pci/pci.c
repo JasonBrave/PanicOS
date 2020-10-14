@@ -19,6 +19,7 @@
 
 #include <defs.h>
 #include <driver/ioapic.h>
+#include <memlayout.h>
 #include <proc/kcall.h>
 
 #include "pci-config.h"
@@ -109,8 +110,35 @@ phyaddr_t pci_read_bar(const struct PciAddress* addr, int bar) {
 	if (bar_val & 1) { // IO BAR
 		return bar_val & 0xfffffffc;
 	} else { // Memory BAR
-		return bar_val & 0xfffffff0;
+		if ((bar_val & 6) == 4) { // 64 bits
+			if (pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4 + 4) != 0) {
+				panic("PCI BAR > 4G");
+			} else if ((bar_val & 0xfffffff0) < DEVSPACE) {
+				panic("PCI BAR < DEVSPACE");
+			}
+			return bar_val & 0xfffffff0;
+		} else { // 32 bits
+			if ((bar_val & 0xfffffff0) < DEVSPACE) {
+				panic("PCI BAR < DEVSPACE");
+			}
+			return bar_val & 0xfffffff0;
+		}
 	}
+}
+
+size_t pci_read_bar_size(const struct PciAddress* addr, int bar) {
+	size_t bar_size;
+	uint32_t oldbar = pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4);
+	pci_write_config_reg32(addr, PCI_CONF_BAR + bar * 4, 0xffffffff);
+	if (oldbar & 1) { // IO BAR
+		bar_size =
+			~(pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4) & 0xfffffffc) + 1;
+	} else { // Memory BAR
+		bar_size =
+			~(pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4) & 0xfffffff0) + 1;
+	}
+	pci_write_config_reg32(addr, PCI_CONF_BAR + bar * 4, oldbar);
+	return bar_size;
 }
 
 void pci_enable_bus_mastering(const struct PciAddress* addr) {

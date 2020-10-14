@@ -4,7 +4,8 @@
 #include <stdint-gcc.h>
 
 typedef uint16_t ioport_t;
-typedef uintptr_t phyaddr_t;
+typedef uint32_t phyaddr_t;
+typedef unsigned int size_t;
 
 #define PACKED __attribute__((packed))
 

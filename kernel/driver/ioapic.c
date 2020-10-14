@@ -41,9 +41,7 @@ struct IOAPICMMIO {
 static struct IOAPICDevice {
 	volatile struct IOAPICMMIO* mmio;
 	unsigned int num_irqs;
-} ioapic = {
-	.mmio = (void*)0xfec00000,
-};
+} ioapic;
 
 static uint32_t ioapic_read(unsigned int reg) {
 	ioapic.mmio->index = reg;
@@ -56,6 +54,7 @@ static void ioapic_write(unsigned int reg, uint32_t value) {
 }
 
 void ioapic_init(void) {
+	ioapic.mmio = mmio_map_region(0xfec00000, 4096);
 	ioapic.num_irqs =
 		((ioapic_read(IOAPIC_REG_VER) >> IOAPIC_REG_VER_IRQS_SHIFT) & 0xff) + 1;
 	cprintf("[ioapic] ioapicid %x ver %x irqs %d\n",

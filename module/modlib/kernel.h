@@ -101,6 +101,7 @@ const static struct KernerServiceTable {
 	void (*pci_write_config_reg16)(const struct PciAddress*, int, uint16_t);
 	void (*pci_write_config_reg32)(const struct PciAddress*, int, uint32_t);
 	phyaddr_t (*pci_read_bar)(const struct PciAddress*, int);
+	size_t (*pci_read_bar_size)(const struct PciAddress*, int);
 	void (*pci_enable_bus_mastering)(const struct PciAddress*);
 	int (*pci_find_capability)(const struct PciAddress*, uint8_t);
 	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
@@ -187,6 +188,10 @@ static inline phyaddr_t pci_read_bar(const struct PciAddress* addr, int bar) {
 	return kernsrv->pci_read_bar(addr, bar);
 }
 
+static inline size_t pci_read_bar_size(const struct PciAddress* addr, int bar) {
+	return kernsrv->pci_read_bar_size(addr, bar);
+}
+
 static inline void pci_enable_bus_mastering(const struct PciAddress* addr) {
 	return kernsrv->pci_enable_bus_mastering(addr);
 }
@@ -254,8 +259,16 @@ static inline void kfree(void* ptr) {
 }
 
 #define KERNBASE 0x80000000 // First kernel virtual address
+#define DEVSPACE 0xB0000000 // Low MMIO
 
 #define V2P(a) (((unsigned int)(a)) - KERNBASE)
 #define P2V(a) ((void*)(((char*)(a)) + KERNBASE))
+
+// map physical memory to virtual memory
+static inline volatile void* mmio_map_region(phyaddr_t phyaddr, size_t size) {
+	if (phyaddr < DEVSPACE)
+		panic("phyaddr < DEVSPACE");
+	return (volatile void*)phyaddr;
+}
 
 #endif

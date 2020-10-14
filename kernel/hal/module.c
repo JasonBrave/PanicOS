@@ -158,6 +158,7 @@ static struct KernerServiceTable {
 	void (*pci_write_config_reg16)(const struct PciAddress*, int, uint16_t);
 	void (*pci_write_config_reg32)(const struct PciAddress*, int, uint32_t);
 	phyaddr_t (*pci_read_bar)(const struct PciAddress*, int);
+	size_t (*pci_read_bar_size)(const struct PciAddress*, int);
 	void (*pci_enable_bus_mastering)(const struct PciAddress*);
 	int (*pci_find_capability)(const struct PciAddress*, uint8_t);
 	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
@@ -194,6 +195,7 @@ void module_init(void) {
 	kernsrv->pci_write_config_reg16 = pci_write_config_reg16;
 	kernsrv->pci_write_config_reg32 = pci_write_config_reg32;
 	kernsrv->pci_read_bar = pci_read_bar;
+	kernsrv->pci_read_bar_size = pci_read_bar_size;
 	kernsrv->pci_enable_bus_mastering = pci_enable_bus_mastering;
 	kernsrv->pci_find_capability = pci_find_capability;
 	kernsrv->pci_register_intr_handler = pci_register_intr_handler;

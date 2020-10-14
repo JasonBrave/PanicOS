@@ -50,6 +50,7 @@ static unsigned int kbd_scan_to_keycode(unsigned int data) {
 void ps2_keyboard_init(void) {
 	cprintf("[ps2] PS/2 Keyboard found\n");
 	ioapic_enable(1, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
+	inb(PS2_DATA_PORT);
 }
 
 static int kbd_getc(void) {

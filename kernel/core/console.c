@@ -31,6 +31,10 @@
 #include <memlayout.h>
 #include <param.h>
 
+// comment of the following lines for release build
+#define USE_DEBUGCON
+#define DEBUGCON_ADDR 0xe9
+
 static void consputc(int);
 
 static int panicked = 0;
@@ -138,13 +142,7 @@ void panic(const char* s) {
 static unsigned short* crt = (unsigned short*)P2V(0xb8000); // CGA memory
 
 static void cgaputc(int c) {
-	int pos;
-
-	// Cursor position: col + 80*row.
-	outb(CRTPORT, 14);
-	pos = inb(CRTPORT + 1) << 8;
-	outb(CRTPORT, 15);
-	pos |= inb(CRTPORT + 1);
+	static int pos = 0;
 
 	if (c == '\n')
 		pos += 80 - pos % 80;
@@ -163,10 +161,6 @@ static void cgaputc(int c) {
 		memset(crt + pos, 0, sizeof(crt[0]) * (24 * 80 - pos));
 	}
 
-	outb(CRTPORT, 14);
-	outb(CRTPORT + 1, pos >> 8);
-	outb(CRTPORT, 15);
-	outb(CRTPORT + 1, pos);
 	crt[pos] = ' ' | 0x0700;
 }
 
@@ -184,6 +178,9 @@ void consputc(int c) {
 	} else
 		uart_putc(c);
 	cgaputc(c);
+#ifdef USE_DEBUGCON
+	outb(DEBUGCON_ADDR, c);
+#endif
 }
 
 #define INPUT_BUF 128

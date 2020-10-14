@@ -5,6 +5,7 @@
 #include <common/types.h>
 #include <core/mmu.h>
 #include <core/proc.h>
+#include <memlayout.h>
 
 struct context;
 struct FileDesc;
@@ -138,5 +139,12 @@ pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin,
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
+
+// map physical memory to virtual memory
+static inline volatile void* mmio_map_region(phyaddr_t phyaddr, size_t size) {
+	if (phyaddr < DEVSPACE)
+		panic("phyaddr < DEVSPACE");
+	return (volatile void*)phyaddr;
+}
 
 #endif
