@@ -192,7 +192,7 @@ static struct PCIDeviceIDTable {
 	{0x1b36, 0x000c, "QEMU PCI Express Root Port"},
 	{0x1b36, 0x000d, "QEMU xHCI USB 3.0 Controller"},
 	{0x1b36, 0x000e, "QEMU PCI Express to PCI Bridge"},
-	{0x1b36, 0x0000, "QEMU QXL Display Adapter"},
+	{0x1b36, 0x0100, "QEMU QXL Display Adapter"},
 };
 
 const char* pci_device_id_to_str(uint16_t vendor, uint16_t device) {

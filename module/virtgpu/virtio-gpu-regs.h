@@ -93,8 +93,9 @@ struct VirtioPciCommonConfig {
 	uint64_t queue_device; /* read-write */
 };
 
-#define VIRTIO_GPU_F_VIRGL (0)
-#define VIRTIO_GPU_F_EDID (1)
+#define VIRTIO_GPU_F_VIRGL (1 << 0)
+#define VIRTIO_GPU_F_EDID (1 << 1)
+#define VIRTIO_GPU_F_RESOURCE_UUID (1 << 2)
 
 #define VIRTIO_GPU_EVENT_DISPLAY (1 << 0)
 
@@ -106,7 +107,6 @@ struct virtio_gpu_config {
 };
 
 enum virtio_gpu_ctrl_type {
-
 	/* 2d commands */
 	VIRTIO_GPU_CMD_GET_DISPLAY_INFO = 0x0100,
 	VIRTIO_GPU_CMD_RESOURCE_CREATE_2D,
@@ -119,18 +119,26 @@ enum virtio_gpu_ctrl_type {
 	VIRTIO_GPU_CMD_GET_CAPSET_INFO,
 	VIRTIO_GPU_CMD_GET_CAPSET,
 	VIRTIO_GPU_CMD_GET_EDID,
-
+	VIRTIO_GPU_CMD_RESOURCE_ASSIGN_UUID,
+	/* 3d commands (OpenGL) */
+	VIRTIO_GPU_CMD_CTX_CREATE = 0x0200,
+	VIRTIO_GPU_CMD_CTX_DESTROY,
+	VIRTIO_GPU_CMD_CTX_ATTACH_RESOURCE,
+	VIRTIO_GPU_CMD_CTX_DETACH_RESOURCE,
+	VIRTIO_GPU_CMD_RESOURCE_CREATE_3D,
+	VIRTIO_GPU_CMD_TRANSFER_TO_HOST_3D,
+	VIRTIO_GPU_CMD_TRANSFER_FROM_HOST_3D,
+	VIRTIO_GPU_CMD_SUBMIT_3D,
 	/* cursor commands */
 	VIRTIO_GPU_CMD_UPDATE_CURSOR = 0x0300,
 	VIRTIO_GPU_CMD_MOVE_CURSOR,
-
 	/* success responses */
 	VIRTIO_GPU_RESP_OK_NODATA = 0x1100,
 	VIRTIO_GPU_RESP_OK_DISPLAY_INFO,
 	VIRTIO_GPU_RESP_OK_CAPSET_INFO,
 	VIRTIO_GPU_RESP_OK_CAPSET,
 	VIRTIO_GPU_RESP_OK_EDID,
-
+	VIRTIO_GPU_RESP_OK_RESOURCE_UUID,
 	/* error responses */
 	VIRTIO_GPU_RESP_ERR_UNSPEC = 0x1200,
 	VIRTIO_GPU_RESP_ERR_OUT_OF_MEMORY,
@@ -246,6 +254,16 @@ struct virtio_gpu_resource_detach_backing {
 	struct virtio_gpu_ctrl_hdr hdr;
 	uint32_t resource_id;
 	uint32_t padding;
+};
+
+struct virtio_gpu_resource_assign_uuid {
+	struct virtio_gpu_ctrl_hdr hdr;
+	uint32_t resource_id;
+	uint32_t padding;
+};
+struct virtio_gpu_resp_resource_uuid {
+	struct virtio_gpu_ctrl_hdr hdr;
+	uint8_t uuid[16];
 };
 
 struct virtio_gpu_cursor_pos {

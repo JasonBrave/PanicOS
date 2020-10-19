@@ -172,7 +172,8 @@ static struct KernerServiceTable {
 	// hal/hal.h
 	void (*hal_block_register_device)(const char*, void*,
 									  const struct BlockDeviceDriver*);
-	void (*hal_display_register_device)(const char*, void*, struct FramebufferDriver*);
+	void (*hal_display_register_device)(const char*, void*,
+										const struct FramebufferDriver*);
 	void (*hal_mouse_update)(unsigned int);
 	void (*hal_keyboard_update)(unsigned int);
 }* kernsrv = (void*)0x80010000;

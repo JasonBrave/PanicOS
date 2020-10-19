@@ -28,7 +28,7 @@
 #define HAL_DISPLAY_MAX 8
 
 struct FramebufferDevice {
-	struct FramebufferDriver* driver;
+	const struct FramebufferDriver* driver;
 	void* private;
 } framebuffer_device[HAL_DISPLAY_MAX];
 
@@ -90,20 +90,54 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 	return ERROR_INVAILD;
 }
 
-void hal_display_register_device(const char* name, void* private,
-								 struct FramebufferDriver* driver) {
-	struct FramebufferDevice* dev = 0;
+static struct FramebufferDevice* hal_display_alloc_dev(unsigned int* n) {
 	for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
 		if (!framebuffer_device[i].driver) {
-			dev = &framebuffer_device[i];
-			cprintf("[hal] Display device %d %s update%s\n", i, name,
-					BOOL2SIGN((int)driver->update));
-			dev->driver = driver;
-			dev->private = private;
-			return;
+			*n = i;
+			return &framebuffer_device[i];
 		}
 	}
-	panic("too many display device");
+	return 0;
+}
+
+void hal_display_register_device(const char* name, void* private,
+								 const struct FramebufferDriver* driver) {
+	unsigned int devid;
+	struct FramebufferDevice* dev = hal_display_alloc_dev(&devid);
+	if (!dev) {
+		panic("too many display device");
+	}
+	cprintf("[hal] Display device %d %s update%s edid%s\n", devid, name,
+			BOOL2SIGN((int)driver->update), BOOL2SIGN((int)driver->read_edid));
+	dev->driver = driver;
+	dev->private = private;
+	if (!driver->read_edid) {
+		return;
+	}
+	uint8_t edid[128];
+	if (driver->read_edid(private, edid, 128) != 128) {
+		return;
+	}
+	if (*(uint64_t*)edid != 0x00ffffffffffff00) {
+		cprintf("[hal] invaild edid header");
+		return;
+	}
+	uint16_t pnpid = (edid[8] << 8) | edid[9];
+	char vendor[4];
+	vendor[0] = ((pnpid >> 10) & 0x1f) + 'A' - 1;
+	vendor[1] = ((pnpid >> 5) & 0x1f) + 'A' - 1;
+	vendor[2] = ((pnpid >> 0) & 0x1f) + 'A' - 1;
+	vendor[3] = '\0';
+	if (edid[20] & (1 << 7)) {
+		const char* edid_video_inf[] = {
+			[0x0] = "undefined", [0x2] = "HDMIa",		[0x3] = "HDMIb",
+			[0x4] = "MDDI",		 [0x5] = "DisplayPort",
+		};
+		cprintf("[hal] Monitor %s digital %s edid ver %d.%d\n", vendor,
+				edid_video_inf[edid[20] & 0xf], edid[18], edid[19]);
+	} else {
+		cprintf("[hal] Monitor %s analog edid ver %d.%d\n", vendor, edid[18], edid[19]);
+	}
 }
 
 void hal_display_init(void) {

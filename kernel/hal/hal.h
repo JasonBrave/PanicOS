@@ -69,12 +69,12 @@ struct FramebufferDriver {
 	phyaddr_t (*enable)(void* private, int xres, int yres);
 	void (*disable)(void* private);
 	void (*update)(void* private);
-	unsigned int (*read_edid)(void* private, unsigned int bytes);
+	unsigned int (*read_edid)(void* private, void* buffer, unsigned int bytes);
 };
 
 void hal_display_init(void);
 void hal_display_register_device(const char* name, void* private,
-								 struct FramebufferDriver* driver);
+								 const struct FramebufferDriver* driver);
 
 // hid.c
 extern int hal_kbd_send_legacy;

@@ -17,6 +17,11 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// Supported hardware:
+// QEMU Standard VGA: VGA and bochs-display
+// VirtualBox VBoxVGA and VBoxSVGA
+// Bochs pcivga
+
 // Reference:
 // https://github.com/qemu/qemu/blob/master/docs/specs/standard-vga.txt
 // https://github.com/qemu/vgabios/blob/master/vbe_display_api.txt
@@ -51,6 +56,7 @@
 
 struct BochsDisplayDevice {
 	volatile uint16_t* mmio;
+	volatile void* edid_blob;
 	phyaddr_t vram;
 };
 
@@ -87,39 +93,64 @@ static void bochs_display_disable(void* private) {
 	return;
 }
 
-struct FramebufferDriver bochs_display_driver = {
+static unsigned int bochs_display_read_edid(void* private, void* buffer,
+											unsigned int bytes) {
+	struct BochsDisplayDevice* dev = private;
+	if (!dev->edid_blob) {
+		return 0;
+	}
+	if (bytes > 0x400) {
+		return 0;
+	}
+	memmove(buffer, (void*)dev->edid_blob, bytes);
+	return bytes;
+}
+
+static const struct FramebufferDriver bochs_display_driver = {
 	.enable = bochs_display_enable,
 	.disable = bochs_display_disable,
+	.read_edid = bochs_display_read_edid,
 };
+
+static int bochs_display_is_qemu_stdvga(const struct PciAddress* addr) {
+	return (pci_read_config_reg16(addr, 0x0) == 0x1234) &&
+		   (pci_read_config_reg16(addr, 0x2) == 0x1111) &&
+		   (pci_read_config_reg16(addr, 0x2c) == 0x1af4) &&
+		   (pci_read_config_reg16(addr, 0x2e) == 0x1100);
+}
 
 static void bochs_display_dev_init(struct PCIDevice* pcidev) {
 	const struct PciAddress* addr = &pcidev->addr;
-	int try_mmio;
-	if (pci_read_config_reg16(addr, 0) == 0x1234 &&
-		pci_read_config_reg16(addr, 2) == 0x1111) {
-		try_mmio = 1;
-	} else {
-		try_mmio = 0;
-	}
 
 	struct BochsDisplayDevice* dev = kalloc();
 	memset(dev, 0, sizeof(struct BochsDisplayDevice));
 
-	phyaddr_t mmio_bar = pci_read_bar(addr, 2);
-	if (mmio_bar && try_mmio) {
-		dev->mmio = mmio_map_region(mmio_bar, 4096) + BOCHS_DISPLAY_MMIO_OFFSET;
+	phyaddr_t mmio_bar = 0;
+	if (bochs_display_is_qemu_stdvga(addr)) {
+		mmio_bar = pci_read_bar(addr, 2);
+		volatile void* mmio_base = mmio_map_region(mmio_bar, 4096);
+		dev->edid_blob = mmio_base;
+		dev->mmio = mmio_base + BOCHS_DISPLAY_MMIO_OFFSET;
 	}
 	dev->vram = pci_read_bar(addr, 0);
 
-	cprintf("[bochs-display] ver %x MMIO %x FB %x\n", vbe_read(dev, VBE_DISPI_INDEX_ID),
-			mmio_bar, dev->vram);
+	if (dev->mmio) {
+		cprintf("[bochs-display] ver %x MMIO %x FB %x size %d MiB\n",
+				vbe_read(dev, VBE_DISPI_INDEX_ID), mmio_bar, dev->vram,
+				pci_read_bar_size(addr, 0) / 0x100000);
+	} else {
+		cprintf("[bochs-display] ver %x FB %x size %d MiB\n",
+				vbe_read(dev, VBE_DISPI_INDEX_ID), dev->vram,
+				pci_read_bar_size(addr, 0) / 0x100000);
+	}
 
 	hal_display_register_device("bochs-display", dev, &bochs_display_driver);
 }
 
-struct PCIDeviceID bochs_display_device_id[] = {
-	{0x1234, 0x1111}, // QEMU
-	{0x80ee, 0xbeef}, // VirtualBox
+const static struct PCIDeviceID bochs_display_device_id[] = {
+	{0x1234, 0x1111}, // QEMU Standard VGA
+	{0x80ee, 0xbeef}, // VirtualBox SVGA
+	{0x1b36, 0x0100}, // QEMU QXL
 	{},
 };
 

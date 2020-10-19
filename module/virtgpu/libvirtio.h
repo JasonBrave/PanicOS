@@ -27,9 +27,10 @@
 
 struct VirtioDevice {
 	volatile struct VirtioPciCommonConfig* cmcfg;
-	volatile unsigned int* isr;
-	volatile unsigned int* notify;
+	volatile uint8_t* isr;
 	volatile struct virtio_gpu_config* devcfg;
+	volatile unsigned int* notify_begin;
+	unsigned int notify_off_multiplier;
 };
 
 struct VirtioQueue {
@@ -37,6 +38,7 @@ struct VirtioQueue {
 	volatile struct VirtqDesc* desc;
 	volatile struct VirtqAvail* avail;
 	volatile struct VirtqUsed* used;
+	volatile unsigned int* notify;
 };
 
 static inline void virtio_allocate_queue(struct VirtioQueue* queue) {
@@ -75,6 +77,7 @@ static inline void virtio_read_cap(const struct PciAddress* addr,
 			case VIRTIO_PCI_CAP_NOTIFY_CFG:
 				notify_off =
 					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
+				dev->notify_off_multiplier = pci_read_config_reg32(addr, capptr + 16);
 				break;
 			case VIRTIO_PCI_CAP_ISR_CFG:
 				isr_off =
@@ -90,20 +93,22 @@ static inline void virtio_read_cap(const struct PciAddress* addr,
 	volatile void* mmio_region = mmio_map_region(pci_read_bar(addr, mmio_bar),
 												 pci_read_bar_size(addr, mmio_bar));
 	dev->cmcfg = mmio_region + cmcfg_off;
-	dev->notify = mmio_region + notify_off;
+	dev->notify_begin = mmio_region + notify_off;
 	dev->isr = mmio_region + isr_off;
 	dev->devcfg = mmio_region + devcfg_off;
 	cprintf("[virtio-gpu] BAR %d cmcfg %x notify %x isr %x devcfg %x\n", mmio_bar,
 			cmcfg_off, notify_off, isr_off, devcfg_off);
 }
 
-static inline void virtio_set_feature(struct VirtioDevice* dev, unsigned int feature) {
+static inline unsigned int virtio_set_feature(struct VirtioDevice* dev,
+											  unsigned int feature) {
 	dev->cmcfg->device_status = 0;
 	dev->cmcfg->device_status = 1;
 	dev->cmcfg->device_status |= 2;
 	dev->cmcfg->driver_feature = dev->cmcfg->device_feature & feature;
 	dev->cmcfg->device_status |= 8;
 	dev->cmcfg->device_status |= 4;
+	return dev->cmcfg->device_feature;
 }
 
 static inline void virtio_setup_queue(struct VirtioDevice* dev,
@@ -117,6 +122,8 @@ static inline void virtio_setup_queue(struct VirtioDevice* dev,
 	dev->cmcfg->queue_driver = V2P(queue->avail);
 	dev->cmcfg->queue_device = V2P(queue->used);
 	dev->cmcfg->queue_enable = 1;
+	queue->notify =
+		dev->notify_begin + dev->cmcfg->queue_notify_off * dev->notify_off_multiplier;
 }
 
 static inline int virtio_intr_ack(struct VirtioDevice* dev) {
@@ -126,7 +133,7 @@ static inline int virtio_intr_ack(struct VirtioDevice* dev) {
 static inline void virtio_queue_notify_wait(struct VirtioDevice* dev,
 											struct VirtioQueue* queue) {
 	int prev = queue->used->idx;
-	*dev->notify = 0;
+	*queue->notify = 0;
 	while (prev == queue->used->idx) {
 	}
 }
@@ -136,8 +143,9 @@ static inline void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc
 	queue->avail->idx++;
 }
 
-static inline void virtio_queue_notify(struct VirtioDevice* dev) {
-	*dev->notify = 0;
+static inline void virtio_queue_notify(struct VirtioDevice* dev,
+									   struct VirtioQueue* queue) {
+	*queue->notify = 0;
 }
 
 static inline int* virtio_alloc_desc(struct VirtioQueue* queue, int* desc, int num) {

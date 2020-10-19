@@ -77,7 +77,7 @@ struct FramebufferDriver {
 	phyaddr_t (*enable)(void* private, int xres, int yres);
 	void (*disable)(void* private);
 	void (*update)(void* private);
-	unsigned int (*read_edid)(void* private, unsigned int bytes);
+	unsigned int (*read_edid)(void* private, void* buffer, unsigned int bytes);
 };
 
 const static struct KernerServiceTable {
@@ -115,7 +115,8 @@ const static struct KernerServiceTable {
 	// hal/hal.h
 	void (*hal_block_register_device)(const char*, void*,
 									  const struct BlockDeviceDriver*);
-	void (*hal_display_register_device)(const char*, void*, struct FramebufferDriver*);
+	void (*hal_display_register_device)(const char*, void*,
+										const struct FramebufferDriver*);
 	void (*hal_mouse_update)(unsigned int);
 	void (*hal_keyboard_update)(unsigned int);
 }* kernsrv = (void*)0x80010000;
@@ -239,7 +240,7 @@ static inline void hal_block_register_device(const char* name, void* private,
 }
 
 static inline void hal_display_register_device(const char* name, void* private,
-											   struct FramebufferDriver* driver) {
+											   const struct FramebufferDriver* driver) {
 	return kernsrv->hal_display_register_device(name, private, driver);
 }
 
