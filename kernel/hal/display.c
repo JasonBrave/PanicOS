@@ -30,7 +30,24 @@
 struct FramebufferDevice {
 	const struct FramebufferDriver* driver;
 	void* private;
+	unsigned int preferred_xres, preferred_yres;
+	unsigned int maximum_xres, maximum_yres;
 } framebuffer_device[HAL_DISPLAY_MAX];
+
+struct EDIDStdTimingInformation {
+	uint8_t x_resolution;
+	uint8_t aspect;
+} PACKED;
+
+struct EDIDDetailTiming {
+	uint16_t pixel_clock;
+	uint8_t horizontal_active;
+	uint8_t horizontal_blanking;
+	uint8_t horizontal_misc;
+	uint8_t vertical_active;
+	uint8_t vertical_blanking;
+	uint8_t vertical_misc;
+} PACKED;
 
 static void* hal_display_modeswitch(struct FramebufferDevice* fbdev, int xres,
 									int yres) {
@@ -41,34 +58,69 @@ static void* hal_display_modeswitch(struct FramebufferDevice* fbdev, int xres,
 }
 
 static int hal_display_kcall_handler(unsigned int display_struct) {
-#define DISPLAY_OP_ENABLE 0
-#define DISPLAY_OP_UPDATE 1
-#define DISPLAY_OP_FIND 2
+	enum DisplayKCallOp {
+		DISPLAY_KCALL_OP_ENABLE = 0,
+		DISPLAY_KCALL_OP_DISABLE = 1,
+		DISPLAY_KCALL_OP_FIND = 2,
+		DISPLAY_KCALL_OP_GET_PREFERRED = 3,
+		DISPLAY_KCALL_OP_UPDATE = 4,
+	};
 
-#define DISPLAY_FLAG_NEED_UPDATE (1 << 0)
+#define DISPLAY_KCALL_FLAG_NEED_UPDATE (1 << 0)
 
-	struct {
-		int op;
-		int display_id;
-		int xres;
-		int yres;
-		int flag;
+	struct DisplayKcall {
+		enum DisplayKCallOp op;
+		unsigned int display_id;
+		unsigned int xres;
+		unsigned int yres;
+		unsigned int flag;
 		void* framebuffer;
 	}* dc = (void*)display_struct;
 
-	if (dc->op == DISPLAY_OP_ENABLE) {
+	switch (dc->op) {
+	case DISPLAY_KCALL_OP_ENABLE:
 		if (framebuffer_device[dc->display_id].driver) {
+			if (dc->xres > framebuffer_device[dc->display_id].maximum_xres ||
+				dc->yres > framebuffer_device[dc->display_id].maximum_yres) {
+				return ERROR_INVAILD;
+			}
 			dc->framebuffer = hal_display_modeswitch(
 				&framebuffer_device[dc->display_id], dc->xres, dc->yres);
 			dc->flag = 0;
 			if (framebuffer_device[dc->display_id].driver->update) {
-				dc->flag |= DISPLAY_FLAG_NEED_UPDATE;
+				dc->flag |= DISPLAY_KCALL_FLAG_NEED_UPDATE;
 			}
 			return 0;
 		} else {
 			return ERROR_NOT_EXIST;
 		}
-	} else if (dc->op == DISPLAY_OP_UPDATE) {
+		break;
+	case DISPLAY_KCALL_OP_DISABLE:
+		if (framebuffer_device[dc->display_id].driver) {
+			framebuffer_device[dc->display_id].driver->disable(
+				framebuffer_device[dc->display_id].private);
+			return 0;
+		}
+		break;
+	case DISPLAY_KCALL_OP_FIND:
+		for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
+			if (framebuffer_device[i].driver) {
+				dc->display_id = i;
+				return 0;
+			}
+		}
+		return ERROR_NOT_EXIST;
+		break;
+	case DISPLAY_KCALL_OP_GET_PREFERRED:
+		if (framebuffer_device[dc->display_id].driver) {
+			dc->xres = framebuffer_device[dc->display_id].preferred_xres;
+			dc->yres = framebuffer_device[dc->display_id].preferred_yres;
+			return 0;
+		} else {
+			return ERROR_NOT_EXIST;
+		}
+		break;
+	case DISPLAY_KCALL_OP_UPDATE:
 		if (framebuffer_device[dc->display_id].driver &&
 			framebuffer_device[dc->display_id].driver->update) {
 			framebuffer_device[dc->display_id].driver->update(
@@ -77,15 +129,7 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 		} else {
 			return ERROR_NOT_EXIST;
 		}
-	} else if (dc->op == DISPLAY_OP_FIND) {
-		for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
-			if (framebuffer_device[i].driver) {
-				dc->display_id = i;
-				return 0;
-			}
-		}
-		dc->display_id = -1;
-		return ERROR_NOT_EXIST;
+		break;
 	}
 	return ERROR_INVAILD;
 }
@@ -111,6 +155,10 @@ void hal_display_register_device(const char* name, void* private,
 			BOOL2SIGN((int)driver->update), BOOL2SIGN((int)driver->read_edid));
 	dev->driver = driver;
 	dev->private = private;
+	dev->preferred_xres = 1024;
+	dev->preferred_yres = 768;
+	dev->maximum_xres = 1920;
+	dev->maximum_yres = 1080;
 	if (!driver->read_edid) {
 		return;
 	}
@@ -119,7 +167,7 @@ void hal_display_register_device(const char* name, void* private,
 		return;
 	}
 	if (*(uint64_t*)edid != 0x00ffffffffffff00) {
-		cprintf("[hal] invaild edid header");
+		cprintf("[hal] invaild edid header\n");
 		return;
 	}
 	uint16_t pnpid = (edid[8] << 8) | edid[9];
@@ -138,6 +186,50 @@ void hal_display_register_device(const char* name, void* private,
 	} else {
 		cprintf("[hal] Monitor %s analog edid ver %d.%d\n", vendor, edid[18], edid[19]);
 	}
+	// EDID Standard Timing Information
+	for (int i = 0; i < 8; i++) {
+		struct EDIDStdTimingInformation* stdtiming = (void*)edid + 38 + i * 2;
+		if (!stdtiming->x_resolution) {
+			continue;
+		}
+		if ((stdtiming->x_resolution == 1) && (stdtiming->aspect == 1)) {
+			continue;
+		}
+		const struct {
+			int x, y;
+		} edid_std_aspect[4] = {
+			[0] = {16, 10}, [1] = {4, 3}, [2] = {5, 4}, [3] = {16, 9}};
+		unsigned int x = (stdtiming->x_resolution + 31) * 8;
+		unsigned int y = (stdtiming->x_resolution + 31) * 8 /
+						 edid_std_aspect[(stdtiming->aspect >> 6) & 3].x *
+						 edid_std_aspect[(stdtiming->aspect >> 6) & 3].y;
+		if (x >= dev->maximum_xres && y >= dev->maximum_yres) {
+			dev->maximum_xres = x;
+			dev->maximum_yres = y;
+		}
+	}
+	// EDID Detailed Timing Infomation
+	for (int i = 0; i < 4; i++) {
+		struct EDIDDetailTiming* detailtiming = (void*)edid + 54 + i * 18;
+		if (detailtiming->pixel_clock) {
+			unsigned int x = detailtiming->horizontal_active |
+							 (detailtiming->horizontal_misc >> 4 << 8);
+			unsigned int y =
+				detailtiming->vertical_active | (detailtiming->vertical_misc >> 4 << 8);
+			if (x >= dev->preferred_xres && y >= dev->preferred_yres) {
+				dev->preferred_xres = x;
+				dev->preferred_yres = y;
+			}
+		}
+	}
+	if (dev->preferred_xres >= dev->maximum_xres &&
+		dev->preferred_yres >= dev->maximum_yres) {
+		dev->maximum_xres = dev->preferred_xres;
+		dev->maximum_yres = dev->preferred_yres;
+	}
+	cprintf("[hal] Monitor display xres %d yres %d max xres %d yres %d\n",
+			dev->preferred_xres, dev->preferred_yres, dev->maximum_xres,
+			dev->maximum_yres);
 }
 
 void hal_display_init(void) {

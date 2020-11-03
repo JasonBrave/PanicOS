@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <kcall/display.h>
 #include <libwm/keymap.h>
 #include <panicos.h>
 #include <stdint.h>
@@ -24,30 +25,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DISPLAY_OP_ENABLE 0
-#define DISPLAY_OP_UPDATE 1
-#define DISPLAY_OP_FIND 2
-
-#define DISPLAY_FLAG_NEED_UPDATE (1 << 0)
-
-struct DisplayControl {
-	int op;
-	int display_id;
-	int xres;
-	int yres;
-	int flag;
-	void* framebuffer;
-};
-
 extern unsigned char font16[256 * 16];
-
-#define DEFAULT_XRES 1024
-#define DEFAULT_YRES 768
 
 #define BLACK 0
 #define WHITE 0xffffff
 
-int xres = 1024, yres = 768;
+unsigned int xres, yres;
 int x_chars, y_chars;
 int cur_x = 0, cur_y = 0;
 char inputbuf[80]; // input buffer
@@ -122,49 +105,29 @@ static void fbcon_putchar(int x, int y, char c) {
 	return fbcon_drawchar(x * 8, y * 16, c);
 }
 
-void* fbcon_modeswitch(int xres, int yres) {
-	struct DisplayControl dc = {
-		.op = DISPLAY_OP_ENABLE,
-		.xres = xres,
-		.yres = yres,
-		.display_id = display_id,
-	};
-
-	if (kcall("display", (unsigned int)&dc) < 0) {
-		fputs("fbcon: no display found\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-
-	if (dc.flag & DISPLAY_FLAG_NEED_UPDATE) {
-		need_update = 1;
-	}
-	return dc.framebuffer;
-}
-
-int fbcon_find_display(void) {
-	struct DisplayControl dc = {
-		.op = DISPLAY_OP_FIND,
-	};
-	if (kcall("display", (unsigned int)&dc) < 0) {
-		fputs("fbcon: no display found\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-	return dc.display_id;
-}
-
 int main(int argc, char* argv[]) {
 	if (argc == 1) { // fbcon
-		xres = DEFAULT_XRES;
-		yres = DEFAULT_YRES;
-		display_id = fbcon_find_display();
+		display_id = display_find();
+		if (display_id < 0) {
+			fputs("fbcon: no display device\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+		display_get_preferred(display_id, &xres, &yres);
+
 	} else if (argc == 2) { // fbcon display_id
-		xres = DEFAULT_XRES;
-		yres = DEFAULT_YRES;
 		display_id = atoi(argv[1]);
+		if (display_get_preferred(display_id, &xres, &yres) < 0) {
+			fputs("fbcon: display device not found\n", stderr);
+			exit(EXIT_FAILURE);
+		}
 	} else if (argc == 3) { // fbcon xres yres
+		display_id = display_find();
+		if (display_id < 0) {
+			fputs("fbcon: no display device\n", stderr);
+			exit(EXIT_FAILURE);
+		}
 		xres = atoi(argv[1]);
 		yres = atoi(argv[2]);
-		display_id = fbcon_find_display();
 	} else if (argc == 4) { // fbcon display_id xres yres
 		display_id = atoi(argv[1]);
 		xres = atoi(argv[2]);
@@ -177,7 +140,13 @@ int main(int argc, char* argv[]) {
 		fputs(" fbcon display_id xres yres - custom display and resolution", stderr);
 		exit(EXIT_FAILURE);
 	}
-	fb = fbcon_modeswitch(xres, yres);
+	unsigned int flag;
+	fb = display_enable(display_id, xres, yres, &flag);
+	if (!fb) {
+		fputs("fbcon: enable display failed\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+	need_update = (flag & DISPLAY_KCALL_FLAG_NEED_UPDATE) ? 1 : 0;
 
 	x_chars = xres / 8;
 	y_chars = yres / 16;
@@ -288,11 +257,7 @@ int main(int argc, char* argv[]) {
 		fbcon_putchar(cur_x, cur_y, '_');
 		// update framebuffer
 		if (need_update) {
-			struct DisplayControl dc = {
-				.op = DISPLAY_OP_UPDATE,
-				.display_id = display_id,
-			};
-			kcall("display", (unsigned int)&dc);
+			display_update(display_id);
 		}
 	}
 }

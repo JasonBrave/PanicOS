@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <kcall/display.h>
 #include <libwm/protocol.h>
 #include <panicos.h>
 #include <stdint.h>
@@ -24,8 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEFAULT_XRES 1024
-#define DEFAULT_YRES 768
 #define CURSOR_WIDTH 5
 #define CURSOR_HEIGHT 5
 
@@ -73,7 +72,7 @@ COLOUR gray = {.r = 200, .g = 200, .b = 200};
 COLOUR white = {.r = 255, .g = 255, .b = 255};
 
 COLOUR* fb; // framebuffer
-int xres, yres;
+unsigned int xres, yres;
 int cur_x = 200, cur_y = 200;
 struct Sheet* sheet_list = NULL; // sheets linked list
 int need_update = 0; // need manual call update
@@ -474,62 +473,48 @@ void message_received(int pid, void* msg) {
 	}
 }
 
-void* wm_modeswitch(int xres, int yres) {
-	struct DisplayControl dc = {
-		.op = DISPLAY_OP_ENABLE,
-		.xres = xres,
-		.yres = yres,
-		.display_id = display_id,
-	};
-
-	if (kcall("display", (unsigned int)&dc) < 0) {
-		fputs("wm: no display found\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-
-	if (dc.flag & DISPLAY_FLAG_NEED_UPDATE) {
-		need_update = 1;
-	}
-	return dc.framebuffer;
-}
-
-int wm_find_display(void) {
-	struct DisplayControl dc = {
-		.op = DISPLAY_OP_FIND,
-	};
-	if (kcall("display", (unsigned int)&dc) < 0) {
-		fputs("wm: no display found\n", stderr);
-		exit(EXIT_FAILURE);
-	}
-	return dc.display_id;
-}
-
 int main(int argc, char* argv[]) {
 	if (argc == 1) { // wm
-		xres = DEFAULT_XRES;
-		yres = DEFAULT_YRES;
-		display_id = wm_find_display();
+		display_id = display_find();
+		if (display_id < 0) {
+			fputs("wm: no display device\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+		display_get_preferred(display_id, &xres, &yres);
+
 	} else if (argc == 2) { // wm display_id
-		xres = DEFAULT_XRES;
-		yres = DEFAULT_YRES;
 		display_id = atoi(argv[1]);
+		if (display_get_preferred(display_id, &xres, &yres) < 0) {
+			fputs("wm: display device not found\n", stderr);
+			exit(EXIT_FAILURE);
+		}
 	} else if (argc == 3) { // wm xres yres
+		display_id = display_find();
+		if (display_id < 0) {
+			fputs("wm: no display device\n", stderr);
+			exit(EXIT_FAILURE);
+		}
 		xres = atoi(argv[1]);
 		yres = atoi(argv[2]);
-		display_id = wm_find_display();
 	} else if (argc == 4) { // wm display_id xres yres
 		display_id = atoi(argv[1]);
 		xres = atoi(argv[2]);
 		yres = atoi(argv[3]);
 	} else {
 		fputs("Usage:\n", stderr);
-		fputs(" wm - default display and resolution", stderr);
-		fputs(" wm display_id - custom display and default resolution", stderr);
-		fputs(" wm xres yres - default display and custom resolution", stderr);
-		fputs(" wm display_id xres yres - custom display and resolution", stderr);
+		fputs(" wm - default display and resolution\n", stderr);
+		fputs(" wm display_id - custom display and default resolution\n", stderr);
+		fputs(" wm xres yres - default display and custom resolution\n", stderr);
+		fputs(" wm display_id xres yres - custom display and resolution\n", stderr);
 		exit(EXIT_FAILURE);
 	}
-	fb = wm_modeswitch(xres, yres);
+	unsigned int flag;
+	fb = display_enable(display_id, xres, yres, &flag);
+	if (!fb) {
+		fputs("wm: enable display failed\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+	need_update = (flag & DISPLAY_KCALL_FLAG_NEED_UPDATE) ? 1 : 0;
 
 	wm_fill_buffer(fb, 0, 0, xres, yres, xres, light_blue);
 
@@ -552,11 +537,7 @@ int main(int argc, char* argv[]) {
 		if (!m) {
 			// update framebuffer
 			if (need_update) {
-				struct DisplayControl dc = {
-					.op = DISPLAY_OP_UPDATE,
-					.display_id = display_id,
-				};
-				kcall("display", (unsigned int)&dc);
+				display_update(display_id);
 			}
 			continue;
 		}
@@ -587,11 +568,7 @@ int main(int argc, char* argv[]) {
 		}
 		// update framebuffer
 		if (need_update) {
-			struct DisplayControl dc = {
-				.op = DISPLAY_OP_UPDATE,
-				.display_id = display_id,
-			};
-			kcall("display", (unsigned int)&dc);
+			display_update(display_id);
 		}
 	}
 

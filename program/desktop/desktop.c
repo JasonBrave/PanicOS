@@ -18,27 +18,37 @@
  */
 
 #include <dirent.h>
+#include <kcall/display.h>
 #include <libwm/wm.h>
 #include <panicos.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define DEFAULT_XRES 1024
-#define DEFAULT_YRES 768
-
-int xres, yres;
+unsigned int xres, yres;
 
 int main(int argc, char* argv[]) {
 	const char* wm_args[] = {"wm", 0, 0, 0, 0};
 	if (argc == 1) { // desktop
-		xres = DEFAULT_XRES;
-		yres = DEFAULT_YRES;
+		int display_id = display_find();
+		if (display_id < 0) {
+			fputs("desktop: no display device\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+		display_get_preferred(display_id, &xres, &yres);
 	} else if (argc == 2) { // desktop display_id
-		xres = DEFAULT_XRES;
-		yres = DEFAULT_YRES;
+		int display_id = atoi(argv[1]);
+		if (display_get_preferred(display_id, &xres, &yres) < 0) {
+			fputs("desktop: display device not found\n", stderr);
+			exit(EXIT_FAILURE);
+		}
 		wm_args[1] = argv[1];
 	} else if (argc == 3) { // desktop xres yres
+		int display_id = display_find();
+		if (display_id < 0) {
+			fputs("desktop: no display device\n", stderr);
+			exit(EXIT_FAILURE);
+		}
 		xres = atoi(argv[1]);
 		yres = atoi(argv[2]);
 		wm_args[1] = argv[1];
