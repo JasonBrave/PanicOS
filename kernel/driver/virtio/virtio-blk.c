@@ -25,30 +25,8 @@
 
 #include "virtio-blk-regs.h"
 #include "virtio-blk.h"
-
-static void virtio_blk_intr(struct PCIDevice* pcidev) {
-	struct VirtioBlockDevice* dev = pcidev->private;
-	if (!dev) {
-		panic("invaild virtio block interrupt");
-	}
-
-	acquire(&dev->lock);
-	if (!(virtio_intr_ack(&dev->virtio_dev) & 1)) {
-		panic("virtio isr");
-	}
-	static unsigned short last = 0;
-	for (; last != dev->virtio_queue.used->idx; last++) {
-		unsigned int id =
-			dev->virtio_queue.used->ring[last % dev->virtio_queue.size].id;
-		volatile struct VirtqDesc* desc = &dev->virtio_queue.desc[id];
-		if (desc->flags & VIRTQ_DESC_F_NEXT) {
-			desc = &dev->virtio_queue.desc[desc->next];
-			wakeup(P2V((phyaddr_t)desc->addr));
-		}
-		virtio_free_desc(&dev->virtio_queue, id);
-	}
-	release(&dev->lock);
-}
+#include "virtio-regs.h"
+#include "virtio.h"
 
 static void virtio_blk_req(struct VirtioBlockDevice* dev, int type, unsigned int sect,
 						   unsigned int count, phyaddr_t dest, uint8_t* status) {
@@ -89,10 +67,10 @@ static void virtio_blk_req(struct VirtioBlockDevice* dev, int type, unsigned int
 
 	// do not sleep at boot time
 	if (myproc()) {
-		virtio_queue_notify(&dev->virtio_dev);
+		virtio_queue_notify(dev->virtio_dev, &dev->virtio_queue);
 		sleep(P2V(dest), &dev->lock);
 	} else {
-		virtio_queue_notify_wait(&dev->virtio_dev, &dev->virtio_queue);
+		virtio_queue_notify_wait(dev->virtio_dev, &dev->virtio_queue);
 	}
 }
 
@@ -147,47 +125,53 @@ static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
 	return dev;
 }
 
-static void virtio_blk_dev_init(struct PCIDevice* pcidev) {
-	const struct PciAddress* addr = &pcidev->addr;
-	// enable bus mastering
-	uint16_t pcicmd = pci_read_config_reg16(addr, 4);
-	pcicmd |= 4;
-	pci_write_config_reg16(addr, 4, pcicmd);
-	// allocate device
+static void virtio_blk_dev_init(struct VirtioDevice* virtio_dev,
+								unsigned int features) {
 	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
-	pcidev->private = dev;
-	// register PCI interrupt handler
-	pci_register_intr_handler(pcidev, virtio_blk_intr);
+	virtio_dev->private = dev;
+	dev->virtio_dev = virtio_dev;
+	volatile struct VirtioBlockConfig* blkcfg = dev->virtio_dev->devcfg;
 	// initialize lock
 	initlock(&dev->lock, "virtio-blk");
 	acquire(&dev->lock);
-	// allocate memory for queues
-	virtio_read_cap(addr, &dev->virtio_dev);
-	virtio_allocate_queue(&dev->virtio_queue);
-	virtio_set_feature(&dev->virtio_dev, VIRTIO_BLK_F_RO | VIRTIO_BLK_F_BLK_SIZE);
-	virtio_setup_queue(&dev->virtio_dev, &dev->virtio_queue, 0);
+	virtio_init_queue(dev->virtio_dev, &dev->virtio_queue, 0);
 	// print a message
-	cprintf("[virtio-blk] Virtio Block device %d:%d.%d capacity %d "
+	cprintf("[virtio-blk] Virtio Block device capacity %d "
 			"blk_size %d\n",
-			addr->bus, addr->device, addr->function,
-			(unsigned int)dev->virtio_dev.devcfg->capacity,
-			dev->virtio_dev.devcfg->blk_size);
+
+			(unsigned int)blkcfg->capacity, blkcfg->blk_size);
 	release(&dev->lock);
 	hal_block_register_device("virtio-blk", dev, &virtio_blk_block_driver);
 }
 
-const struct PCIDeviceID virtio_blk_device_id[] = {
-	{0x1af4, 0x1001}, // Legacy
-	{0x1af4, 0x1042}, // Modern
-	{},
-};
+static void virtio_blk_queue_intr(struct VirtioDevice* virtio_dev,
+								  unsigned int queue_n) {
+	struct VirtioBlockDevice* dev = virtio_dev->private;
 
-const struct PCIDriver virtio_blk_pci_driver = {
+	acquire(&dev->lock);
+	static unsigned short last = 0;
+	for (; last != dev->virtio_queue.used->idx; last++) {
+		unsigned int id =
+			dev->virtio_queue.used->ring[last % dev->virtio_queue.size].id;
+		volatile struct VirtqDesc* desc = &dev->virtio_queue.desc[id];
+		if (desc->flags & VIRTQ_DESC_F_NEXT) {
+			desc = &dev->virtio_queue.desc[desc->next];
+			wakeup(P2V((phyaddr_t)desc->addr));
+		}
+		virtio_free_desc(&dev->virtio_queue, id);
+	}
+	release(&dev->lock);
+}
+
+const struct VirtioDriver virtio_blk_virtio_driver = {
 	.name = "virtio-blk",
-	.match_table = virtio_blk_device_id,
+	.legacy_device_id = 0x1001,
+	.device_id = 2,
+	.features = VIRTIO_BLK_F_RO | VIRTIO_BLK_F_BLK_SIZE,
 	.init = virtio_blk_dev_init,
+	.queue_intr_handler = virtio_blk_queue_intr,
 };
 
 void virtio_blk_init(void) {
-	pci_register_driver(&virtio_blk_pci_driver);
+	virtio_register_driver(&virtio_blk_virtio_driver);
 }

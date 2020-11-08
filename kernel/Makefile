@@ -25,14 +25,14 @@ OBJS = \
 	proc/exec/elf.o\
 	driver/pci/pci.o\
 	driver/pci/intx.o\
-	driver/virtio-blk/virtio-blk.o\
+	driver/virtio/virtio-blk.o\
 	hal/block.o\
 	filesystem/fat32/mount.o\
 	filesystem/vfs/path.o\
 	filesystem/fat32/dir.o\
 	filesystem/fat32/cluster.o\
 	filesystem/fat32/fat.o\
-	driver/virtio-blk/virtio.o\
+	driver/virtio/virtio.o\
 	proc/exec/dynamic.o\
 	proc/kcall.o\
 	driver/bochs-display/bochs-display.o\

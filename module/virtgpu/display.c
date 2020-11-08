@@ -17,6 +17,8 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <klibc.h>
+
 #include "virtio-gpu.h"
 
 static void virtio_gpu_display_update(void* private) {
@@ -64,7 +66,8 @@ static unsigned int virtio_gpu_display_read_edid(void* private, void* buffer,
 struct FramebufferDriver virtio_gpu_fb_driver;
 
 void virtio_gpu_display_dev_init(struct VirtioGPUDevice* dev) {
-	dev->num_display = dev->virtio_dev.devcfg->num_scanouts;
+	volatile struct virtio_gpu_config* gpucfg = dev->virtio_dev->devcfg;
+	dev->num_display = gpucfg->num_scanouts;
 	struct virtio_gpu_display_one display_info[VIRTIO_GPU_MAX_SCANOUTS];
 	virtio_gpu_get_display_info(dev, display_info);
 	cprintf("[virtio-gpu] heads %d\n", dev->num_display);

@@ -20,20 +20,21 @@
 #include <kernel.h>
 #include <klibc.h>
 
-#include "libvirtio.h"
 #include "virtio-gpu-regs.h"
 #include "virtio-gpu.h"
 
-static void virtio_gpu_intr(struct PCIDevice* pcidev) {
-	struct VirtioGPUDevice* dev = pcidev->private;
+static void virtio_gpu_intr(struct VirtioDevice* virtio_dev, unsigned int queue_n) {
+	struct VirtioGPUDevice* dev = virtio_dev->private;
 	acquire(&dev->lock);
-	virtio_intr_ack(&dev->virtio_dev);
-	if (dev->virtio_dev.devcfg->events_read) {
-		cprintf("[virtio-gpu] event %x\n", dev->virtio_dev.devcfg->events_read);
-		dev->virtio_dev.devcfg->events_clear = dev->virtio_dev.devcfg->events_read;
-	}
-	static unsigned short last = 0;
-	for (; last != dev->controlq.used->idx; last++) {
+	volatile struct virtio_gpu_config* gpucfg = dev->virtio_dev->devcfg;
+	if (queue_n == 0) {
+		if (gpucfg->events_read) {
+			cprintf("[virtio-gpu] event %x\n", gpucfg->events_read);
+			gpucfg->events_clear = gpucfg->events_read;
+		}
+		static unsigned short last = 0;
+		for (; last != dev->controlq.used->idx; last++) {
+		}
 	}
 	release(&dev->lock);
 }
@@ -44,48 +45,44 @@ unsigned int virtio_gpu_alloc_resource_id(struct VirtioGPUDevice* dev) {
 	return id;
 }
 
-void virtio_gpu_init(struct PCIDevice* pcidev) {
-	// enable bus mastering
-	pci_enable_bus_mastering(&pcidev->addr);
+void virtio_gpu_init(struct VirtioDevice* virtio_dev, unsigned int features) {
 	// alloc dev
 	struct VirtioGPUDevice* dev = kalloc();
 	memset(dev, 0, sizeof(struct VirtioGPUDevice));
-	pcidev->private = dev;
+	virtio_dev->private = dev;
+	dev->virtio_dev = virtio_dev;
 	dev->res_id = 1; // assign resource_id from 1
-	// register PCI interrupt handler
-	pci_register_intr_handler(pcidev, virtio_gpu_intr);
 	// initialize lock
 	initlock(&dev->lock, "virtio-gpu");
 	acquire(&dev->lock);
-	// allocate memory for queues
-	virtio_read_cap(&pcidev->addr, &dev->virtio_dev);
-	virtio_allocate_queue(&dev->controlq);
-	virtio_allocate_queue(&dev->cursorq);
-	unsigned int feature = virtio_set_feature(&dev->virtio_dev, VIRTIO_GPU_F_EDID);
+	// initialize queues
+	virtio_init_queue(dev->virtio_dev, &dev->controlq, 0);
+	virtio_init_queue(dev->virtio_dev, &dev->cursorq, 1);
+
 	cprintf("[virtio-gpu] Feature 3D%s EDID%s UUID%s\n",
-			BOOL2SIGN(feature & VIRTIO_GPU_F_VIRGL),
-			BOOL2SIGN(feature & VIRTIO_GPU_F_EDID),
-			BOOL2SIGN(feature & VIRTIO_GPU_F_RESOURCE_UUID));
-	if (feature & VIRTIO_GPU_F_EDID) {
+			BOOL2SIGN(features & VIRTIO_GPU_F_VIRGL),
+			BOOL2SIGN(features & VIRTIO_GPU_F_EDID),
+			BOOL2SIGN(features & VIRTIO_GPU_F_RESOURCE_UUID));
+	if (features & VIRTIO_GPU_F_EDID) {
 		dev->features.edid = 1;
 	}
-	if (feature & VIRTIO_GPU_F_VIRGL) {
+	if (features & VIRTIO_GPU_F_VIRGL) {
 		dev->features.virgl = 1;
 	}
-	virtio_setup_queue(&dev->virtio_dev, &dev->controlq, 0);
-	virtio_setup_queue(&dev->virtio_dev, &dev->cursorq, 1);
 	release(&dev->lock);
 	virtio_gpu_display_dev_init(dev);
 }
 
-const struct PCIDeviceID virtio_gpu_device_id[] = {{0x1af4, 0x1050}, {}};
-
-struct PCIDriver virtio_gpu_pci_driver;
+static struct VirtioDriver virtio_gpu_virtio_driver;
 
 void module_init(void) {
-	virtio_gpu_pci_driver.name = "virtio-gpu";
-	virtio_gpu_pci_driver.match_table = virtio_gpu_device_id;
-	virtio_gpu_pci_driver.init = virtio_gpu_init;
+	virtio_gpu_virtio_driver.name = "virtio-gpu";
+	virtio_gpu_virtio_driver.legacy_device_id = 0; // no legacy variant
+	virtio_gpu_virtio_driver.device_id = 16;
+	virtio_gpu_virtio_driver.features = VIRTIO_GPU_F_EDID;
+	virtio_gpu_virtio_driver.init = virtio_gpu_init;
+	virtio_gpu_virtio_driver.uninit = 0;
+	virtio_gpu_virtio_driver.queue_intr_handler = virtio_gpu_intr;
 	virtio_gpu_display_global_init();
-	pci_register_driver(&virtio_gpu_pci_driver);
+	virtio_register_driver(&virtio_gpu_virtio_driver);
 }

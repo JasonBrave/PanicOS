@@ -30,7 +30,8 @@
 #include <driver/rtc.h>
 #include <driver/uart.h>
 #include <driver/usb/usb.h>
-#include <driver/virtio-blk/virtio-blk.h>
+#include <driver/virtio/virtio-blk.h>
+#include <driver/virtio/virtio.h>
 #include <filesystem/initramfs/initramfs.h>
 #include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
@@ -85,6 +86,7 @@ int main(void) {
 	uart_init();
 	// buses
 	pci_init();
+	virtio_init();
 	usb_init();
 	// kernel module
 	module_init();

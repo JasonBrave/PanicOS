@@ -20,6 +20,7 @@
 #include <common/spinlock.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <driver/virtio/virtio.h>
 #include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
 #include <proc/exec/elf.h>
@@ -169,6 +170,9 @@ static struct KernerServiceTable {
 	int (*pci_msi_enable)(const struct PciAddress*, int, int);
 	void (*pci_msi_disable)(const struct PciAddress*);
 	void (*pci_register_driver)(const struct PCIDriver*);
+	// driver/virtio/virtio.h
+	void (*virtio_register_driver)(const struct VirtioDriver*);
+	void (*virtio_init_queue)(struct VirtioDevice*, struct VirtioQueue*, int);
 	// hal/hal.h
 	void (*hal_block_register_device)(const char*, void*,
 									  const struct BlockDeviceDriver*);
@@ -207,6 +211,8 @@ void module_init(void) {
 	kernsrv->pci_msi_enable = pci_msi_enable;
 	kernsrv->pci_msi_disable = pci_msi_disable;
 	kernsrv->pci_register_driver = pci_register_driver;
+	kernsrv->virtio_register_driver = virtio_register_driver;
+	kernsrv->virtio_init_queue = virtio_init_queue;
 	kernsrv->hal_block_register_device = hal_block_register_device;
 	kernsrv->hal_display_register_device = hal_display_register_device;
 	kernsrv->hal_mouse_update = hal_mouse_update;

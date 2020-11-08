@@ -1,19 +1,21 @@
 #ifndef _VIRTIO_GPU_H
 #define _VIRTIO_GPU_H
 
-#include "libvirtio.h"
+#include <kernel.h>
+
+#include "virtio-gpu-regs.h"
 
 struct VirtioGPUDevice {
-	struct VirtioDevice virtio_dev;
+	struct VirtioDevice* virtio_dev;
 	struct VirtioQueue controlq;
 	struct VirtioQueue cursorq;
 	struct spinlock lock;
-	unsigned int res_id;
 	unsigned int num_display;
 	struct {
 		unsigned int edid : 1;
 		unsigned int virgl : 1;
 	} features;
+	unsigned int res_id;
 };
 
 struct VirtioGPUDisplay {

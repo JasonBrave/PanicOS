@@ -17,7 +17,8 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libvirtio.h"
+#include <klibc.h>
+
 #include "virtio-gpu-regs.h"
 #include "virtio-gpu.h"
 
@@ -49,7 +50,7 @@ int virtio_gpu_get_display_info(struct VirtioGPUDevice* dev,
 	dev->controlq.desc[desc[1]].next = 0;
 
 	virtio_queue_avail_insert(&dev->controlq, desc[0]);
-	virtio_queue_notify_wait(&dev->virtio_dev, &dev->controlq);
+	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	if (resp->hdr.type != VIRTIO_GPU_RESP_OK_DISPLAY_INFO) {
 		cprintf("[virtio-gpu] get display info failed with 0x%x\n", resp->hdr.type);
@@ -99,7 +100,7 @@ unsigned int virtio_gpu_get_edid(struct VirtioGPUDevice* dev, unsigned int scano
 	dev->controlq.desc[desc[1]].next = 0;
 
 	virtio_queue_avail_insert(&dev->controlq, desc[0]);
-	virtio_queue_notify_wait(&dev->virtio_dev, &dev->controlq);
+	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	if (resp->hdr.type != VIRTIO_GPU_RESP_OK_EDID) {
 		cprintf("[virtio-gpu] get edid info failed with 0x%x\n", resp->hdr.type);
@@ -153,7 +154,7 @@ void virtio_gpu_res_create_2d(struct VirtioGPUDevice* dev, unsigned int resource
 	dev->controlq.desc[desc[1]].next = 0;
 
 	virtio_queue_avail_insert(&dev->controlq, desc[0]);
-	virtio_queue_notify_wait(&dev->virtio_dev, &dev->controlq);
+	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
 	kfree((void*)resp);
@@ -195,7 +196,7 @@ void virtio_gpu_set_scanout(struct VirtioGPUDevice* dev, unsigned int scanout,
 	dev->controlq.desc[desc[1]].next = 0;
 
 	virtio_queue_avail_insert(&dev->controlq, desc[0]);
-	virtio_queue_notify_wait(&dev->virtio_dev, &dev->controlq);
+	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
 	kfree((void*)resp);
@@ -236,7 +237,7 @@ void virtio_gpu_flush(struct VirtioGPUDevice* dev, unsigned int resource_id,
 	dev->controlq.desc[desc[1]].next = 0;
 
 	virtio_queue_avail_insert(&dev->controlq, desc[0]);
-	virtio_queue_notify_wait(&dev->virtio_dev, &dev->controlq);
+	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
 	kfree((void*)resp);
@@ -278,7 +279,7 @@ void virtio_gpu_xfer_to_host_2d(struct VirtioGPUDevice* dev, unsigned int resour
 	dev->controlq.desc[desc[1]].next = 0;
 
 	virtio_queue_avail_insert(&dev->controlq, desc[0]);
-	virtio_queue_notify_wait(&dev->virtio_dev, &dev->controlq);
+	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
 	kfree((void*)resp);
@@ -325,7 +326,7 @@ void virtio_gpu_attach_banking(struct VirtioGPUDevice* dev, unsigned int resourc
 	dev->controlq.desc[desc[2]].next = 0;
 
 	virtio_queue_avail_insert(&dev->controlq, desc[0]);
-	virtio_queue_notify_wait(&dev->virtio_dev, &dev->controlq);
+	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
 	kfree(mement);
