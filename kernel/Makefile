@@ -56,6 +56,9 @@ OBJS = \
 	driver/ioapic.o\
 	driver/uart.o\
 	driver/rtc.o\
+	driver/usb/hub.o\
+	driver/usb/transfer.o\
+	driver/usb/request.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

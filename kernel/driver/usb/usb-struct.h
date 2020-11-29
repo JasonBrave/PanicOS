@@ -3,7 +3,15 @@
 
 #include <common/types.h>
 
-#define USB_REQUEST_TYPE_DEVICE_TO_HOST (1 << 7)
+#define USB_REQUEST_DIR_HOST_TO_DEVICE (0 << 7)
+#define USB_REQUEST_DIR_DEVICE_TO_HOST (1 << 7)
+#define USB_REQUEST_TYPE_STANDARD (0 << 5)
+#define USB_REQUEST_TYPE_CLASS (1 << 5)
+#define USB_REQUEST_TYPE_VENDOR (2 << 5)
+#define USB_REQUEST_RECP_DEVICE (0 << 0)
+#define USB_REQUEST_RECP_INTERFACE (1 << 0)
+#define USB_REQUEST_RECP_ENDPOINT (2 << 0)
+#define USB_REQUEST_RECP_OTHER (3 << 0)
 
 enum USBStandardRequest {
 	USB_REQUEST_GET_STATUS = 0,
