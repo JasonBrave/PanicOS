@@ -56,6 +56,8 @@ void pci_write_config_reg16(const struct PciAddress* addr, int reg, uint16_t dat
 void pci_write_config_reg32(const struct PciAddress* addr, int reg, uint32_t data);
 phyaddr_t pci_read_bar(const struct PciAddress* addr, int bar);
 size_t pci_read_bar_size(const struct PciAddress* addr, int bar);
+phyaddr_t pci_read_rom_bar(const struct PciAddress* addr);
+size_t pci_read_rom_bar_size(const struct PciAddress* addr);
 void pci_enable_bus_mastering(const struct PciAddress* addr);
 int pci_find_capability(const struct PciAddress* addr, uint8_t cap_id);
 struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor,
@@ -70,6 +72,7 @@ struct PciAddress* pci_next_class(struct PciAddress* pciaddr, uint8_t class,
 								  uint8_t subclass);
 struct PciAddress* pci_next_progif(struct PciAddress* pciaddr, uint8_t class,
 								   uint8_t subclass, uint8_t progif);
+void pci_enable_device(const struct PciAddress* addr);
 
 // intx.c
 void pci_interrupt(int irq);

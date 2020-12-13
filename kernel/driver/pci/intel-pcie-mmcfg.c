@@ -104,5 +104,5 @@ void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
 	pci_host.write16 = intel_mmcfg_write_config_reg16;
 	pci_host.write32 = intel_mmcfg_write_config_reg32;
 	pci_host.bus_num = num_bus;
-	pci_host.pcie_ecam_base = mmio_map_region(ecam_base, num_bus * 0x100000);
+	pci_host.pcie_ecam_base = map_mmio_region(ecam_base, num_bus * 0x100000);
 }

@@ -54,7 +54,7 @@ static void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* 
 			}
 		}
 	} while ((capptr = pci_read_config_reg8(addr, capptr + 1)) != 0);
-	volatile void* mmio_region = mmio_map_region(pci_read_bar(addr, mmio_bar),
+	volatile void* mmio_region = map_mmio_region(pci_read_bar(addr, mmio_bar),
 												 pci_read_bar_size(addr, mmio_bar));
 	dev->cmcfg = mmio_region + cmcfg_off;
 	dev->notify_begin = mmio_region + notify_off;

@@ -20,6 +20,7 @@
 #include <common/spinlock.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <driver/usb/usb.h>
 #include <driver/virtio/virtio.h>
 #include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
@@ -144,6 +145,9 @@ static struct KernerServiceTable {
 	void (*panic)(const char*);
 	void* (*pgalloc)(unsigned int);
 	void (*pgfree)(void*, unsigned int);
+	void* (*map_mmio_region)(phyaddr_t, size_t);
+	void* (*map_ram_region)(phyaddr_t, size_t);
+	void* (*map_rom_region)(phyaddr_t, size_t);
 	// process control
 	void (*sleep)(void*, struct spinlock*);
 	void (*wakeup)(void*);
@@ -160,6 +164,8 @@ static struct KernerServiceTable {
 	void (*pci_write_config_reg32)(const struct PciAddress*, int, uint32_t);
 	phyaddr_t (*pci_read_bar)(const struct PciAddress*, int);
 	size_t (*pci_read_bar_size)(const struct PciAddress*, int);
+	phyaddr_t (*pci_read_rom_bar)(const struct PciAddress*);
+	size_t (*pci_read_rom_bar_size)(const struct PciAddress*);
 	void (*pci_enable_bus_mastering)(const struct PciAddress*);
 	int (*pci_find_capability)(const struct PciAddress*, uint8_t);
 	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
@@ -173,6 +179,21 @@ static struct KernerServiceTable {
 	// driver/virtio/virtio.h
 	void (*virtio_register_driver)(const struct VirtioDriver*);
 	void (*virtio_init_queue)(struct VirtioDevice*, struct VirtioQueue*, int);
+	// driver/usb/usb.h
+	void (*usb_register_host_controller)(void*, const char*, unsigned int,
+										 const struct USBHostControllerDriver*);
+	void (*usb_register_driver)(const struct USBDriver* r);
+	enum USBTransferStatus (*usb_control_transfer_in)(struct USBBus*, unsigned int,
+													  unsigned int, void*, void*, int);
+	enum USBTransferStatus (*usb_control_transfer_nodata)(struct USBBus*, unsigned int,
+														  unsigned int, void*);
+	int (*usb_get_standard_descriptor)(struct USBDevice*, unsigned int, unsigned int,
+									   void*, unsigned int);
+	int (*usb_get_class_descriptor)(struct USBDevice*, unsigned int, unsigned int,
+									void*, unsigned int);
+	int (*usb_get_device_descriptor)(struct USBDevice*);
+	int (*usb_get_configuration_descriptor)(struct USBDevice*, unsigned int, uint8_t*);
+	int (*usb_set_configuration)(struct USBDevice*, uint8_t);
 	// hal/hal.h
 	void (*hal_block_register_device)(const char*, void*,
 									  const struct BlockDeviceDriver*);
@@ -188,6 +209,9 @@ void module_init(void) {
 	kernsrv->panic = panic;
 	kernsrv->pgalloc = pgalloc;
 	kernsrv->pgfree = pgfree;
+	kernsrv->map_mmio_region = map_mmio_region;
+	kernsrv->map_ram_region = map_ram_region;
+	kernsrv->map_rom_region = map_rom_region;
 	kernsrv->sleep = sleep;
 	kernsrv->wakeup = wakeup;
 	kernsrv->initlock = initlock;
@@ -201,6 +225,8 @@ void module_init(void) {
 	kernsrv->pci_write_config_reg32 = pci_write_config_reg32;
 	kernsrv->pci_read_bar = pci_read_bar;
 	kernsrv->pci_read_bar_size = pci_read_bar_size;
+	kernsrv->pci_read_rom_bar = pci_read_rom_bar;
+	kernsrv->pci_read_rom_bar_size = pci_read_rom_bar_size;
 	kernsrv->pci_enable_bus_mastering = pci_enable_bus_mastering;
 	kernsrv->pci_find_capability = pci_find_capability;
 	kernsrv->pci_register_intr_handler = pci_register_intr_handler;
@@ -213,6 +239,15 @@ void module_init(void) {
 	kernsrv->pci_register_driver = pci_register_driver;
 	kernsrv->virtio_register_driver = virtio_register_driver;
 	kernsrv->virtio_init_queue = virtio_init_queue;
+	kernsrv->usb_register_host_controller = usb_register_host_controller;
+	kernsrv->usb_register_driver = usb_register_driver;
+	kernsrv->usb_control_transfer_in = usb_control_transfer_in;
+	kernsrv->usb_control_transfer_nodata = usb_control_transfer_nodata;
+	kernsrv->usb_get_standard_descriptor = usb_get_standard_descriptor;
+	kernsrv->usb_get_class_descriptor = usb_get_class_descriptor;
+	kernsrv->usb_get_device_descriptor = usb_get_device_descriptor;
+	kernsrv->usb_get_configuration_descriptor = usb_get_configuration_descriptor;
+	kernsrv->usb_set_configuration = usb_set_configuration;
 	kernsrv->hal_block_register_device = hal_block_register_device;
 	kernsrv->hal_display_register_device = hal_display_register_device;
 	kernsrv->hal_mouse_update = hal_mouse_update;

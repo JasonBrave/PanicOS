@@ -21,6 +21,8 @@
 // https://github.com/qemu/qemu/blob/master/docs/specs/edu.txt
 
 #include <kernel.h>
+#include <memory.h>
+#include <pci.h>
 
 #define EDU_USE_MSI
 
@@ -62,7 +64,7 @@ void edu_msi_intr(void* private) {
 void edu_init_dev(struct PCIDevice* pcidev) {
 	const struct PciAddress* addr = &pcidev->addr;
 	struct EduDevice* dev = kalloc();
-	dev->mmio = mmio_map_region(pci_read_bar(addr, 0), 0x100000);
+	dev->mmio = map_mmio_region(pci_read_bar(addr, 0), 0x100000);
 	cprintf("[edu] Version %x\n", dev->mmio->id);
 	// legacy interrupt handler
 	pcidev->private = dev;

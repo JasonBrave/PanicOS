@@ -407,3 +407,22 @@ pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin,
 	}
 	return newpgdir;
 }
+
+// map physical memory to virtual memory
+static void* map_region(phyaddr_t phyaddr, size_t size) {
+	if (phyaddr < DEVSPACE)
+		panic("map_region: phyaddr not within DEVSPACE");
+	return (void*)phyaddr;
+}
+
+void* map_mmio_region(phyaddr_t phyaddr, size_t size) {
+	return map_region(phyaddr, size);
+}
+
+void* map_ram_region(phyaddr_t phyaddr, size_t size) {
+	return map_region(phyaddr, size);
+}
+
+void* map_rom_region(phyaddr_t phyaddr, size_t size) {
+	return map_region(phyaddr, size);
+}

@@ -18,6 +18,8 @@
  */
 
 #include <klibc.h>
+#include <memory.h>
+#include <virtio.h>
 
 #include "virtio-gpu-regs.h"
 #include "virtio-gpu.h"

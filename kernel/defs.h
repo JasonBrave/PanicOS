@@ -136,15 +136,11 @@ void clearpteu(pde_t* pgdir, char* uva);
 int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int perm);
 pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin,
 				 unsigned int end);
+void* map_mmio_region(phyaddr_t phyaddr, size_t size);
+void* map_ram_region(phyaddr_t phyaddr, size_t size);
+void* map_rom_region(phyaddr_t phyaddr, size_t size);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
-
-// map physical memory to virtual memory
-static inline volatile void* mmio_map_region(phyaddr_t phyaddr, size_t size) {
-	if (phyaddr < DEVSPACE)
-		panic("phyaddr < DEVSPACE");
-	return (volatile void*)phyaddr;
-}
 
 #endif

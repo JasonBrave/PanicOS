@@ -17,7 +17,10 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <hal.h>
 #include <klibc.h>
+#include <memory.h>
+#include <virtio.h>
 
 #include "virtio-gpu.h"
 

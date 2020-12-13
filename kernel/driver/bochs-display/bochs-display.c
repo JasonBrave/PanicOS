@@ -128,7 +128,7 @@ static void bochs_display_dev_init(struct PCIDevice* pcidev) {
 	phyaddr_t mmio_bar = 0;
 	if (bochs_display_is_qemu_stdvga(addr)) {
 		mmio_bar = pci_read_bar(addr, 2);
-		volatile void* mmio_base = mmio_map_region(mmio_bar, 4096);
+		volatile void* mmio_base = map_mmio_region(mmio_bar, 4096);
 		dev->edid_blob = mmio_base;
 		dev->mmio = mmio_base + BOCHS_DISPLAY_MMIO_OFFSET;
 	}

@@ -112,20 +112,14 @@ phyaddr_t pci_read_bar(const struct PciAddress* addr, int bar) {
 	} else { // Memory BAR
 		if ((bar_val & 6) == 4) { // 64 bits
 			if (pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4 + 4) != 0) {
-				panic("PCI BAR > 4G");
-			} else if ((bar_val & 0xfffffff0) < DEVSPACE) {
-				panic("PCI BAR < DEVSPACE");
+				return 0; // for BAR above 4G, pretend not exist
 			}
-			return bar_val & 0xfffffff0;
-		} else { // 32 bits
-			if ((bar_val & 0xfffffff0) < DEVSPACE) {
-				panic("PCI BAR < DEVSPACE");
-			}
-			return bar_val & 0xfffffff0;
 		}
+		return bar_val & 0xfffffff0;
 	}
 }
 
+// TODO: Support 64-bits BAR
 size_t pci_read_bar_size(const struct PciAddress* addr, int bar) {
 	size_t bar_size;
 	uint32_t oldbar = pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4);
@@ -139,6 +133,22 @@ size_t pci_read_bar_size(const struct PciAddress* addr, int bar) {
 	}
 	pci_write_config_reg32(addr, PCI_CONF_BAR + bar * 4, oldbar);
 	return bar_size;
+}
+
+phyaddr_t pci_read_rom_bar(const struct PciAddress* addr) {
+	uint32_t rombar = pci_read_config_reg32(addr, PCI_CONF_ROM_BAR);
+	if ((rombar & 1) == 0) { // enable if necessary
+		pci_write_config_reg32(addr, PCI_CONF_ROM_BAR, rombar | 1);
+	}
+	return rombar & 0xfffff800;
+}
+
+size_t pci_read_rom_bar_size(const struct PciAddress* addr) {
+	uint32_t rombar = pci_read_config_reg32(addr, PCI_CONF_ROM_BAR);
+	pci_write_config_reg32(addr, PCI_CONF_ROM_BAR, 0xfffff800);
+	uint32_t val = pci_read_config_reg32(addr, PCI_CONF_ROM_BAR);
+	pci_write_config_reg32(addr, PCI_CONF_ROM_BAR, rombar);
+	return ~(val & 0xfffff800) + 1;
 }
 
 void pci_enable_bus_mastering(const struct PciAddress* addr) {
@@ -287,4 +297,10 @@ struct PciAddress* pci_next_progif(struct PciAddress* pciaddr, uint8_t class,
 		addr.device = 0;
 	}
 	return 0;
+}
+
+void pci_enable_device(const struct PciAddress* addr) {
+	uint16_t pcicmd = pci_read_config_reg16(addr, PCI_CONF_COMMAND);
+	pcicmd |= (PCI_CONTROL_IO_SPACE | PCI_CONTROL_MEMORY_SPACE);
+	pci_write_config_reg16(addr, PCI_CONF_COMMAND, pcicmd);
 }
