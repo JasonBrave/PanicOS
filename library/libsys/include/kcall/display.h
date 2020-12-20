@@ -28,12 +28,14 @@ enum DisplayKCallOp {
 	DISPLAY_KCALL_OP_FIND = 2,
 	DISPLAY_KCALL_OP_GET_PREFERRED = 3,
 	DISPLAY_KCALL_OP_UPDATE = 4,
+	DISPLAY_KCALL_OP_GET_NAME = 5,
 };
 
 #define DISPLAY_KCALL_FLAG_NEED_UPDATE (1 << 0)
 
 struct DisplayKcall {
 	enum DisplayKCallOp op;
+	char* str;
 	unsigned int display_id;
 	unsigned int xres;
 	unsigned int yres;
@@ -94,6 +96,15 @@ static inline void display_update(unsigned int display_id) {
 		.display_id = display_id,
 	};
 	kcall("display", (unsigned int)&d);
+}
+
+static inline int display_get_name(unsigned int display_id, char* name) {
+	struct DisplayKcall d = {
+		.op = DISPLAY_KCALL_OP_GET_NAME,
+		.display_id = display_id,
+		.str = name,
+	};
+	return kcall("display", (unsigned int)&d);
 }
 
 #endif

@@ -11,10 +11,21 @@
 .globl multiboot_header
 multiboot_header:
 	#define magic 0x1badb002
-	#define flags 0
+	#define flags 4
 	.long magic
 	.long flags
 	.long (-magic-flags)
+# address field
+ 	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+# graphic field vga text
+	.long 1
+	.long 0
+	.long 0
+	.long 0
 
 # Entering xv6 on boot processor, with paging off.
 .globl _start
@@ -23,6 +34,8 @@ _start:
 	lgdt gdtdesc - KERNBASE
 	ljmp $(SEG_KCODE << 3), $(entry - KERNBASE)
 entry:
+	movl	%eax, %esi
+	movl	%ebx, %edi
 	# Set up the protected-mode data segment registers
 	movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
 	movw    %ax, %ds                # -> DS: Data Segment
@@ -50,8 +63,10 @@ entry:
 	# high addresses. The indirect call is needed because
 	# the assembler produces a PC-relative instruction
 	# for a direct jump.
-	mov $main, %eax
-	jmp *%eax
+	pushl	%edi
+	pushl	%esi
+	mov		$kmain, %eax
+	call	*%eax
 
 # Bootstrap GDT
 .section .rodata

@@ -31,17 +31,23 @@
 #include <memlayout.h>
 #include <param.h>
 
+#include "font.h"
+
 // comment of the following lines for release build
 #define USE_DEBUGCON
 #define DEBUGCON_ADDR 0xe9
 
 static void consputc(int);
+static void fb_putc(int c);
 
 static int panicked = 0;
 
 static struct {
 	struct spinlock lock;
 	int locking;
+	uint32_t* fb;
+	uint32_t width, height;
+	enum { CONS_VGA, CONS_FB } mode;
 } cons;
 
 static void printint(int xx, int base, int sign) {
@@ -161,6 +167,10 @@ static void cgaputc(int c) {
 		memset(crt + pos, 0, sizeof(crt[0]) * (24 * 80 - pos));
 	}
 
+	outb(CRTPORT, 14);
+	outb(CRTPORT + 1, pos >> 8);
+	outb(CRTPORT, 15);
+	outb(CRTPORT + 1, pos);
 	crt[pos] = ' ' | 0x0700;
 }
 
@@ -175,9 +185,14 @@ void consputc(int c) {
 		uart_putc('\b');
 		uart_putc(' ');
 		uart_putc('\b');
-	} else
+	} else {
 		uart_putc(c);
-	cgaputc(c);
+	}
+	if (cons.mode == CONS_VGA) {
+		cgaputc(c);
+	} else if (cons.mode == CONS_FB) {
+		fb_putc(c);
+	}
 #ifdef USE_DEBUGCON
 	outb(DEBUGCON_ADDR, c);
 #endif
@@ -262,17 +277,126 @@ int consoleread(char* dst, int n) {
 }
 
 int consolewrite(char* buf, int n) {
-	int i;
-
 	acquire(&cons.lock);
-	for (i = 0; i < n; i++)
+	for (int i = 0; i < n; i++)
 		consputc(buf[i] & 0xff);
 	release(&cons.lock);
 
 	return n;
 }
 
-void consoleinit(void) {
+void vgacon_init(void) {
 	initlock(&cons.lock, "console");
 	cons.locking = 1;
+	cons.mode = CONS_VGA;
+	memset(P2V(0xb8000), 0, 0x8000);
+}
+
+void fbcon_init(phyaddr_t fb_addr, unsigned int width, unsigned int height) {
+	initlock(&cons.lock, "console");
+	cons.locking = 1;
+	cons.fb = map_ram_region(fb_addr, width * height * 4);
+	if (!cons.fb) {
+		panic("fbcon mmap failed");
+	}
+	cons.width = width;
+	cons.height = height;
+	cons.mode = CONS_FB;
+	memset(cons.fb, 0, width * height * 4);
+}
+
+#define BLACK 0
+#define WHITE 0xffffff
+
+static void fbcon_drawchar(int x, int y, char c) {
+	for (int i = 0; i < 16; i++) {
+		uint32_t* p = cons.fb + (y + i) * cons.width + x;
+		if (font16[c * 16 + i] & 1) {
+			p[7] = WHITE;
+		} else {
+			p[7] = BLACK;
+		}
+		if (font16[c * 16 + i] & 2) {
+			p[6] = WHITE;
+		} else {
+			p[6] = BLACK;
+		}
+		if (font16[c * 16 + i] & 4) {
+			p[5] = WHITE;
+		} else {
+			p[5] = BLACK;
+		}
+		if (font16[c * 16 + i] & 8) {
+			p[4] = WHITE;
+		} else {
+			p[4] = BLACK;
+		}
+		if (font16[c * 16 + i] & 16) {
+			p[3] = WHITE;
+		} else {
+			p[3] = BLACK;
+		}
+		if (font16[c * 16 + i] & 32) {
+			p[2] = WHITE;
+		} else {
+			p[2] = BLACK;
+		}
+		if (font16[c * 16 + i] & 64) {
+			p[1] = WHITE;
+		} else {
+			p[1] = BLACK;
+		}
+		if (font16[c * 16 + i] & 128) {
+			p[0] = WHITE;
+		} else {
+			p[0] = BLACK;
+		}
+	}
+}
+
+static inline void fastmemcpy32(void* dest, const void* src, int cnt) {
+	uint32_t* d = dest;
+	const uint32_t* s = src;
+	for (int i = 0; i < cnt; i++) {
+		d[i] = s[i];
+	}
+}
+
+static void fb_putc(int c) {
+	static unsigned int xpos = 0, ypos = 0;
+	if (c == '\n') {
+		fbcon_drawchar(xpos * 8, ypos * 16, ' ');
+		xpos = 0;
+		ypos++;
+		if (ypos >= cons.height / 16) {
+			for (unsigned int i = 0; i < cons.height / 16; i++) {
+				fastmemcpy32(cons.fb + i * cons.width * 16,
+							 cons.fb + (i + 1) * cons.width * 16, cons.width * 16);
+			}
+			ypos--;
+		}
+	} else if (c == BACKSPACE) {
+		fbcon_drawchar(xpos * 8, ypos * 16, ' ');
+		if (xpos == 0) {
+			ypos--;
+			xpos = cons.width / 8 - 1;
+		} else {
+			xpos--;
+		}
+	} else {
+		fbcon_drawchar(xpos * 8, ypos * 16, c);
+		xpos++;
+	}
+	if (xpos * 8 + 8 > cons.width) {
+		xpos = 0;
+		ypos++;
+		if (ypos >= cons.height / 16) {
+			for (unsigned int i = 0; i < cons.height / 16; i++) {
+				fastmemcpy32(cons.fb + i * cons.width * 16,
+							 cons.fb + (i + 1) * cons.width * 16, cons.width * 16);
+			}
+			ypos--;
+		}
+	}
+	fbcon_drawchar(xpos * 8, ypos * 16, '_');
 }

@@ -16,7 +16,8 @@ extern struct ProcTable {
 } ptable;
 
 // console.c
-void consoleinit(void);
+void vgacon_init(void);
+void fbcon_init(phyaddr_t fb_addr, unsigned int width, unsigned int height);
 void cprintf(const char*, ...);
 void consoleintr(int (*)(void));
 void panic(const char*) __attribute__((noreturn));
@@ -142,5 +143,15 @@ void* map_rom_region(phyaddr_t phyaddr, size_t size);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
+
+extern struct BootGraphicsMode {
+	enum {
+		BOOT_GRAPHICS_MODE_VGA_TEXT,
+		BOOT_GRAPHICS_MODE_FRAMEBUFFER,
+		BOOT_GRAPHICS_MODE_HEADLESS,
+	} mode;
+	unsigned int width, height;
+	phyaddr_t fb_addr;
+} boot_graphics_mode;
 
 #endif

@@ -29,6 +29,7 @@
 
 struct FramebufferDevice {
 	const struct FramebufferDriver* driver;
+	const char* name;
 	void* private;
 	unsigned int preferred_xres, preferred_yres;
 	unsigned int maximum_xres, maximum_yres;
@@ -64,12 +65,15 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 		DISPLAY_KCALL_OP_FIND = 2,
 		DISPLAY_KCALL_OP_GET_PREFERRED = 3,
 		DISPLAY_KCALL_OP_UPDATE = 4,
+		DISPLAY_KCALL_OP_GET_NAME = 5,
 	};
 
 #define DISPLAY_KCALL_FLAG_NEED_UPDATE (1 << 0)
+#define DISPLAY_ID_BOOT_FRAMEBUFFER 0xB005FB
 
 	struct DisplayKcall {
 		enum DisplayKCallOp op;
+		char* str;
 		unsigned int display_id;
 		unsigned int xres;
 		unsigned int yres;
@@ -79,7 +83,14 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 
 	switch (dc->op) {
 	case DISPLAY_KCALL_OP_ENABLE:
-		if (framebuffer_device[dc->display_id].driver) {
+		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+			boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+			mappages(myproc()->pgdir, (void*)PROC_MMAP_BOTTOM, 16 * 1024 * 1024,
+					 boot_graphics_mode.fb_addr, PTE_U | PTE_W);
+			dc->framebuffer = (void*)PROC_MMAP_BOTTOM;
+			dc->flag = 0;
+			return 0;
+		} else if (framebuffer_device[dc->display_id].driver) {
 			if (dc->xres > framebuffer_device[dc->display_id].maximum_xres ||
 				dc->yres > framebuffer_device[dc->display_id].maximum_yres) {
 				return ERROR_INVAILD;
@@ -96,7 +107,11 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 		}
 		break;
 	case DISPLAY_KCALL_OP_DISABLE:
-		if (framebuffer_device[dc->display_id].driver) {
+		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+			boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+			cprintf("[display] boot-framebuffer disable unsupported");
+			return ERROR_INVAILD;
+		} else if (framebuffer_device[dc->display_id].driver) {
 			framebuffer_device[dc->display_id].driver->disable(
 				framebuffer_device[dc->display_id].private);
 			return 0;
@@ -109,10 +124,19 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 				return 0;
 			}
 		}
+		if (boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+			dc->display_id = DISPLAY_ID_BOOT_FRAMEBUFFER;
+			return 0;
+		}
 		return ERROR_NOT_EXIST;
 		break;
 	case DISPLAY_KCALL_OP_GET_PREFERRED:
-		if (framebuffer_device[dc->display_id].driver) {
+		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+			boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+			dc->xres = boot_graphics_mode.width;
+			dc->yres = boot_graphics_mode.height;
+			return 0;
+		} else if (framebuffer_device[dc->display_id].driver) {
 			dc->xres = framebuffer_device[dc->display_id].preferred_xres;
 			dc->yres = framebuffer_device[dc->display_id].preferred_yres;
 			return 0;
@@ -121,8 +145,12 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 		}
 		break;
 	case DISPLAY_KCALL_OP_UPDATE:
-		if (framebuffer_device[dc->display_id].driver &&
-			framebuffer_device[dc->display_id].driver->update) {
+		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+			boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+			cprintf("[display] boot-framebuffer update unsupported");
+			return ERROR_INVAILD;
+		} else if (framebuffer_device[dc->display_id].driver &&
+				   framebuffer_device[dc->display_id].driver->update) {
 			framebuffer_device[dc->display_id].driver->update(
 				framebuffer_device[dc->display_id].private);
 			return 0;
@@ -130,6 +158,18 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 			return ERROR_NOT_EXIST;
 		}
 		break;
+	case DISPLAY_KCALL_OP_GET_NAME:
+		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+			boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+			strncpy(dc->str, "boot-framebuffer", 64);
+			return 0;
+		} else if (framebuffer_device[dc->display_id].driver &&
+				   framebuffer_device[dc->display_id].name) {
+			strncpy(dc->str, framebuffer_device[dc->display_id].name, 64);
+			return 0;
+		} else {
+			return ERROR_NOT_EXIST;
+		}
 	}
 	return ERROR_INVAILD;
 }
@@ -154,6 +194,7 @@ void hal_display_register_device(const char* name, void* private,
 	cprintf("[hal] Display device %d %s update%s edid%s\n", devid, name,
 			BOOL2SIGN((int)driver->update), BOOL2SIGN((int)driver->read_edid));
 	dev->driver = driver;
+	dev->name = name;
 	dev->private = private;
 	dev->preferred_xres = 1024;
 	dev->preferred_yres = 768;

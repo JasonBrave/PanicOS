@@ -509,6 +509,13 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 	unsigned int flag;
+	char display_name[64];
+	if (display_get_name(display_id, display_name) != 0) {
+		fputs("wm: display get name failed\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+	printf("wm: enable display %d %s %dx%d @ %dbpp\n", display_id, display_name, xres,
+		   yres, 32);
 	fb = display_enable(display_id, xres, yres, &flag);
 	if (!fb) {
 		fputs("wm: enable display failed\n", stderr);

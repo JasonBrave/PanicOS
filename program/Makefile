@@ -11,7 +11,6 @@ all:
 	$(MAKE) -C rm install
 	$(MAKE) -C about install
 	$(MAKE) -C kmod install
-	$(MAKE) -C fbcon install
 	$(MAKE) -C lspci install
 	$(MAKE) -C reboot install
 	$(MAKE) -C shutdown install
@@ -31,7 +30,6 @@ clean:
 	$(MAKE) -C rm clean
 	$(MAKE) -C about clean
 	$(MAKE) -C kmod clean
-	$(MAKE) -C fbcon clean
 	$(MAKE) -C lspci clean
 	$(MAKE) -C reboot clean
 	$(MAKE) -C shutdown clean

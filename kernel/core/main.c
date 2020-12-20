@@ -40,23 +40,93 @@
 #include <proc/kcall.h>
 #include <proc/pty.h>
 
+#include "multiboot.h"
+
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
 extern pde_t* kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
+struct BootGraphicsMode boot_graphics_mode;
+
 // Bootstrap processor starts running C code here.
 // Allocate a real stack and switch to it, first
 // doing some setup required for memory allocator to work.
-int main(void) {
+void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	kinit1(end, P2V(4 * 1024 * 1024)); // phys page allocator
 	kvmalloc(); // kernel page table
 	cprintf("PanicOS alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
+	if (mb_sig == 0x2BADB002 && mb_addr < 0x100000) {
+		cprintf("[multiboot] Multiboot bootloader detected, info at %x\n", mb_addr);
+		struct multiboot_info* mbinfo = P2V(mb_addr);
+		if ((mbinfo->flags & (1 << 6)) && mbinfo->mmap_addr < 0x100000) { // memory map
+			unsigned long long memory_size = 0;
+			cprintf("[multiboot] Memory map addr %x length %d\n", mbinfo->mmap_addr,
+					mbinfo->mmap_length);
+			struct multiboot_mmap_entry* mmap = P2V(mbinfo->mmap_addr);
+			for (unsigned int off = 0; off < mbinfo->mmap_length;
+				 off += (mmap->size + sizeof(mmap->size))) {
+				mmap = P2V(mbinfo->mmap_addr + off);
+				cprintf("[multiboot] MMAP %x %x - %x %x type %d\n", mmap->addr,
+						mmap->addr + mmap->len - 1, mmap->type);
+				if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
+					memory_size += mmap->len;
+				}
+			}
+			cprintf("[multiboot] Memory size %d MiB\n", memory_size / (1024 * 1024));
+		}
+		if (mbinfo->flags & (1 << 12)) { // video mode
+			switch (mbinfo->framebuffer_type) {
+			case MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT:
+				cprintf("[multiboot] VGA text mode\n");
+				boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
+				break;
+			case MULTIBOOT_FRAMEBUFFER_TYPE_RGB:
+				cprintf("[multiboot] framebuffer addr %x hi %x pitch %d width %d "
+						"height %d bpp %d\n",
+						mbinfo->framebuffer_addr, mbinfo->framebuffer_pitch,
+						mbinfo->framebuffer_width, mbinfo->framebuffer_height,
+						mbinfo->framebuffer_bpp);
+				if (mbinfo->framebuffer_addr >=
+					(unsigned long long)4 * 1024 * 1024 * 1024) {
+					cprintf("[multiboot] Warning mbinfo->framebuffer_addr >= 4GB");
+					boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_HEADLESS;
+				} else {
+					boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_FRAMEBUFFER;
+					boot_graphics_mode.width = mbinfo->framebuffer_width;
+					boot_graphics_mode.height = mbinfo->framebuffer_height;
+					boot_graphics_mode.fb_addr = mbinfo->framebuffer_addr;
+				}
+				if (mbinfo->framebuffer_bpp != 32) {
+					cprintf("[multiboot] Warning mbinfo->framebuffer_bpp != 32");
+				}
+				if (mbinfo->framebuffer_pitch != mbinfo->framebuffer_width * 4) {
+					cprintf("[multiboot] Warning mbinfo->framebuffer_pitch != "
+							"mbinfo->framebuffer_width * 4");
+				}
+				break;
+			default:
+				cprintf("[multiboot] unknown multiboot graphics mode %d, assuming VGA "
+						"mode\n",
+						mbinfo->framebuffer_type);
+				boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
+			}
+		} else { // graphics mode not given
+			cprintf("[multiboot] graphics mode not given, assuming VGA "
+					"mode\n");
+			boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
+		}
+	}
 	mpinit(); // detect other processors
 	lapicinit(); // interrupt controller
 	seginit(); // segment descriptors
 	picinit(); // disable legacy PIC
-	consoleinit(); // console hardware
+	if (boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+		fbcon_init(boot_graphics_mode.fb_addr, boot_graphics_mode.width,
+				   boot_graphics_mode.height);
+	} else {
+		vgacon_init();
+	}
 	pinit(); // process table
 	tvinit(); // trap vectors
 	cprintf("[cpu] starting other cpus\n");

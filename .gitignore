@@ -12,7 +12,6 @@ program/about/about
 program/cat/cat
 program/desktop/desktop
 program/dir/dir
-program/fbcon/fbcon
 program/init/init
 program/kmod/kmod
 program/lscpu/lscpu
