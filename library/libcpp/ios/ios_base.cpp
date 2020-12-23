@@ -21,7 +21,7 @@
 #include <iostream>
 #include <streambuf>
 
-std::ios_base::ios_base() {}
+std::ios_base::ios_base() : format_flag(std::ios_base::dec) {}
 
 std::ios_base::~ios_base() {
 	if (callback_func) {

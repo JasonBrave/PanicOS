@@ -38,20 +38,32 @@ namespace std {
 
 		ios_base(const ios_base&) = delete;
 		virtual ~ios_base();
+		// types
+		typedef unsigned int fmtflags;
+		static constexpr fmtflags dec = (1 << 0);
+		static constexpr fmtflags oct = (1 << 1);
+		static constexpr fmtflags hex = (1 << 2);
+		static constexpr fmtflags basefield = dec | oct | hex;
+		// formatting
+		fmtflags flags() const;
+		fmtflags flags(fmtflags flags);
+		fmtflags setf(fmtflags flags);
+		fmtflags setf(fmtflags flags, fmtflags mask);
+		void unsetf(fmtflags flags);
 		// miscellaneous
 		void register_callback(event_callback function, int index);
 		static bool sync_with_stdio(bool sync = true);
 
 	protected:
 		ios_base();
+		fmtflags format_flag;
 
 	private:
 		event_callback callback_func = nullptr;
 		int callback_index = 0;
 	};
 
-	template <class CharT, class Traits>
-	class basic_ios : public std::ios_base {
+	template <class CharT, class Traits> class basic_ios : public std::ios_base {
 	public:
 		typedef CharT char_type;
 		typedef Traits traits_type;
@@ -70,8 +82,7 @@ namespace std {
 			return strbuf;
 		}
 
-		std::basic_streambuf<CharT, Traits>*
-		rdbuf(std::basic_streambuf<CharT, Traits>* sb) {
+		std::basic_streambuf<CharT, Traits>* rdbuf(std::basic_streambuf<CharT, Traits>* sb) {
 			auto prev = strbuf;
 			strbuf = sb;
 			return prev;
@@ -92,6 +103,10 @@ namespace std {
 
 		std::basic_streambuf<CharT, Traits>* strbuf = nullptr;
 	};
+
+	ios_base& dec(std::ios_base& str);
+	ios_base& hex(std::ios_base& str);
+	ios_base& oct(std::ios_base& str);
 } // namespace std
 
 #endif

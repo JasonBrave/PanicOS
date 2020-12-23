@@ -4,7 +4,7 @@ CFLAGS += -I../../library/libsys/include -I../../library/libc/include \
 $(APP): $(OBJS)
 	$(LD) -L../../library -rpath-link=../../library -I/lib/ld.so -e _start \
 	-u _dl_fini -Ttext-segment=0 -o $(APP) $(OBJS) ../../library/crt/crt0.o \
-	$(LIB) -lposix -lc -lsys
+	$(LIB) -lposix -lc -lsys $(shell $(CC) -print-libgcc-file-name)
 
 %.o : %.asm
 	nasm -felf32 $< -o $@
