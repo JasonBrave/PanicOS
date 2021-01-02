@@ -20,6 +20,7 @@
 #include <common/errorcode.h>
 #include <defs.h>
 
+#include "pci-config.h"
 #include "pci.h"
 
 struct PciKcall {
@@ -27,10 +28,16 @@ struct PciKcall {
 #define PCI_KCALL_OP_NEXT_ADDR 1
 #define PCI_KCALL_OP_READ_CONFIG 2
 #define PCI_KCALL_OP_DRIVER_NAME 3
+#define PCI_KCALL_OP_RESOURCE 4
 	unsigned int op;
 	unsigned int id;
 	unsigned int bus, device, function;
 	void* ptr;
+};
+
+struct PciKcallResource {
+	uint64_t bar_base[6], bar_size[6];
+	uint64_t rombar_base, rombar_size;
 };
 
 static int pci_kcall_first_addr(struct PciKcall* p) {
@@ -90,6 +97,33 @@ static int pci_kcall_driver_name(struct PciKcall* p) {
 	return 0;
 }
 
+static int pci_kcall_resource(struct PciKcall* p) {
+	if (!pci_device_table[p->id].vendor_id) {
+		return ERROR_NOT_EXIST;
+	}
+	const struct PciAddress* addr = &pci_device_table[p->id].addr;
+	uint8_t header_type = pci_read_config_reg8(addr, PCI_CONF_HEADER_TYPE);
+	int num_bars;
+	if (header_type == 0x0 || header_type == 0x80) {
+		num_bars = 6;
+	} else {
+		num_bars = 2;
+	}
+	struct PciKcallResource* pcires = p->ptr;
+	memset(pcires, 0, sizeof(struct PciKcallResource));
+	for (int i = 0; i < num_bars; i++) {
+		pcires->bar_base[i] = pci_read_bar(addr, i);
+		if (pcires->bar_base[i]) {
+			pcires->bar_size[i] = pci_read_bar_size(addr, i);
+		}
+	}
+	pcires->rombar_base = pci_read_rom_bar(addr);
+	if (pcires->rombar_base) {
+		pcires->rombar_size = pci_read_rom_bar_size(addr);
+	}
+	return 0;
+}
+
 int pci_kcall_handler(unsigned int t) {
 	struct PciKcall* p = (void*)t;
 	switch (p->op) {
@@ -105,6 +139,8 @@ int pci_kcall_handler(unsigned int t) {
 	case PCI_KCALL_OP_DRIVER_NAME:
 		return pci_kcall_driver_name(p);
 		break;
+	case PCI_KCALL_OP_RESOURCE:
+		return pci_kcall_resource(p);
 	default:
 		return ERROR_INVAILD;
 	}

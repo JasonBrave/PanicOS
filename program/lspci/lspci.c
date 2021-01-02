@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <kcall/pci.h>
 #include <panicos.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -30,118 +31,82 @@ const char* pci_device_id_to_str(uint16_t vendor, uint16_t device);
 
 static int verbose_level = 0;
 
-struct PciKcall {
-#define PCI_KCALL_OP_FIRST_ADDR 0
-#define PCI_KCALL_OP_NEXT_ADDR 1
-#define PCI_KCALL_OP_READ_CONFIG 2
-#define PCI_KCALL_OP_DRIVER_NAME 3
-	unsigned int op;
-	unsigned int id;
-	unsigned int bus, device, function;
-	void* ptr;
-};
+static unsigned int powof2(unsigned int power) {
+	unsigned int n = 1;
+	for (unsigned int i = 0; i < power; i++) {
+		n *= 2;
+	}
+	return n;
+}
 
-struct PCIGenericConfigHeader {
-	uint16_t vendor, device;
-	uint16_t command, status;
-	uint8_t revision, progif, subclass, class;
-	uint8_t cache_line, lat_timer, header_type, bist;
-	uint8_t placeholder[36];
-	uint8_t capptr, res[7];
-	uint8_t intr_line, intr_pin;
-	uint16_t shared;
-} __attribute__((packed));
-
-struct PCIType0ConfigHeader {
-	uint16_t vendor, device;
-	uint16_t command, status;
-	uint8_t revision, progif, subclass, class;
-	uint8_t cache_line, lat_timer, header_type, bist;
-	uint32_t bar[6];
-	uint32_t cardbus_cis;
-	uint16_t subsys_vendor, subsys_device;
-	uint32_t rombar;
-	uint8_t capptr, res[7];
-	uint8_t intr_line, intr_pin, min_gnt, max_lat;
-} __attribute__((packed));
-
-struct PCIType1ConfigHeader {
-	uint16_t vendor, device;
-	uint16_t command, status;
-	uint8_t revision, progif, subclass, class;
-	uint8_t cache_line, lat_timer, header_type, bist;
-	uint32_t bar[2];
-	uint8_t pribus, secbus, subbus, seclatmr;
-	uint8_t io_base, io_limit;
-	uint16_t sec_status;
-	uint16_t mem_base, mem_limit;
-	uint16_t pref_mem_base, pref_mem_limit;
-	uint32_t pref_mem_base_upper, pref_mem_limit_upper;
-	uint16_t io_base_upper, io_limit_upper;
-	uint8_t capptr, res[7];
-	uint8_t intr_line, intr_pin;
-	uint16_t bridge_control;
-} __attribute__((packed));
-
-static void lspci_print_type0_header(void* cfg_space) {
-	struct PCIType0ConfigHeader* cfg = cfg_space;
+static void lspci_print_type0_header(const void* cfg_space, const struct PciKcallResource* pcires) {
+	const struct PCIType0ConfigHeader* cfg = cfg_space;
+	if (verbose_level > 1) {
+		printf("Subsystem Vendor %x Device %x\n", cfg->subsys_vendor, cfg->subsys_device);
+	}
 	for (int i = 0; i < 6; i++) {
 		if (cfg->bar[i] && (cfg->bar[i] & 1)) {
-			printf("BAR%d IO %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC);
+			printf("BAR%d IO %x - %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC,
+				   ((unsigned int)cfg->bar[i] & 0xFFFFFFFC) + (uint32_t)pcires->bar_size[i] - 1);
 		} else if (cfg->bar[i] && (cfg->bar[i] & 6)) {
+			uint64_t bar_val = ((uint64_t)cfg->bar[i + 1] << 32) | (cfg->bar[i] & 0xFFFFFFF0);
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM64 %x hi %x pref\n", i,
-					   (unsigned int)cfg->bar[i] & 0xFFFFFFF0,
-					   (unsigned int)cfg->bar[i + 1]);
+				printf("BAR%d MEM64 %x %x - %x %x pref\n", i, bar_val,
+					   bar_val + pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM64 %x hi %x\n", i,
-					   (unsigned int)cfg->bar[i] & 0xFFFFFFF0,
-					   (unsigned int)cfg->bar[i + 1]);
+				printf("BAR%d MEM64 %x %x - %x %x\n", i, bar_val,
+					   bar_val + pcires->bar_size[i] - 1);
 			}
 		} else if (cfg->bar[i]) {
+			uint32_t bar_val = (unsigned int)cfg->bar[i] & 0xFFFFFFF0;
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM32 %x pref\n", i,
-					   (unsigned int)cfg->bar[i] & 0xFFFFFFF0);
+				printf("BAR%d MEM32 %x - %x pref\n", i, bar_val,
+					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM32 %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFF0);
+				printf("BAR%d MEM32 %x - %x\n", i, bar_val,
+					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			}
 		}
 	}
+	if (cfg->rombar) {
+		printf("OpROM %x - %x\n", cfg->rombar & 0xfffff800,
+			   (cfg->rombar & 0xfffff800) + (uint32_t)pcires->rombar_size - 1);
+	}
 }
 
-static void lspci_print_type1_header(void* cfg_space) {
-	struct PCIType1ConfigHeader* cfg = cfg_space;
+static void lspci_print_type1_header(const void* cfg_space, const struct PciKcallResource* pcires) {
+	const struct PCIType1ConfigHeader* cfg = cfg_space;
 	printf("Bridge Primary %x Secondary %x Subordinate %x\n", cfg->pribus, cfg->secbus,
 		   cfg->subbus);
 	for (int i = 0; i < 2; i++) {
 		if (cfg->bar[i] && (cfg->bar[i] & 1)) {
-			printf("BAR%d IO %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC);
+			printf("BAR%d IO %x - %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC,
+				   ((unsigned int)cfg->bar[i] & 0xFFFFFFFC) + (uint32_t)pcires->bar_size[i] - 1);
 		} else if (cfg->bar[i] && (cfg->bar[i] & 6)) {
+			uint64_t bar_val = ((uint64_t)cfg->bar[i + 1] << 32) | (cfg->bar[i] & 0xFFFFFFF0);
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM64 %x hi %x pref\n", i,
-					   (unsigned int)cfg->bar[i] & 0xFFFFFFF0,
-					   (unsigned int)cfg->bar[i + 1]);
+				printf("BAR%d MEM64 %x %x - %x %x pref\n", i, bar_val,
+					   bar_val + pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM64 %x hi %x\n", i,
-					   (unsigned int)cfg->bar[i] & 0xFFFFFFF0,
-					   (unsigned int)cfg->bar[i + 1]);
+				printf("BAR%d MEM64 %x %x - %x %x\n", i, bar_val,
+					   bar_val + pcires->bar_size[i] - 1);
 			}
 		} else if (cfg->bar[i]) {
+			uint32_t bar_val = (unsigned int)cfg->bar[i] & 0xFFFFFFF0;
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM32 %x pref\n", i,
-					   (unsigned int)cfg->bar[i] & 0xFFFFFFF0);
+				printf("BAR%d MEM32 %x - %x pref\n", i, bar_val,
+					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM32 %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFF0);
+				printf("BAR%d MEM32 %x - %x\n", i, bar_val,
+					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			}
 		}
 	}
 	printf("IO window %x - %x\n",
-		   (cfg->io_base & 1)
-			   ? (((cfg->io_base & 0xf0) << 8) | (cfg->io_base_upper << 16))
-			   : ((cfg->io_base & 0xf0) << 8),
-		   (cfg->io_limit & 1)
-			   ? (((cfg->io_limit & 0xf0) << 8) | (cfg->io_limit_upper << 16))
-			   : ((cfg->io_limit & 0xf0) << 8));
+		   (cfg->io_base & 1) ? (((cfg->io_base & 0xf0) << 8) | (cfg->io_base_upper << 16))
+							  : ((cfg->io_base & 0xf0) << 8),
+		   (cfg->io_limit & 1) ? (((cfg->io_limit & 0xf0) << 8) | (cfg->io_limit_upper << 16))
+							   : ((cfg->io_limit & 0xf0) << 8));
 	printf("Memory Window %x - %x\n", (cfg->mem_base & 0xfff0) << 16,
 		   (cfg->mem_limit & 0xfff0) << 16);
 	printf("Prefetch Memory Window %x", (cfg->pref_mem_base & 0xfff0) << 16);
@@ -156,31 +121,29 @@ static void lspci_print_type1_header(void* cfg_space) {
 }
 
 void lspci_print_device(unsigned int bus, unsigned int device, unsigned int function,
-						void* cfg_space, const char* drv_name) {
+						const void* cfg_space, const char* drv_name,
+						const struct PciKcallResource* pcires) {
 
-	struct PCIGenericConfigHeader* cfg = cfg_space;
+	const struct PCIGenericConfigHeader* cfg = cfg_space;
 	const char* device_name = pci_device_id_to_str(cfg->vendor, cfg->device);
 	if (device_name) {
-		printf("%x:%x.%x %s %x:%x [%s]\n", bus, device, function, device_name,
-			   cfg->vendor, cfg->device,
-			   pci_class_to_str(cfg->class, cfg->subclass, cfg->progif));
+		printf("%x:%x.%x %s %x:%x [%s]\n", bus, device, function, device_name, cfg->vendor,
+			   cfg->device, pci_class_to_str(cfg->pclass, cfg->subclass, cfg->progif));
 	} else {
-		printf("%x:%x.%x Vendor %x Device %x [%s]\n", bus, device, function,
-			   cfg->vendor, cfg->device,
-			   pci_class_to_str(cfg->class, cfg->subclass, cfg->progif));
+		printf("%x:%x.%x Vendor %x Device %x [%s]\n", bus, device, function, cfg->vendor,
+			   cfg->device, pci_class_to_str(cfg->pclass, cfg->subclass, cfg->progif));
 	}
 
 	if (verbose_level > 0) {
 		if (cfg->header_type == 0 || cfg->header_type == 0x80) {
-			lspci_print_type0_header(cfg_space);
+			lspci_print_type0_header(cfg_space, pcires);
 		} else if (cfg->header_type == 1 || cfg->header_type == 0x81) {
-			lspci_print_type1_header(cfg_space);
+			lspci_print_type1_header(cfg_space, pcires);
 		} else {
 			printf("PCI header type %d\n", cfg->header_type);
 		}
 		if (cfg->intr_pin) {
-			printf("Interrupt: Pin %c , IRQ %d\n", cfg->intr_pin + 'A' - 1,
-				   cfg->intr_line);
+			printf("Interrupt: Pin %c , IRQ %d\n", cfg->intr_pin + 'A' - 1, cfg->intr_line);
 		}
 		if (verbose_level > 1) {
 			unsigned int cap_off = cfg->capptr;
@@ -203,17 +166,46 @@ void lspci_print_device(unsigned int bus, unsigned int device, unsigned int func
 					printf("[%x] PCI Express(v%d) %s\n", cap_off,
 						   *((uint8_t*)cfg + cap_off + 2) & 0xf,
 						   pcie_cap_names[(*((uint8_t*)cfg + cap_off + 2) >> 4) & 0xf]);
+				} else if (*((uint8_t*)cfg + cap_off) == 0x5) {
+					printf("[%x] Message Signaled Interrupts\n", cap_off);
+					if (verbose_level > 2) {
+						uint16_t msgctl = *(uint16_t*)(cfg_space + cap_off + 2);
+						printf("    Message Control Enable%s, %d/%d Messages, "
+							   "64Bits%s, Per-vector masking%s\n",
+							   (msgctl & 1) ? "+" : "-", powof2((msgctl >> 1) & 7),
+							   powof2((msgctl >> 4) & 7), (msgctl & (1 << 7)) ? "+" : "-",
+							   (msgctl & (1 << 8)) ? "+" : "-");
+						if ((msgctl & 1) && (msgctl & (1 << 7))) {
+							printf("    Message address %x, Message data %x\n",
+								   *(uint32_t*)(cfg_space + cap_off + 4),
+								   *(uint16_t*)(cfg_space + cap_off + 12));
+						} else if (msgctl & 1) {
+							printf("    Message address %x, Message data %x\n",
+								   *(uint32_t*)(cfg_space + cap_off + 4),
+								   *(uint16_t*)(cfg_space + cap_off + 8));
+						}
+					}
+				} else if (*((uint8_t*)cfg + cap_off) == 0x11) {
+					printf("[%x] MSI-X\n", cap_off);
+					if (verbose_level > 2) {
+						uint16_t msgctl = *(uint16_t*)(cfg_space + cap_off + 2);
+						printf("    Message Control Enable%s, FuncMask%s, Table Size %d\n",
+							   (msgctl & (1 << 15)) ? "+" : "-", (msgctl & (1 << 14)) ? "+" : "-",
+							   (msgctl & 0x7ff) + 1);
+						uint32_t tableoff = *(uint32_t*)(cfg_space + cap_off + 4);
+						printf("    Table offset %x BAR %d\n", tableoff >> 3, tableoff & 7);
+						uint32_t pbaoff = *(uint32_t*)(cfg_space + cap_off + 8);
+						printf("    PBA offset %x BAR %d\n", pbaoff >> 3, pbaoff & 7);
+					}
 				} else {
-					printf("[%x] %s\n", cap_off,
-						   pci_cap_to_str(*((uint8_t*)cfg + cap_off)));
+					printf("[%x] %s\n", cap_off, pci_cap_to_str(*((uint8_t*)cfg + cap_off)));
 				}
 				cap_off = *((uint8_t*)cfg + cap_off + 1);
 			}
 			if (pciexpress && *(uint32_t*)((void*)cfg + 0x100)) {
 				cap_off = 0x100;
 				while (cap_off) {
-					printf("[%x v%d] %s\n", cap_off,
-						   *(uint16_t*)((void*)cfg + cap_off + 2) & 0xf,
+					printf("[%x v%d] %s\n", cap_off, *(uint16_t*)((void*)cfg + cap_off + 2) & 0xf,
 						   pcie_ecap_to_str(*(uint16_t*)((void*)cfg + cap_off)));
 					cap_off = *(uint16_t*)((void*)cfg + cap_off + 2) >> 4;
 				}
@@ -235,34 +227,30 @@ int main(int argc, char* argv[]) {
 			verbose_level = 1;
 		} else if (strcmp(argv[1], "-vv") == 0) {
 			verbose_level = 2;
+		} else if (strcmp(argv[1], "-vvv") == 0) {
+			verbose_level = 3;
 		}
 	}
 	void* cfg_space = malloc(4096);
-	struct PciKcall pcikcall;
-	pcikcall.op = PCI_KCALL_OP_FIRST_ADDR;
-	if (kcall("pci", (unsigned int)&pcikcall)) {
-		pcikcall.op = PCI_KCALL_OP_READ_CONFIG;
-		pcikcall.ptr = cfg_space;
-		kcall("pci", (unsigned int)&pcikcall);
-		char drv_name[64];
-		pcikcall.op = PCI_KCALL_OP_DRIVER_NAME;
-		pcikcall.ptr = drv_name;
-		kcall("pci", (unsigned int)&pcikcall);
-		lspci_print_device(pcikcall.bus, pcikcall.device, pcikcall.function, cfg_space,
-						   drv_name);
+	struct PCIAddr pciaddr;
+	unsigned int pciid = pci_get_first_addr(&pciaddr);
+	if (pciid == 0xffffffff) {
+		return 0;
 	}
+	pci_read_config(pciid, cfg_space);
+	char drv_name[64];
+	pci_get_driver_name(pciid, drv_name);
+	struct PciKcallResource pcires;
+	pci_get_resource(pciid, &pcires);
+	lspci_print_device(pciaddr.bus, pciaddr.device, pciaddr.function, cfg_space, drv_name, &pcires);
 
-	pcikcall.op = PCI_KCALL_OP_NEXT_ADDR;
-	while (kcall("pci", (unsigned int)&pcikcall)) {
-		pcikcall.op = PCI_KCALL_OP_READ_CONFIG;
-		pcikcall.ptr = cfg_space;
-		kcall("pci", (unsigned int)&pcikcall);
-		char drv_name[64];
-		pcikcall.op = PCI_KCALL_OP_DRIVER_NAME;
-		pcikcall.ptr = drv_name;
-		kcall("pci", (unsigned int)&pcikcall);
-		lspci_print_device(pcikcall.bus, pcikcall.device, pcikcall.function, cfg_space,
-						   drv_name);
-		pcikcall.op = PCI_KCALL_OP_NEXT_ADDR;
+	pciid = pci_get_next_addr(pciid, &pciaddr);
+	while (pciid) {
+		pci_read_config(pciid, cfg_space);
+		pci_get_driver_name(pciid, drv_name);
+		pci_get_resource(pciid, &pcires);
+		lspci_print_device(pciaddr.bus, pciaddr.device, pciaddr.function, cfg_space, drv_name,
+						   &pcires);
+		pciid = pci_get_next_addr(pciid, &pciaddr);
 	}
 }
