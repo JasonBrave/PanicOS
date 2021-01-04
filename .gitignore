@@ -24,6 +24,7 @@ program/shutdown/shutdown
 program/termemu/termemu
 program/wm/wm
 program/date/date
+program/devmgr/devmgr
 /rootfs
 panicos.img
 panicos.tar.gz

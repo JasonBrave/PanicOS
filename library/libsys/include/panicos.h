@@ -20,8 +20,16 @@
 #ifndef _LIBSYS_PANICOS_H
 #define _LIBSYS_PANICOS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int fork(void);
+#ifdef __cplusplus
+[[noreturn]] int proc_exit(int);
+#else
 _Noreturn int proc_exit(int);
+#endif
 int wait(void);
 int pipe(int*);
 int write(int, const void*, int);
@@ -81,5 +89,9 @@ enum ProcStatus {
 	PROC_EXITED,
 	PROC_NOT_EXIST,
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

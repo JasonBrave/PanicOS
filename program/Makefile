@@ -15,6 +15,7 @@ all:
 	$(MAKE) -C reboot install
 	$(MAKE) -C shutdown install
 	$(MAKE) -C date install
+	$(MAKE) -C devmgr install
 
 .PHONY: clean
 clean:
@@ -34,3 +35,4 @@ clean:
 	$(MAKE) -C reboot clean
 	$(MAKE) -C shutdown clean
 	$(MAKE) -C date clean
+	$(MAKE) -C devmgr clean

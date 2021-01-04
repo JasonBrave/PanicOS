@@ -1,6 +1,5 @@
-// -*- c++ -*-
 /*
- * C++ <cstdint> header
+ * Device manager
  *
  * This file is part of PanicOS.
  *
@@ -18,20 +17,37 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBCPP_CSTDINT
-#define _LIBCPP_CSTDINT
+#ifndef _DEVMGR_DEVICE_CPP
+#define _DEVMGR_DEVICE_CPP
 
-namespace std {
-#include <stdint-gcc.h>
-}
+#include <cstdint>
+#include <string>
+#include <vector>
 
-using uint8_t = std::uint8_t;
-using uint16_t = std::uint16_t;
-using uint32_t = std::uint32_t;
-using uint64_t = std::uint64_t;
-using int8_t = std::int8_t;
-using int16_t = std::int16_t;
-using int32_t = std::int32_t;
-using int64_t = std::int64_t;
+enum class DevmgrResourceType {
+	io,
+	memory,
+	irq,
+	msi,
+	msix,
+};
+
+struct DevmgrResource {
+	DevmgrResourceType type;
+	std::uint64_t addr;
+	std::uint64_t size;
+};
+
+class DevmgrDevice {
+public:
+	std::string name;
+	std::string dev_addr;
+	std::string driver_name;
+	std::vector<DevmgrResource> resource;
+};
+
+extern std::vector<DevmgrDevice> devmgr_devices;
+
+void devices_init();
 
 #endif
