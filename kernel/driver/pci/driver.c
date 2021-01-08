@@ -23,9 +23,8 @@
 
 struct PCIDevice pci_device_table[PCI_DEVICE_TABLE_SIZE];
 
-void pci_add_device(const struct PciAddress* addr, uint16_t vendor_id,
-					uint16_t device_id, uint8_t class, uint8_t subclass, uint8_t progif,
-					uint8_t irq) {
+void pci_add_device(const struct PciAddress* addr, uint16_t vendor_id, uint16_t device_id,
+					uint8_t class, uint8_t subclass, uint8_t progif, uint8_t irq) {
 	for (int i = 0; i < PCI_DEVICE_TABLE_SIZE; i++) {
 		if (!pci_device_table[i].vendor_id) {
 			pci_device_table[i].addr = *addr;
@@ -46,8 +45,7 @@ void pci_register_driver(const struct PCIDriver* driver) {
 		const struct PCIDeviceID* id = driver->match_table;
 		while (id->vendor_id) {
 			for (int i = 0; i < PCI_DEVICE_TABLE_SIZE; i++) {
-				if (!pci_device_table[i].driver &&
-					pci_device_table[i].vendor_id == id->vendor_id &&
+				if (!pci_device_table[i].driver && pci_device_table[i].vendor_id == id->vendor_id &&
 					pci_device_table[i].device_id == id->device_id) {
 					pci_device_table[i].driver = driver;
 					pci_enable_device(&pci_device_table[i].addr);

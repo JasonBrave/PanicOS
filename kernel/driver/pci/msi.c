@@ -55,9 +55,9 @@ static int pci_msi_probe(const struct PciAddress* addr, int* sixbits) {
 	}
 
 	uint16_t msictl = pci_read_config_reg16(addr, capoff + 2);
-	cprintf("[pci] MSI %d:%d.%d off %x 64bits%s Mask%s MulMsg %x\n", addr->bus,
-			addr->device, addr->function, capoff, BOOL2SIGN(msictl & (1 << 7)),
-			BOOL2SIGN(msictl & (1 << 8)), (msictl >> 1) & 7);
+	cprintf("[pci] MSI %d:%d.%d off %x 64bits%s Mask%s MulMsg %x\n", addr->bus, addr->device,
+			addr->function, capoff, BOOL2SIGN(msictl & (1 << 7)), BOOL2SIGN(msictl & (1 << 8)),
+			(msictl >> 1) & 7);
 
 	*sixbits = msictl & (1 << 7);
 	return capoff;

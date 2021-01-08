@@ -99,8 +99,8 @@ int main(int argc, char* argv[]) {
 					cur_y++;
 					if (cur_y == y_chars) {
 						for (int j = 0; j < y_chars - 1; j++) {
-							memcpy(term_buffer + j * x_chars,
-								   term_buffer + (j + 1) * x_chars, x_chars);
+							memcpy(term_buffer + j * x_chars, term_buffer + (j + 1) * x_chars,
+								   x_chars);
 						}
 						memset(term_buffer + (y_chars - 1) * x_chars, ' ', x_chars);
 						cur_y--;
@@ -113,8 +113,8 @@ int main(int argc, char* argv[]) {
 						cur_y++;
 						if (cur_y == y_chars) {
 							for (int j = 0; j < y_chars - 1; j++) {
-								memcpy(term_buffer + j * x_chars,
-									   term_buffer + (j + 1) * x_chars, x_chars);
+								memcpy(term_buffer + j * x_chars, term_buffer + (j + 1) * x_chars,
+									   x_chars);
 							}
 							memset(term_buffer + (y_chars - 1) * x_chars, ' ', x_chars);
 							cur_y--;
@@ -149,8 +149,7 @@ int main(int argc, char* argv[]) {
 				cur_y++;
 				if (cur_y == y_chars) {
 					for (int j = 0; j < y_chars - 1; j++) {
-						memcpy(term_buffer + j * x_chars,
-							   term_buffer + (j + 1) * x_chars, x_chars);
+						memcpy(term_buffer + j * x_chars, term_buffer + (j + 1) * x_chars, x_chars);
 					}
 					memset(term_buffer + (y_chars - 1) * x_chars, ' ', x_chars);
 					cur_y--;
@@ -175,8 +174,7 @@ int main(int argc, char* argv[]) {
 			if (event.keycode == 16) { // shift
 				upper = 0;
 			}
-		} else if (event_cached &&
-				   event.event_type == WM_EVENT_WINDOW_CLOSE) { // window closed
+		} else if (event_cached && event.event_type == WM_EVENT_WINDOW_CLOSE) { // window closed
 			kill(sh_pid);
 			pty_close(pty);
 			wm_remove_sheet(term_handle);
@@ -188,8 +186,8 @@ int main(int argc, char* argv[]) {
 		if (need_update) {
 			wm_fill_sheet(term_handle, term_back_colour);
 			for (int i = 0; i < y_chars; i++) {
-				wm_print_text_n(term_handle, 0, i * 16, term_font_colour,
-								term_buffer + i * x_chars, x_chars);
+				wm_print_text_n(term_handle, 0, i * 16, term_font_colour, term_buffer + i * x_chars,
+								x_chars);
 			}
 		}
 	}

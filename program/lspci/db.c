@@ -196,10 +196,9 @@ static struct PCIDeviceIDTable {
 };
 
 const char* pci_device_id_to_str(uint16_t vendor, uint16_t device) {
-	for (unsigned int i = 0;
-		 i < (sizeof(pci_device_id_table) / sizeof(struct PCIDeviceIDTable)); i++) {
-		if (pci_device_id_table[i].vendor == vendor &&
-			pci_device_id_table[i].device == device) {
+	for (unsigned int i = 0; i < (sizeof(pci_device_id_table) / sizeof(struct PCIDeviceIDTable));
+		 i++) {
+		if (pci_device_id_table[i].vendor == vendor && pci_device_id_table[i].device == device) {
 			return pci_device_id_table[i].name;
 		}
 	}

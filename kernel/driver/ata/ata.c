@@ -84,11 +84,10 @@ uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int d
 		   inb(adapter->cmdblock_base[channel] + ATA_IO_LBAHI);
 }
 
-int ata_identify(struct ATAAdapter* adapter, int channel, int drive,
-				 struct ATADevice* dev, char* model) {
+int ata_identify(struct ATAAdapter* adapter, int channel, int drive, struct ATADevice* dev,
+				 char* model) {
 	uint16_t* identify = kalloc();
-	if (ata_exec_pio_in(adapter, channel, drive, ATA_COMMAND_IDENTIFY, 0, 0, identify,
-						1)) {
+	if (ata_exec_pio_in(adapter, channel, drive, ATA_COMMAND_IDENTIFY, 0, 0, identify, 1)) {
 		kfree(identify);
 		return -1;
 	}
@@ -202,13 +201,13 @@ int ata_read(void* private, unsigned int begin, int count, void* buf) {
 			panic("ata dma");
 		if (count == 0 || count > 8)
 			panic("ata count");
-		if (ata_exec_dma_in(dev->adapter, dev->channel, dev->drive,
-							ATA_COMMAND_READ_DMA, begin, count, buf, count)) {
+		if (ata_exec_dma_in(dev->adapter, dev->channel, dev->drive, ATA_COMMAND_READ_DMA, begin,
+							count, buf, count)) {
 			return ERROR_READ_FAIL;
 		}
 	} else {
-		if (ata_exec_pio_in(dev->adapter, dev->channel, dev->drive,
-							ATA_COMMAND_READ_SECTOR, begin, count, buf, count)) {
+		if (ata_exec_pio_in(dev->adapter, dev->channel, dev->drive, ATA_COMMAND_READ_SECTOR, begin,
+							count, buf, count)) {
 			return ERROR_READ_FAIL;
 		}
 	}
@@ -216,8 +215,7 @@ int ata_read(void* private, unsigned int begin, int count, void* buf) {
 }
 
 int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					 unsigned int lba, unsigned int count, const void* buf,
-					 int blocks) {
+					 unsigned int lba, unsigned int count, const void* buf, int blocks) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
 	outb(iobase + ATA_IO_DRIVE,
@@ -245,8 +243,7 @@ int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t
 }
 
 int ata_exec_dma_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					 unsigned int lba, unsigned int count, const void* buf,
-					 int blocks) {
+					 unsigned int lba, unsigned int count, const void* buf, int blocks) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
 	ata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
@@ -280,13 +277,13 @@ int ata_write(void* private, unsigned int begin, int count, const void* buf) {
 			panic("ata dma");
 		if (count == 0 || count > 8)
 			panic("ata count");
-		if (ata_exec_dma_out(dev->adapter, dev->channel, dev->drive,
-							 ATA_COMMAND_WRITE_DMA, begin, count, buf, count)) {
+		if (ata_exec_dma_out(dev->adapter, dev->channel, dev->drive, ATA_COMMAND_WRITE_DMA, begin,
+							 count, buf, count)) {
 			return ERROR_READ_FAIL;
 		}
 	} else {
-		if (ata_exec_pio_out(dev->adapter, dev->channel, dev->drive,
-							 ATA_COMMAND_WRITE_SECTOR, begin, count, buf, count)) {
+		if (ata_exec_pio_out(dev->adapter, dev->channel, dev->drive, ATA_COMMAND_WRITE_SECTOR,
+							 begin, count, buf, count)) {
 			return ERROR_READ_FAIL;
 		}
 	}
@@ -314,20 +311,16 @@ void ata_register_adapter(struct ATAAdapter* adapter) {
 				ata_dev->adapter = adapter;
 				char model[50];
 				if (ata_identify(adapter, channel, drive, ata_dev, model) == 0) {
-					cprintf("[ata] Disk model %s %d sectors\n", model,
-							ata_dev->sectors);
-					cprintf("[ata] dma %d pio %d mdma %d udma %d ata_rev %d\n",
-							ata_dev->dma, ata_dev->pio, ata_dev->mdma, ata_dev->udma,
-							ata_dev->ata_rev);
+					cprintf("[ata] Disk model %s %d sectors\n", model, ata_dev->sectors);
+					cprintf("[ata] dma %d pio %d mdma %d udma %d ata_rev %d\n", ata_dev->dma,
+							ata_dev->pio, ata_dev->mdma, ata_dev->udma, ata_dev->ata_rev);
 					if (ata_dev->dma && ata_dev->adapter->bus_master) {
 						ata_dev->use_dma = 1;
-						cprintf("[ata] Use DMA for channel %d drive %d\n", channel,
-								drive);
+						cprintf("[ata] Use DMA for channel %d drive %d\n", channel, drive);
 						ata_adapter_bmdma_init(ata_dev->adapter, channel, drive);
 					} else {
 						ata_dev->use_dma = 0;
-						cprintf("[ata] Use PIO for channel %d drive %d\n", channel,
-								drive);
+						cprintf("[ata] Use PIO for channel %d drive %d\n", channel, drive);
 					}
 					hal_block_register_device("ata", ata_dev, &ata_block_driver);
 				}

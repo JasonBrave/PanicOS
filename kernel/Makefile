@@ -64,7 +64,7 @@ CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.
 
 kernel : $(OBJS) core/entry.o entryother initcode kernel.ld
-	$(LD) $(LDFLAGS) -T kernel.ld -o kernel core/entry.o $(OBJS) -b binary initcode entryother
+	$(LD) $(LDFLAGS) -T kernel.ld -o kernel core/entry.o $(OBJS) $(shell $(CC) -print-libgcc-file-name) -b binary initcode entryother
 
 vectors.S: ../tools/vectors.pl
 	../tools/vectors.pl > vectors.S

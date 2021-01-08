@@ -43,8 +43,7 @@ int wm_create_sheet(int x, int y, int width, int height) {
 	msg.height = height;
 	message_send(wm_pid, sizeof(msg), &msg);
 	struct MessageReturnHandle ret_handle;
-	while (!message_receive(&ret_handle) ||
-		   ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {
+	while (!message_receive(&ret_handle) || ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {
 	}
 	return ret_handle.handle;
 }
@@ -93,8 +92,7 @@ int wm_create_window(int width, int height) {
 	msg.height = height;
 	message_send(wm_pid, sizeof(msg), &msg);
 	struct MessageReturnHandle ret_handle;
-	while (!message_receive(&ret_handle) ||
-		   ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {
+	while (!message_receive(&ret_handle) || ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {
 	}
 	return ret_handle.handle;
 }

@@ -23,8 +23,7 @@
 #include "usb.h"
 
 int usb_get_standard_descriptor(struct USBDevice* dev, unsigned int desc_type,
-								unsigned int desc_index, void* buffer,
-								unsigned int size) {
+								unsigned int desc_index, void* buffer, unsigned int size) {
 	struct USBSetupData* setup = kalloc();
 	setup->bm_request_type = USB_REQUEST_DIR_DEVICE_TO_HOST | USB_REQUEST_TYPE_STANDARD;
 	setup->b_request = USB_REQUEST_GET_DESCRIPTOR;
@@ -37,8 +36,8 @@ int usb_get_standard_descriptor(struct USBDevice* dev, unsigned int desc_type,
 	return status;
 }
 
-int usb_get_class_descriptor(struct USBDevice* dev, unsigned int desc_type,
-							 unsigned int desc_index, void* buffer, unsigned int size) {
+int usb_get_class_descriptor(struct USBDevice* dev, unsigned int desc_type, unsigned int desc_index,
+							 void* buffer, unsigned int size) {
 	struct USBSetupData* setup = kalloc();
 	setup->bm_request_type = USB_REQUEST_DIR_DEVICE_TO_HOST | USB_REQUEST_TYPE_CLASS;
 	setup->b_request = USB_REQUEST_GET_DESCRIPTOR;
@@ -54,9 +53,8 @@ int usb_get_class_descriptor(struct USBDevice* dev, unsigned int desc_type,
 int usb_get_device_descriptor(struct USBDevice* dev) {
 	volatile struct USBDeviceDescriptor* device_desc = kalloc();
 
-	int status =
-		usb_get_standard_descriptor(dev, USB_DESCRIPTOR_DEVICE, 0, (void*)device_desc,
-									sizeof(struct USBDeviceDescriptor));
+	int status = usb_get_standard_descriptor(dev, USB_DESCRIPTOR_DEVICE, 0, (void*)device_desc,
+											 sizeof(struct USBDeviceDescriptor));
 
 	if (status) {
 		kfree((void*)device_desc);

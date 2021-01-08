@@ -116,8 +116,8 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 		} else {
 			status = size;
 		}
-		int ret = fat32_read(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf,
-							 fd->offset, size);
+		int ret =
+			fat32_read(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset, size);
 		if (ret < 0) {
 			return ret;
 		}
@@ -142,8 +142,8 @@ int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
 		if (fd->append) {
 			fd->offset = fd->size;
 		}
-		int ret = fat32_write(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf,
-							  fd->offset, size);
+		int ret =
+			fat32_write(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset, size);
 		if (ret < 0) {
 			return ret;
 		}
@@ -167,8 +167,7 @@ int vfs_fd_close(struct FileDesc* fd) {
 
 	if (fd->write) {
 		if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-			fat32_update_size(vfs_mount_table[fd->fs_id].partition_id, fd->path,
-							  fd->size);
+			fat32_update_size(vfs_mount_table[fd->fs_id].partition_id, fd->path, fd->size);
 		}
 		kfree(fd->path.pathbuf);
 	}

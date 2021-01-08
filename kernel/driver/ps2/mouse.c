@@ -102,14 +102,13 @@ void ps2_mouse_intr(void) {
 	mouse_phase++;
 	if (ps2_mouse_type == PS2_MOUSE_WITH_WHEEL) {
 		if (mouse_phase == 4) {
-			hal_mouse_update(mouse_buffer[0] << 24 | mouse_buffer[1] << 16 |
-							 mouse_buffer[2] << 8 | mouse_buffer[3]);
+			hal_mouse_update(mouse_buffer[0] << 24 | mouse_buffer[1] << 16 | mouse_buffer[2] << 8 |
+							 mouse_buffer[3]);
 			mouse_phase = 0;
 		}
 	} else if (ps2_mouse_type == PS2_MOUSE_WITHOUT_WHEEL) {
 		if (mouse_phase == 3) {
-			hal_mouse_update(mouse_buffer[0] << 24 | mouse_buffer[1] << 16 |
-							 mouse_buffer[2] << 8);
+			hal_mouse_update(mouse_buffer[0] << 24 | mouse_buffer[1] << 16 | mouse_buffer[2] << 8);
 			mouse_phase = 0;
 		}
 	}

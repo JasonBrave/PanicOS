@@ -40,8 +40,7 @@ int exec(char* path, char** argv) {
 	}
 
 	// create the process stack
-	if (allocuvm(pgdir, PROC_STACK_BOTTOM - PGSIZE, PROC_STACK_BOTTOM, PTE_W | PTE_U) ==
-		0) {
+	if (allocuvm(pgdir, PROC_STACK_BOTTOM - PGSIZE, PROC_STACK_BOTTOM, PTE_W | PTE_U) == 0) {
 		goto bad;
 	}
 	sp = PROC_STACK_BOTTOM;

@@ -49,8 +49,7 @@ void kinit1(void* vstart, void* vend) {
 
 	kmem.freelist = (void*)PGROUNDUP((unsigned int)vstart);
 	kmem.freelist->next = 0;
-	kmem.freelist->num_pages =
-		((unsigned int)vend - PGROUNDUP((unsigned int)vstart)) / PGSIZE;
+	kmem.freelist->num_pages = ((unsigned int)vend - PGROUNDUP((unsigned int)vstart)) / PGSIZE;
 }
 
 void kinit2(void* vstart, void* vend) {

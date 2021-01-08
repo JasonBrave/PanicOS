@@ -49,8 +49,7 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 			return fblock;
 		}
 		fd->block = fblock;
-		fd->offset =
-			fat32_dir_first_file(vfs_mount_table[fs_id].partition_id, fd->block);
+		fd->offset = fat32_dir_first_file(vfs_mount_table[fs_id].partition_id, fd->block);
 	} else {
 		kfree(dirpath.pathbuf);
 		return ERROR_INVAILD;
@@ -77,8 +76,8 @@ int vfs_dir_read(struct FileDesc* fd, char* buffer) {
 	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_INITRAMFS) {
 		off = initramfs_dir_read(fd->offset, buffer);
 	} else if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-		off = fat32_dir_read(vfs_mount_table[fd->fs_id].partition_id, buffer, fd->block,
-							 fd->offset);
+		off =
+			fat32_dir_read(vfs_mount_table[fd->fs_id].partition_id, buffer, fd->block, fd->offset);
 	} else {
 		panic("vfs_dir_read");
 	}

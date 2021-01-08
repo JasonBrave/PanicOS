@@ -25,15 +25,13 @@
 #include "pci-config.h"
 #include "pci.h"
 
-static const char* pci_intx_name[] = {
-	[1] = "INTA", [2] = "INTB", [3] = "INTC", [4] = "INTD"};
+static const char* pci_intx_name[] = {[1] = "INTA", [2] = "INTB", [3] = "INTC", [4] = "INTD"};
 
 void pci_init(void) {
 	memset(pci_msi_vector, 0, sizeof(pci_msi_vector));
 	memset(pci_device_table, 0, sizeof(pci_device_table));
 	// PCIe ECAM
-	const struct PciAddress pci_host_bridge_addr = {
-		.bus = 0, .device = 0, .function = 0};
+	const struct PciAddress pci_host_bridge_addr = {.bus = 0, .device = 0, .function = 0};
 	if ((pci_read_config_reg16(&pci_host_bridge_addr, PCI_CONF_VENDOR) == 0x8086) &&
 		(pci_read_config_reg16(&pci_host_bridge_addr, PCI_CONF_DEVICE) ==
 		 0x29c0)) { // Q35 and P35 chipset
@@ -56,19 +54,16 @@ void pci_init(void) {
 				if (intr_pin == 0) { // No interrupt pin for this device
 					cprintf("[pci] bus %d device %d func %d %x:%x class %x "
 							"subclass %x progif %x\n",
-							addr.bus, addr.device, addr.function, vendor_id, device_id,
-							class, subclass, progif);
-					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif,
-								   0);
+							addr.bus, addr.device, addr.function, vendor_id, device_id, class,
+							subclass, progif);
+					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif, 0);
 				} else {
 					uint8_t intr_line = pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE);
 					cprintf("[pci] bus %d device %d func %d %x:%x class %x "
 							"subclass %x progif %x %s %d\n",
-							addr.bus, addr.device, addr.function, vendor_id, device_id,
-							class, subclass, progif, pci_intx_name[intr_pin],
-							intr_line);
-					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif,
-								   intr_line);
+							addr.bus, addr.device, addr.function, vendor_id, device_id, class,
+							subclass, progif, pci_intx_name[intr_pin], intr_line);
+					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif, intr_line);
 				}
 			}
 		}
@@ -125,11 +120,9 @@ size_t pci_read_bar_size(const struct PciAddress* addr, int bar) {
 	uint32_t oldbar = pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4);
 	pci_write_config_reg32(addr, PCI_CONF_BAR + bar * 4, 0xffffffff);
 	if (oldbar & 1) { // IO BAR
-		bar_size =
-			~(pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4) & 0xfffffffc) + 1;
+		bar_size = ~(pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4) & 0xfffffffc) + 1;
 	} else { // Memory BAR
-		bar_size =
-			~(pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4) & 0xfffffff0) + 1;
+		bar_size = ~(pci_read_config_reg32(addr, PCI_CONF_BAR + bar * 4) & 0xfffffff0) + 1;
 	}
 	pci_write_config_reg32(addr, PCI_CONF_BAR + bar * 4, oldbar);
 	return bar_size;
@@ -168,8 +161,7 @@ int pci_find_capability(const struct PciAddress* addr, uint8_t cap_id) {
 	return 0;
 }
 
-struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor,
-								   uint16_t device) {
+struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor, uint16_t device) {
 	struct PciAddress addr;
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (addr.device = 0; addr.device < PCI_DEVICE_MAX; addr.device++) {
@@ -187,8 +179,7 @@ struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor,
 	return 0;
 }
 
-struct PciAddress* pci_find_class(struct PciAddress* pciaddr, uint8_t class,
-								  uint8_t subclass) {
+struct PciAddress* pci_find_class(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass) {
 	struct PciAddress addr;
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (addr.device = 0; addr.device < PCI_DEVICE_MAX; addr.device++) {
@@ -206,8 +197,8 @@ struct PciAddress* pci_find_class(struct PciAddress* pciaddr, uint8_t class,
 	return 0;
 }
 
-struct PciAddress* pci_find_progif(struct PciAddress* pciaddr, uint8_t class,
-								   uint8_t subclass, uint8_t progif) {
+struct PciAddress* pci_find_progif(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass,
+								   uint8_t progif) {
 	struct PciAddress addr;
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (addr.device = 0; addr.device < PCI_DEVICE_MAX; addr.device++) {
@@ -226,8 +217,7 @@ struct PciAddress* pci_find_progif(struct PciAddress* pciaddr, uint8_t class,
 	return 0;
 }
 
-struct PciAddress* pci_next_device(struct PciAddress* pciaddr, uint16_t vendor,
-								   uint16_t device) {
+struct PciAddress* pci_next_device(struct PciAddress* pciaddr, uint16_t vendor, uint16_t device) {
 	struct PciAddress addr;
 	addr.bus = pciaddr->bus;
 	addr.device = pciaddr->device;
@@ -250,8 +240,7 @@ struct PciAddress* pci_next_device(struct PciAddress* pciaddr, uint16_t vendor,
 	return 0;
 }
 
-struct PciAddress* pci_next_class(struct PciAddress* pciaddr, uint8_t class,
-								  uint8_t subclass) {
+struct PciAddress* pci_next_class(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass) {
 	struct PciAddress addr;
 	addr.bus = pciaddr->bus;
 	addr.device = pciaddr->device;
@@ -274,8 +263,8 @@ struct PciAddress* pci_next_class(struct PciAddress* pciaddr, uint8_t class,
 	return 0;
 }
 
-struct PciAddress* pci_next_progif(struct PciAddress* pciaddr, uint8_t class,
-								   uint8_t subclass, uint8_t progif) {
+struct PciAddress* pci_next_progif(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass,
+								   uint8_t progif) {
 	struct PciAddress addr;
 	addr.bus = pciaddr->bus;
 	addr.device = pciaddr->device;

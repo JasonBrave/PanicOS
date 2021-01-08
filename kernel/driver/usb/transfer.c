@@ -23,8 +23,8 @@
 #include "usb.h"
 
 enum USBTransferStatus usb_control_transfer_in(struct USBBus* bus, unsigned int addr,
-											   unsigned int endpoint, void* setup,
-											   void* payload, int size) {
+											   unsigned int endpoint, void* setup, void* payload,
+											   int size) {
 	struct USBPacket* packets = kalloc();
 	memset(packets, 0, sizeof(struct USBPacket) * (2 + size / 8));
 
@@ -53,8 +53,7 @@ enum USBTransferStatus usb_control_transfer_in(struct USBBus* bus, unsigned int 
 	return status;
 }
 
-enum USBTransferStatus usb_control_transfer_nodata(struct USBBus* bus,
-												   unsigned int addr,
+enum USBTransferStatus usb_control_transfer_nodata(struct USBBus* bus, unsigned int addr,
 												   unsigned int endpoint, void* setup) {
 	struct USBPacket* packets = kalloc();
 	memset(packets, 0, sizeof(struct USBPacket) * 2);

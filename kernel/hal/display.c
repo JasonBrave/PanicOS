@@ -50,11 +50,9 @@ struct EDIDDetailTiming {
 	uint8_t vertical_misc;
 } PACKED;
 
-static void* hal_display_modeswitch(struct FramebufferDevice* fbdev, int xres,
-									int yres) {
+static void* hal_display_modeswitch(struct FramebufferDevice* fbdev, int xres, int yres) {
 	phyaddr_t fb = fbdev->driver->enable(fbdev->private, xres, yres);
-	mappages(myproc()->pgdir, (void*)PROC_MMAP_BOTTOM, 16 * 1024 * 1024, fb,
-			 PTE_U | PTE_W);
+	mappages(myproc()->pgdir, (void*)PROC_MMAP_BOTTOM, 16 * 1024 * 1024, fb, PTE_U | PTE_W);
 	return (void*)PROC_MMAP_BOTTOM;
 }
 
@@ -95,8 +93,8 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 				dc->yres > framebuffer_device[dc->display_id].maximum_yres) {
 				return ERROR_INVAILD;
 			}
-			dc->framebuffer = hal_display_modeswitch(
-				&framebuffer_device[dc->display_id], dc->xres, dc->yres);
+			dc->framebuffer =
+				hal_display_modeswitch(&framebuffer_device[dc->display_id], dc->xres, dc->yres);
 			dc->flag = 0;
 			if (framebuffer_device[dc->display_id].driver->update) {
 				dc->flag |= DISPLAY_KCALL_FLAG_NEED_UPDATE;
@@ -238,8 +236,7 @@ void hal_display_register_device(const char* name, void* private,
 		}
 		const struct {
 			int x, y;
-		} edid_std_aspect[4] = {
-			[0] = {16, 10}, [1] = {4, 3}, [2] = {5, 4}, [3] = {16, 9}};
+		} edid_std_aspect[4] = {[0] = {16, 10}, [1] = {4, 3}, [2] = {5, 4}, [3] = {16, 9}};
 		unsigned int x = (stdtiming->x_resolution + 31) * 8;
 		unsigned int y = (stdtiming->x_resolution + 31) * 8 /
 						 edid_std_aspect[(stdtiming->aspect >> 6) & 3].x *
@@ -253,8 +250,8 @@ void hal_display_register_device(const char* name, void* private,
 	for (int i = 0; i < 4; i++) {
 		struct EDIDDetailTiming* detailtiming = (void*)edid + 54 + i * 18;
 		if (detailtiming->pixel_clock) {
-			unsigned int x = detailtiming->horizontal_active |
-							 (detailtiming->horizontal_misc >> 4 << 8);
+			unsigned int x =
+				detailtiming->horizontal_active | (detailtiming->horizontal_misc >> 4 << 8);
 			unsigned int y =
 				detailtiming->vertical_active | (detailtiming->vertical_misc >> 4 << 8);
 			if (x >= dev->preferred_xres && y >= dev->preferred_yres) {
@@ -263,14 +260,12 @@ void hal_display_register_device(const char* name, void* private,
 			}
 		}
 	}
-	if (dev->preferred_xres >= dev->maximum_xres &&
-		dev->preferred_yres >= dev->maximum_yres) {
+	if (dev->preferred_xres >= dev->maximum_xres && dev->preferred_yres >= dev->maximum_yres) {
 		dev->maximum_xres = dev->preferred_xres;
 		dev->maximum_yres = dev->preferred_yres;
 	}
-	cprintf("[hal] Monitor display xres %d yres %d max xres %d yres %d\n",
-			dev->preferred_xres, dev->preferred_yres, dev->maximum_xres,
-			dev->maximum_yres);
+	cprintf("[hal] Monitor display xres %d yres %d max xres %d yres %d\n", dev->preferred_xres,
+			dev->preferred_yres, dev->maximum_xres, dev->maximum_yres);
 }
 
 void hal_display_init(void) {

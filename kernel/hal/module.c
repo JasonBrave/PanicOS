@@ -33,8 +33,7 @@ struct ModuleInfo {
 	unsigned int base;
 } module_info[MAX_MODULES];
 
-static int module_elf_load(pde_t* pgdir, unsigned int base, const char* name,
-						   unsigned int* entry) {
+static int module_elf_load(pde_t* pgdir, unsigned int base, const char* name, unsigned int* entry) {
 	struct FileDesc fd;
 	if (vfs_fd_open(&fd, name, O_READ) < 0) {
 		return -1;
@@ -66,8 +65,7 @@ static int module_elf_load(pde_t* pgdir, unsigned int base, const char* name,
 		if (ph.type != ELF_PROG_LOAD) {
 			continue;
 		}
-		if (allocuvm(pgdir, base + ph.vaddr - ph.vaddr % PGSIZE,
-					 base + ph.vaddr + ph.memsz,
+		if (allocuvm(pgdir, base + ph.vaddr - ph.vaddr % PGSIZE, base + ph.vaddr + ph.memsz,
 					 (ph.flags & ELF_PROG_FLAG_WRITE) ? PTE_W : 0) == 0) {
 			vfs_fd_close(&fd);
 			return -1;
@@ -111,8 +109,7 @@ int module_load(const char* name) {
 	acquire(&ptable.lock);
 	for (int i = 0; i < NPROC; i++) {
 		if (ptable.proc[i].state != UNUSED && ptable.proc[i].state != EMBRYO) {
-			if (copypgdir(ptable.proc[i].pgdir, kpgdir, load_base, load_base + ret) ==
-				0) {
+			if (copypgdir(ptable.proc[i].pgdir, kpgdir, load_base, load_base + ret) == 0) {
 				panic("module load copy failed");
 			}
 		}
@@ -183,22 +180,20 @@ static struct KernerServiceTable {
 	void (*usb_register_host_controller)(void*, const char*, unsigned int,
 										 const struct USBHostControllerDriver*);
 	void (*usb_register_driver)(const struct USBDriver* r);
-	enum USBTransferStatus (*usb_control_transfer_in)(struct USBBus*, unsigned int,
-													  unsigned int, void*, void*, int);
+	enum USBTransferStatus (*usb_control_transfer_in)(struct USBBus*, unsigned int, unsigned int,
+													  void*, void*, int);
 	enum USBTransferStatus (*usb_control_transfer_nodata)(struct USBBus*, unsigned int,
 														  unsigned int, void*);
-	int (*usb_get_standard_descriptor)(struct USBDevice*, unsigned int, unsigned int,
-									   void*, unsigned int);
-	int (*usb_get_class_descriptor)(struct USBDevice*, unsigned int, unsigned int,
-									void*, unsigned int);
+	int (*usb_get_standard_descriptor)(struct USBDevice*, unsigned int, unsigned int, void*,
+									   unsigned int);
+	int (*usb_get_class_descriptor)(struct USBDevice*, unsigned int, unsigned int, void*,
+									unsigned int);
 	int (*usb_get_device_descriptor)(struct USBDevice*);
 	int (*usb_get_configuration_descriptor)(struct USBDevice*, unsigned int, uint8_t*);
 	int (*usb_set_configuration)(struct USBDevice*, uint8_t);
 	// hal/hal.h
-	void (*hal_block_register_device)(const char*, void*,
-									  const struct BlockDeviceDriver*);
-	void (*hal_display_register_device)(const char*, void*,
-										const struct FramebufferDriver*);
+	void (*hal_block_register_device)(const char*, void*, const struct BlockDeviceDriver*);
+	void (*hal_display_register_device)(const char*, void*, const struct FramebufferDriver*);
 	void (*hal_mouse_update)(unsigned int);
 	void (*hal_keyboard_update)(unsigned int);
 }* kernsrv = (void*)0x80010000;

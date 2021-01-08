@@ -76,27 +76,23 @@ void* ld_lookup_symbol(const char* name) {
 // rel_table: pointer to relocation table
 // dynsym: pointer to dynamic symbol table
 // num: number of relocation
-void ld_relocate(void* load_base, Elf32_Rel* rel_table, Elf32_Sym* dynsym, char* strtab,
-				 int num) {
+void ld_relocate(void* load_base, Elf32_Rel* rel_table, Elf32_Sym* dynsym, char* strtab, int num) {
 	for (int i = 0; i < num; i++) {
 		Elf32_Rel* rel = rel_table + i;
 		switch (ELF32_R_TYPE(rel->r_info)) {
 		case R_386_COPY: {
-			void* sym =
-				ld_lookup_symbol(strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name);
+			void* sym = ld_lookup_symbol(strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name);
 			if (!sym) {
 				write(2, strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name,
 					  strlen(strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name));
 				proc_exit(-1);
 			}
-			memcpy(load_base + rel->r_offset, sym,
-				   dynsym[ELF32_R_SYM(rel->r_info)].st_size);
+			memcpy(load_base + rel->r_offset, sym, dynsym[ELF32_R_SYM(rel->r_info)].st_size);
 			break;
 		}
 		case R_386_GLOB_DAT:
 		case R_386_JMP_SLOT: {
-			void* sym =
-				ld_lookup_symbol(strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name);
+			void* sym = ld_lookup_symbol(strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name);
 			if (!sym) {
 				write(2, strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name,
 					  strlen(strtab + dynsym[ELF32_R_SYM(rel->r_info)].st_name));

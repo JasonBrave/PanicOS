@@ -35,33 +35,29 @@ static void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* 
 			switch (pci_read_config_reg8(addr, capptr + VIRTIO_PCI_CAP_OFF_TYPE)) {
 			case VIRTIO_PCI_CAP_COMMON_CFG:
 				mmio_bar = pci_read_config_reg8(addr, capptr + VIRTIO_PCI_CAP_OFF_BAR);
-				cmcfg_off =
-					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
+				cmcfg_off = pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				break;
 			case VIRTIO_PCI_CAP_NOTIFY_CFG:
-				notify_off =
-					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
+				notify_off = pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				dev->notify_off_multiplier = pci_read_config_reg32(addr, capptr + 16);
 				break;
 			case VIRTIO_PCI_CAP_ISR_CFG:
-				isr_off =
-					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
+				isr_off = pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				break;
 			case VIRTIO_PCI_CAP_DEVICE_CFG:
-				devcfg_off =
-					pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
+				devcfg_off = pci_read_config_reg32(addr, capptr + VIRTIO_PCI_CAP_OFF_OFFSET);
 				break;
 			}
 		}
 	} while ((capptr = pci_read_config_reg8(addr, capptr + 1)) != 0);
-	volatile void* mmio_region = map_mmio_region(pci_read_bar(addr, mmio_bar),
-												 pci_read_bar_size(addr, mmio_bar));
+	volatile void* mmio_region =
+		map_mmio_region(pci_read_bar(addr, mmio_bar), pci_read_bar_size(addr, mmio_bar));
 	dev->cmcfg = mmio_region + cmcfg_off;
 	dev->notify_begin = mmio_region + notify_off;
 	dev->isr = mmio_region + isr_off;
 	dev->devcfg = mmio_region + devcfg_off;
-	cprintf("[virtio] BAR %d cmcfg %x notify %x isr %x devcfg %x\n", mmio_bar,
-			cmcfg_off, notify_off, isr_off, devcfg_off);
+	cprintf("[virtio] BAR %d cmcfg %x notify %x isr %x devcfg %x\n", mmio_bar, cmcfg_off,
+			notify_off, isr_off, devcfg_off);
 }
 
 static unsigned int virtio_set_feature(struct VirtioDevice* dev, unsigned int feature) {
@@ -73,8 +69,7 @@ static unsigned int virtio_set_feature(struct VirtioDevice* dev, unsigned int fe
 	return ack_feature;
 }
 
-void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
-					   int queue_n) {
+void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, int queue_n) {
 	queue->desc = kalloc();
 	queue->avail = kalloc();
 	queue->used = kalloc();
@@ -90,8 +85,7 @@ void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
 	dev->cmcfg->queue_driver = V2P(queue->avail);
 	dev->cmcfg->queue_device = V2P(queue->used);
 	dev->cmcfg->queue_enable = 1;
-	queue->notify =
-		dev->notify_begin + dev->cmcfg->queue_notify_off * dev->notify_off_multiplier;
+	queue->notify = dev->notify_begin + dev->cmcfg->queue_notify_off * dev->notify_off_multiplier;
 }
 
 void virtio_queue_notify(struct VirtioDevice* dev, struct VirtioQueue* queue) {
@@ -149,8 +143,7 @@ static void virtio_pci_intr_handler(struct PCIDevice* pcidev) {
 	return;
 }
 
-static unsigned int virtio_generic_init(struct VirtioDevice* dev,
-										unsigned int features) {
+static unsigned int virtio_generic_init(struct VirtioDevice* dev, unsigned int features) {
 	pci_enable_bus_mastering(&dev->pcidev->addr);
 	pci_register_intr_handler(dev->pcidev, virtio_pci_intr_handler);
 	// initialize lock
@@ -171,15 +164,12 @@ void virtio_register_driver(const struct VirtioDriver* driver) {
 		if (!virtio_device_table[i].driver && virtio_device_table[i].is_legacy &&
 			virtio_device_table[i].device_id == driver->legacy_device_id) {
 			virtio_device_table[i].driver = driver;
-			unsigned int feature =
-				virtio_generic_init(&virtio_device_table[i], driver->features);
+			unsigned int feature = virtio_generic_init(&virtio_device_table[i], driver->features);
 			driver->init(&virtio_device_table[i], feature);
-		} else if (!virtio_device_table[i].driver &&
-				   !virtio_device_table[i].is_legacy &&
+		} else if (!virtio_device_table[i].driver && !virtio_device_table[i].is_legacy &&
 				   virtio_device_table[i].device_id == driver->device_id) {
 			virtio_device_table[i].driver = driver;
-			unsigned int feature =
-				virtio_generic_init(&virtio_device_table[i], driver->features);
+			unsigned int feature = virtio_generic_init(&virtio_device_table[i], driver->features);
 			driver->init(&virtio_device_table[i], feature);
 		}
 	}
@@ -238,15 +228,13 @@ void virtio_print_devices(void) {
 						virtio_device_table[i].pcidev->addr.bus,
 						virtio_device_table[i].pcidev->addr.device,
 						virtio_device_table[i].pcidev->addr.function,
-						virtio_device_table[i].device_id,
-						virtio_device_table[i].driver->name);
+						virtio_device_table[i].device_id, virtio_device_table[i].driver->name);
 			} else {
 				cprintf("VirtIO PCI %x:%x.%x Modern device id %d driver %s\n",
 						virtio_device_table[i].pcidev->addr.bus,
 						virtio_device_table[i].pcidev->addr.device,
 						virtio_device_table[i].pcidev->addr.function,
-						virtio_device_table[i].device_id,
-						virtio_device_table[i].driver->name);
+						virtio_device_table[i].device_id, virtio_device_table[i].driver->name);
 			}
 		} else if (virtio_device_table[i].device_id) {
 			if (virtio_device_table[i].is_legacy) {

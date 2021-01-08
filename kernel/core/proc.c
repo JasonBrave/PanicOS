@@ -227,8 +227,7 @@ int fork(void) {
 		return -1;
 	}
 	// copy dynamic libraries
-	if (copyuvm(np->pgdir, curproc->pgdir, PROC_DYNAMIC_BOTTOM, curproc->dyn_base) ==
-		0) {
+	if (copyuvm(np->pgdir, curproc->pgdir, PROC_DYNAMIC_BOTTOM, curproc->dyn_base) == 0) {
 		freevm(np->pgdir);
 		kfree(np->kstack);
 		np->kstack = 0;
@@ -530,9 +529,8 @@ int kill(int pid) {
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
 void procdump(void) {
-	static char* states[] = {[UNUSED] = "unused",   [EMBRYO] = "embryo",
-							 [SLEEPING] = "sleep ", [RUNNABLE] = "runble",
-							 [RUNNING] = "run   ",  [ZOMBIE] = "zombie"};
+	static char* states[] = {[UNUSED] = "unused",	[EMBRYO] = "embryo",  [SLEEPING] = "sleep ",
+							 [RUNNABLE] = "runble", [RUNNING] = "run   ", [ZOMBIE] = "zombie"};
 	int i;
 	struct proc* p;
 	char* state;

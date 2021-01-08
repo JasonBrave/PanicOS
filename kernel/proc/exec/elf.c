@@ -23,8 +23,8 @@
 
 #include "elf.h"
 
-int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name,
-				  unsigned int* entry, unsigned int* dynamic, unsigned int* interp) {
+int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name, unsigned int* entry,
+				  unsigned int* dynamic, unsigned int* interp) {
 	struct FileDesc fd;
 	if (vfs_fd_open(&fd, name, O_READ) < 0) {
 		return -1;
@@ -62,8 +62,7 @@ int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name,
 		} else if (ph.type != ELF_PROG_LOAD) {
 			continue;
 		}
-		if (allocuvm(pgdir, base + ph.vaddr - ph.vaddr % PGSIZE,
-					 base + ph.vaddr + ph.memsz,
+		if (allocuvm(pgdir, base + ph.vaddr - ph.vaddr % PGSIZE, base + ph.vaddr + ph.memsz,
 					 (ph.flags & ELF_PROG_FLAG_WRITE) ? (PTE_W | PTE_U) : PTE_U) == 0) {
 			vfs_fd_close(&fd);
 			return -1;

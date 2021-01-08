@@ -48,8 +48,7 @@ int vfs_path_split(const char* path, char* buf) {
 	return count;
 }
 
-int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts,
-					 const char* rhs_buf) {
+int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts, const char* rhs_buf) {
 	if (lhs_parts != rhs_parts) {
 		return 0;
 	}

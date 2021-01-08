@@ -86,8 +86,7 @@ static enum USBTransferStatus uhci_transfer_packet(void* private, unsigned int a
 		if (inw(dev->iobase + UHCI_PORTSC) & UHCI_PORTSC_LOW_SPEED) {
 			transdesc[i].sta |= UHCI_STATUS_LOWSPEED;
 		}
-		transdesc[i].maxlen =
-			((packets[i].maxlen - 1) << 21) | (endpoint << 15) | (addr << 8);
+		transdesc[i].maxlen = ((packets[i].maxlen - 1) << 21) | (endpoint << 15) | (addr << 8);
 		if (packets[i].type == USB_PACKET_IN) {
 			transdesc[i].maxlen |= UHCI_TOKEN_PID_IN;
 		} else if (packets[i].type == USB_PACKET_OUT) {

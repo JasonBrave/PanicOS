@@ -83,9 +83,8 @@ void ata_adapter_dev_init(struct PCIDevice* pcidev) {
 		}
 		pci_enable_bus_mastering(&pcidev->addr);
 	}
-	cprintf("[ata] cmd0 0x%x ctl0 0x%x cmd1 0x%x ctl1 0x%x bmdma 0x%x\n",
-			adapter->cmdblock_base[0], adapter->control_base[0],
-			adapter->cmdblock_base[1], adapter->control_base[1],
+	cprintf("[ata] cmd0 0x%x ctl0 0x%x cmd1 0x%x ctl1 0x%x bmdma 0x%x\n", adapter->cmdblock_base[0],
+			adapter->control_base[0], adapter->cmdblock_base[1], adapter->control_base[1],
 			adapter->bus_master_base);
 	// enable PCI interrupt
 	if (adapter->pci_native) {

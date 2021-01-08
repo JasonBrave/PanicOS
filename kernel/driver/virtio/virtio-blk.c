@@ -76,8 +76,7 @@ static void virtio_blk_req(struct VirtioBlockDevice* dev, int type, unsigned int
 
 int virtio_blk_read(void* private, unsigned int begin, int count, void* buf) {
 	// check buf for DMA
-	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
-		(phyaddr_t)buf % PGSIZE)
+	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP || (phyaddr_t)buf % PGSIZE)
 		panic("virtio dma");
 	if (count == 0 || count > 8)
 		panic("virtio count");
@@ -96,8 +95,7 @@ int virtio_blk_read(void* private, unsigned int begin, int count, void* buf) {
 
 int virtio_blk_write(void* private, unsigned int begin, int count, const void* buf) {
 	// check buf for DMA
-	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
-		(phyaddr_t)buf % PGSIZE)
+	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP || (phyaddr_t)buf % PGSIZE)
 		panic("virtio dma");
 	if (count == 0 || count > 8)
 		panic("virtio count");
@@ -125,8 +123,7 @@ static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
 	return dev;
 }
 
-static void virtio_blk_dev_init(struct VirtioDevice* virtio_dev,
-								unsigned int features) {
+static void virtio_blk_dev_init(struct VirtioDevice* virtio_dev, unsigned int features) {
 	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
 	virtio_dev->private = dev;
 	dev->virtio_dev = virtio_dev;
@@ -136,23 +133,21 @@ static void virtio_blk_dev_init(struct VirtioDevice* virtio_dev,
 	acquire(&dev->lock);
 	virtio_init_queue(dev->virtio_dev, &dev->virtio_queue, 0);
 	// print a message
-	cprintf("[virtio-blk] Virtio Block device capacity %d "
+	cprintf("[virtio-blk] Virtio Block device capacity %lld "
 			"blk_size %d\n",
 
-			(unsigned int)blkcfg->capacity, blkcfg->blk_size);
+			blkcfg->capacity, blkcfg->blk_size);
 	release(&dev->lock);
 	hal_block_register_device("virtio-blk", dev, &virtio_blk_block_driver);
 }
 
-static void virtio_blk_queue_intr(struct VirtioDevice* virtio_dev,
-								  unsigned int queue_n) {
+static void virtio_blk_queue_intr(struct VirtioDevice* virtio_dev, unsigned int queue_n) {
 	struct VirtioBlockDevice* dev = virtio_dev->private;
 
 	acquire(&dev->lock);
 	static unsigned short last = 0;
 	for (; last != dev->virtio_queue.used->idx; last++) {
-		unsigned int id =
-			dev->virtio_queue.used->ring[last % dev->virtio_queue.size].id;
+		unsigned int id = dev->virtio_queue.used->ring[last % dev->virtio_queue.size].id;
 		volatile struct VirtqDesc* desc = &dev->virtio_queue.desc[id];
 		if (desc->flags & VIRTQ_DESC_F_NEXT) {
 			desc = &dev->virtio_queue.desc[desc->next];

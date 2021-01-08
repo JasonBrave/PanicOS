@@ -30,8 +30,7 @@ void pci_interrupt(int irq) {
 	}
 }
 
-void pci_register_intr_handler(struct PCIDevice* dev,
-							   void (*handler)(struct PCIDevice*)) {
+void pci_register_intr_handler(struct PCIDevice* dev, void (*handler)(struct PCIDevice*)) {
 	dev->intx_intr_handler = handler;
 }
 

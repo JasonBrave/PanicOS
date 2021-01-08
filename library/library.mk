@@ -5,7 +5,7 @@ $(LIB).a : $(OBJS)
 	$(AR) -rcs $(LIB).a $(OBJS)
 
 $(LIB).so : $(OBJS)
-	$(LD) -Bsymbolic -L.. -shared $(OBJS) $(DEPLIBS) -o $(LIB).so
+	$(LD) -Bsymbolic -L.. -shared $(OBJS) $(DEPLIBS) -o $(LIB).so $(shell $(CC) -print-libgcc-file-name)
 
 %.o : %.asm
 	nasm -felf32 -gdwarf $< -o $@

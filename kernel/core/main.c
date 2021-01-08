@@ -67,7 +67,7 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 			for (unsigned int off = 0; off < mbinfo->mmap_length;
 				 off += (mmap->size + sizeof(mmap->size))) {
 				mmap = P2V(mbinfo->mmap_addr + off);
-				cprintf("[multiboot] MMAP %x %x - %x %x type %d\n", mmap->addr,
+				cprintf("[multiboot] MMAP %llx - %llx type %d\n", mmap->addr,
 						mmap->addr + mmap->len - 1, mmap->type);
 				if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
 					memory_size += mmap->len;
@@ -82,13 +82,12 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 				boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
 				break;
 			case MULTIBOOT_FRAMEBUFFER_TYPE_RGB:
-				cprintf("[multiboot] framebuffer addr %x hi %x pitch %d width %d "
+				cprintf("[multiboot] framebuffer addr %llx pitch %d width %d "
 						"height %d bpp %d\n",
 						mbinfo->framebuffer_addr, mbinfo->framebuffer_pitch,
 						mbinfo->framebuffer_width, mbinfo->framebuffer_height,
 						mbinfo->framebuffer_bpp);
-				if (mbinfo->framebuffer_addr >=
-					(unsigned long long)4 * 1024 * 1024 * 1024) {
+				if (mbinfo->framebuffer_addr >= (unsigned long long)4 * 1024 * 1024 * 1024) {
 					cprintf("[multiboot] Warning mbinfo->framebuffer_addr >= 4GB");
 					boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_HEADLESS;
 				} else {
@@ -122,8 +121,7 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	seginit(); // segment descriptors
 	picinit(); // disable legacy PIC
 	if (boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
-		fbcon_init(boot_graphics_mode.fb_addr, boot_graphics_mode.width,
-				   boot_graphics_mode.height);
+		fbcon_init(boot_graphics_mode.fb_addr, boot_graphics_mode.width, boot_graphics_mode.height);
 	} else {
 		vgacon_init();
 	}

@@ -26,8 +26,7 @@
 static struct cpio_binary_header* initramfs_search(const char* filename) {
 	struct cpio_binary_header* cpio = (void*)INITRAMFS_BASE;
 	while (strncmp((void*)cpio + sizeof(struct cpio_binary_header), "TRAILER!!!", 11)) {
-		if (strncmp((void*)cpio + sizeof(struct cpio_binary_header), filename, 64) ==
-			0) {
+		if (strncmp((void*)cpio + sizeof(struct cpio_binary_header), filename, 64) == 0) {
 			return cpio;
 		}
 		cpio = (void*)cpio + sizeof(struct cpio_binary_header) + cpio->namesize +
@@ -52,8 +51,7 @@ int initramfs_dir_read(int ino, char* name) {
 	}
 
 	struct cpio_binary_header* cpio = (void*)INITRAMFS_BASE + ino;
-	if (strncmp((void*)cpio + sizeof(struct cpio_binary_header), "TRAILER!!!", 11) ==
-		0) {
+	if (strncmp((void*)cpio + sizeof(struct cpio_binary_header), "TRAILER!!!", 11) == 0) {
 		return 0; // EOF
 	}
 
@@ -91,11 +89,10 @@ int initramfs_open(const char* filename) {
 }
 
 // return bytes read
-int initramfs_read(unsigned int block, void* buf, unsigned int offset,
-				   unsigned int size) {
+int initramfs_read(unsigned int block, void* buf, unsigned int offset, unsigned int size) {
 	const struct cpio_binary_header* cpio = (void*)INITRAMFS_BASE + block;
-	const char* data = (void*)cpio + sizeof(struct cpio_binary_header) +
-					   cpio->namesize + cpio->namesize % 2;
+	const char* data =
+		(void*)cpio + sizeof(struct cpio_binary_header) + cpio->namesize + cpio->namesize % 2;
 
 	unsigned int copysize;
 	if (offset + size > (unsigned int)(cpio->filesize[0] << 16 | cpio->filesize[1])) {

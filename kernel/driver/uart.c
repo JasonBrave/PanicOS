@@ -85,9 +85,8 @@ void uart_putc(unsigned char c) {
 	if (!uart_devices[0].exist)
 		return;
 	ioport_t iobase = uart_devices[0].iobase;
-	for (int i = 0; i < 128 && !(inb(iobase + UART_REG_LINE_STATUS) &
-								 UART_REG_LINE_STATUS_THR_EMPTY);
-		 i++)
+	for (int i = 0;
+		 i < 128 && !(inb(iobase + UART_REG_LINE_STATUS) & UART_REG_LINE_STATUS_THR_EMPTY); i++)
 		microdelay(10);
 	outb(iobase + UART_REG_CHAR, c);
 }

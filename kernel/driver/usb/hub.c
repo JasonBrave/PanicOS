@@ -30,14 +30,13 @@ struct USBHub {
 
 static void usb_hub_reset_port(struct USBHub* hub, unsigned int port) {
 	struct USBSetupData* setup = kalloc();
-	setup->bm_request_type = USB_REQUEST_DIR_HOST_TO_DEVICE | USB_REQUEST_TYPE_CLASS |
-							 USB_REQUEST_RECP_OTHER;
+	setup->bm_request_type =
+		USB_REQUEST_DIR_HOST_TO_DEVICE | USB_REQUEST_TYPE_CLASS | USB_REQUEST_RECP_OTHER;
 	setup->b_request = USB_HUB_REQUEST_SET_FEATURE;
 	setup->w_value = USB_HUB_FEATURE_PORT_RESET;
 	setup->w_index = port + 1;
 	setup->w_length = 0;
-	usb_control_transfer_nodata(hub->usbif->usbdev->bus, hub->usbif->usbdev->addr, 0,
-								setup);
+	usb_control_transfer_nodata(hub->usbif->usbdev->bus, hub->usbif->usbdev->addr, 0, setup);
 	kfree(setup);
 }
 
@@ -58,8 +57,8 @@ static void usb_hub_dev_init(struct USBInterface* usbif) {
 	for (unsigned int port = 0; port < hub->num_ports; port++) {
 		struct USBSetupData* setup = kalloc();
 		volatile uint16_t* port_status_word = kalloc();
-		setup->bm_request_type = USB_REQUEST_DIR_DEVICE_TO_HOST |
-								 USB_REQUEST_TYPE_CLASS | USB_REQUEST_RECP_OTHER;
+		setup->bm_request_type =
+			USB_REQUEST_DIR_DEVICE_TO_HOST | USB_REQUEST_TYPE_CLASS | USB_REQUEST_RECP_OTHER;
 		setup->b_request = USB_HUB_REQUEST_GET_STATUS;
 		setup->w_value = 0;
 		setup->w_index = port + 1;

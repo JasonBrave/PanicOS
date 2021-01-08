@@ -84,8 +84,7 @@ void getcallerpcs(void* v, unsigned int pcs[]) {
 
 	ebp = (unsigned int*)v - 2;
 	for (i = 0; i < 10; i++) {
-		if (ebp == 0 || ebp < (unsigned int*)KERNBASE ||
-			ebp == (unsigned int*)0xffffffff)
+		if (ebp == 0 || ebp < (unsigned int*)KERNBASE || ebp == (unsigned int*)0xffffffff)
 			break;
 		pcs[i] = ebp[1]; // saved %eip
 		ebp = (unsigned int*)ebp[0]; // saved %ebp

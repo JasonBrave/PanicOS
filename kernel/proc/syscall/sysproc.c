@@ -170,8 +170,7 @@ int sys_kcall(void) {
 int sys_message_send(void) {
 	int pid, size;
 	void* data;
-	if ((argint(0, &pid) < 0) || (argint(1, &size) < 0) ||
-		(argptr(2, (char**)&data, size) < 0)) {
+	if ((argint(0, &pid) < 0) || (argint(1, &size) < 0) || (argptr(2, (char**)&data, size) < 0)) {
 		return -1;
 	}
 	struct proc* destproc = proc_search_pid(pid);

@@ -157,8 +157,8 @@ pde_t* setupkvm(void) {
 	if (P2V(PHYSTOP) > (void*)DEVSPACE)
 		panic("PHYSTOP too high");
 	for (k = kmap; k < &kmap[NELEM(kmap)]; k++)
-		if (mappages(pgdir, k->virt, k->phys_end - k->phys_start,
-					 (unsigned int)k->phys_start, k->perm) < 0) {
+		if (mappages(pgdir, k->virt, k->phys_end - k->phys_start, (unsigned int)k->phys_start,
+					 k->perm) < 0) {
 			freevm(pgdir);
 			return 0;
 		}
@@ -217,8 +217,7 @@ void inituvm(pde_t* pgdir, char* init, unsigned int sz) {
 
 // Load a program segment into pgdir.  addr must be page-aligned
 // and the pages from addr to addr+sz must already be mapped.
-int loaduvm(pde_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset,
-			unsigned int sz) {
+int loaduvm(pde_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset, unsigned int sz) {
 	unsigned int i, pa;
 	int n;
 	pte_t* pte;
@@ -389,8 +388,7 @@ int copyout(pde_t* pgdir, unsigned int va, void* p, unsigned int len) {
 	return 0;
 }
 
-pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin,
-				 unsigned int end) {
+pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned int end) {
 	pte_t* pte;
 	unsigned int pa, i, flags;
 

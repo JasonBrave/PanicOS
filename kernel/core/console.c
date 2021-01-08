@@ -31,6 +31,8 @@
 #include <memlayout.h>
 #include <param.h>
 
+#include <stdarg.h>
+
 #include "font.h"
 
 // comment of the following lines for release build
@@ -50,23 +52,25 @@ static struct {
 	enum { CONS_VGA, CONS_FB } mode;
 } cons;
 
-static void printint(int xx, int base, int sign) {
-	static char digits[] = "0123456789abcdef";
-	char buf[16];
-	int i;
-	unsigned int x;
+static void printint(unsigned long long xx, int base, int sgn, int cpt) {
+	const char* digits = cpt ? "0123456789ABCDEF" : "0123456789abcdef";
+	char buf[64];
+	int i, neg;
+	unsigned long long x;
 
-	if (sign && (sign = xx < 0))
+	neg = 0;
+	if (sgn && xx < 0) {
+		neg = 1;
 		x = -xx;
-	else
+	} else {
 		x = xx;
+	}
 
 	i = 0;
 	do {
 		buf[i++] = digits[x % base];
 	} while ((x /= base) != 0);
-
-	if (sign)
+	if (neg)
 		buf[i++] = '-';
 
 	while (--i >= 0)
@@ -74,53 +78,82 @@ static void printint(int xx, int base, int sign) {
 }
 
 // Print to the console. only understands %d, %x, %p, %s.
-void cprintf(const char* fmt, ...) {
-	int i, c, locking;
-	unsigned int* argp;
-	char* s;
+void cprintf(const char* restrict fmt, ...) {
+	int c, i, state;
 
-	locking = cons.locking;
-	if (locking)
+	state = 0;
+	va_list args;
+	va_start(args, fmt);
+
+	if (cons.locking)
 		acquire(&cons.lock);
 
-	if (fmt == 0)
-		panic("null fmt");
-
-	argp = (unsigned int*)(void*)(&fmt + 1);
-	for (i = 0; (c = fmt[i] & 0xff) != 0; i++) {
-		if (c != '%') {
-			consputc(c);
-			continue;
-		}
-		c = fmt[++i] & 0xff;
-		if (c == 0)
-			break;
-		switch (c) {
-		case 'd':
-			printint(*argp++, 10, 1);
-			break;
-		case 'x':
-		case 'p':
-			printint(*argp++, 16, 0);
-			break;
-		case 's':
-			if ((s = (char*)*argp++) == 0)
-				s = "(null)";
-			for (; *s; s++)
-				consputc(*s);
-			break;
-		case '%':
-			consputc('%');
-			break;
-		default:
-			// Print unknown % sequence to draw attention.
-			consputc('%');
-			consputc(c);
-			break;
+	for (i = 0; fmt[i]; i++) {
+		c = fmt[i] & 0xff;
+		if (state == 0) {
+			if (c == '%') {
+				state = '%';
+			} else {
+				consputc(c);
+			}
+		} else if (state == '%') {
+			state = 0;
+			if (c == '%') {
+				consputc(c);
+			} else if (c == 'c') {
+				consputc(va_arg(args, int));
+			} else if (c == 's') {
+				const char* s = va_arg(args, const char*);
+				if (s == 0)
+					s = "(null)";
+				while (*s != 0) {
+					consputc(*s);
+					s++;
+				}
+			} else if (c == 'd' || c == 'i') {
+				printint(va_arg(args, int), 10, 1, 0);
+			} else if (c == 'x') {
+				printint(va_arg(args, unsigned int), 16, 0, 0);
+			} else if (c == 'X') {
+				printint(va_arg(args, unsigned int), 16, 0, 1);
+			} else if (c == 'u') {
+				printint(va_arg(args, unsigned int), 10, 0, 0);
+			} else if (c == 'p') {
+				printint((unsigned int)va_arg(args, void*), 16, 0, 0);
+			} else if (c == 'l') {
+				state = 'l';
+			} else {
+				// Unknown % sequence.  Print it to draw attention.
+				consputc('%');
+				consputc(c);
+			}
+		} else if (state == 'l') {
+			state = 0;
+			if (c == 'd' || c == 'i') {
+				printint(va_arg(args, long), 10, 1, 0);
+			} else if (c == 'x') {
+				printint(va_arg(args, unsigned long), 16, 0, 0);
+			} else if (c == 'X') {
+				printint(va_arg(args, unsigned long), 16, 0, 1);
+			} else if (c == 'u') {
+				printint(va_arg(args, unsigned long), 10, 0, 0);
+			} else if (c == 'l') {
+				state = 'L';
+			}
+		} else if (state == 'L') {
+			state = 0;
+			if (c == 'd' || c == 'i') {
+				printint(va_arg(args, long long), 10, 1, 0);
+			} else if (c == 'x') {
+				printint(va_arg(args, unsigned long long), 16, 0, 0);
+			} else if (c == 'X') {
+				printint(va_arg(args, unsigned long long), 16, 0, 1);
+			} else if (c == 'u') {
+				printint(va_arg(args, unsigned long long), 10, 0, 0);
+			}
 		}
 	}
-
-	if (locking)
+	if (cons.locking)
 		release(&cons.lock);
 }
 
@@ -370,8 +403,8 @@ static void fb_putc(int c) {
 		ypos++;
 		if (ypos >= cons.height / 16) {
 			for (unsigned int i = 0; i < cons.height / 16; i++) {
-				fastmemcpy32(cons.fb + i * cons.width * 16,
-							 cons.fb + (i + 1) * cons.width * 16, cons.width * 16);
+				fastmemcpy32(cons.fb + i * cons.width * 16, cons.fb + (i + 1) * cons.width * 16,
+							 cons.width * 16);
 			}
 			ypos--;
 		}
@@ -392,8 +425,8 @@ static void fb_putc(int c) {
 		ypos++;
 		if (ypos >= cons.height / 16) {
 			for (unsigned int i = 0; i < cons.height / 16; i++) {
-				fastmemcpy32(cons.fb + i * cons.width * 16,
-							 cons.fb + (i + 1) * cons.width * 16, cons.width * 16);
+				fastmemcpy32(cons.fb + i * cons.width * 16, cons.fb + (i + 1) * cons.width * 16,
+							 cons.width * 16);
 			}
 			ypos--;
 		}

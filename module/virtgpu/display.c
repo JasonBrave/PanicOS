@@ -34,10 +34,9 @@ static phyaddr_t virtio_gpu_display_enable(void* private, int xres, int yres) {
 	struct VirtioGPUDisplay* disp = private;
 	disp->resource_id = virtio_gpu_alloc_resource_id(disp->gpu);
 	disp->framebuffer = V2P(pgalloc(4096));
-	virtio_gpu_res_create_2d(disp->gpu, disp->resource_id,
-							 VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM, xres, yres);
-	virtio_gpu_attach_banking(disp->gpu, disp->resource_id, disp->framebuffer,
-							  16 * 1024 * 1024);
+	virtio_gpu_res_create_2d(disp->gpu, disp->resource_id, VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM, xres,
+							 yres);
+	virtio_gpu_attach_banking(disp->gpu, disp->resource_id, disp->framebuffer, 16 * 1024 * 1024);
 	virtio_gpu_set_scanout(disp->gpu, disp->scanout, disp->resource_id, xres, yres);
 	disp->xres = xres;
 	disp->yres = yres;
@@ -51,8 +50,7 @@ static void virtio_gpu_display_disable(void* private) {
 	}
 }
 
-static unsigned int virtio_gpu_display_read_edid(void* private, void* buffer,
-												 unsigned int bytes) {
+static unsigned int virtio_gpu_display_read_edid(void* private, void* buffer, unsigned int bytes) {
 	struct VirtioGPUDisplay* disp = private;
 	if (!disp->gpu->features.edid) {
 		return 0;

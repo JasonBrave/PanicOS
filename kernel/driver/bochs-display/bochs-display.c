@@ -93,8 +93,7 @@ static void bochs_display_disable(void* private) {
 	return;
 }
 
-static unsigned int bochs_display_read_edid(void* private, void* buffer,
-											unsigned int bytes) {
+static unsigned int bochs_display_read_edid(void* private, void* buffer, unsigned int bytes) {
 	struct BochsDisplayDevice* dev = private;
 	if (!dev->edid_blob) {
 		return 0;
@@ -139,9 +138,8 @@ static void bochs_display_dev_init(struct PCIDevice* pcidev) {
 				vbe_read(dev, VBE_DISPI_INDEX_ID), mmio_bar, dev->vram,
 				pci_read_bar_size(addr, 0) / 0x100000);
 	} else {
-		cprintf("[bochs-display] ver %x FB %x size %d MiB\n",
-				vbe_read(dev, VBE_DISPI_INDEX_ID), dev->vram,
-				pci_read_bar_size(addr, 0) / 0x100000);
+		cprintf("[bochs-display] ver %x FB %x size %d MiB\n", vbe_read(dev, VBE_DISPI_INDEX_ID),
+				dev->vram, pci_read_bar_size(addr, 0) / 0x100000);
 	}
 
 	hal_display_register_device("bochs-display", dev, &bochs_display_driver);

@@ -61,8 +61,7 @@ void virtio_gpu_init(struct VirtioDevice* virtio_dev, unsigned int features) {
 	virtio_init_queue(dev->virtio_dev, &dev->controlq, 0);
 	virtio_init_queue(dev->virtio_dev, &dev->cursorq, 1);
 
-	cprintf("[virtio-gpu] Feature 3D%s EDID%s UUID%s\n",
-			BOOL2SIGN(features & VIRTIO_GPU_F_VIRGL),
+	cprintf("[virtio-gpu] Feature 3D%s EDID%s UUID%s\n", BOOL2SIGN(features & VIRTIO_GPU_F_VIRGL),
 			BOOL2SIGN(features & VIRTIO_GPU_F_EDID),
 			BOOL2SIGN(features & VIRTIO_GPU_F_RESOURCE_UUID));
 	if (features & VIRTIO_GPU_F_EDID) {

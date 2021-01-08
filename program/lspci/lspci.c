@@ -46,30 +46,29 @@ static void lspci_print_type0_header(const void* cfg_space, const struct PciKcal
 	}
 	for (int i = 0; i < 6; i++) {
 		if (cfg->bar[i] && (cfg->bar[i] & 1)) {
-			printf("BAR%d IO %x - %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC,
+			printf("BAR%d IO %x - %lx\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC,
 				   ((unsigned int)cfg->bar[i] & 0xFFFFFFFC) + (uint32_t)pcires->bar_size[i] - 1);
 		} else if (cfg->bar[i] && (cfg->bar[i] & 6)) {
 			uint64_t bar_val = ((uint64_t)cfg->bar[i + 1] << 32) | (cfg->bar[i] & 0xFFFFFFF0);
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM64 %x %x - %x %x pref\n", i, bar_val,
+				printf("BAR%d MEM64 %llx - %llx pref\n", i, bar_val,
 					   bar_val + pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM64 %x %x - %x %x\n", i, bar_val,
-					   bar_val + pcires->bar_size[i] - 1);
+				printf("BAR%d MEM64 %llx - %llx\n", i, bar_val, bar_val + pcires->bar_size[i] - 1);
 			}
 		} else if (cfg->bar[i]) {
 			uint32_t bar_val = (unsigned int)cfg->bar[i] & 0xFFFFFFF0;
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM32 %x - %x pref\n", i, bar_val,
+				printf("BAR%d MEM32 %lx - %lx pref\n", i, bar_val,
 					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM32 %x - %x\n", i, bar_val,
+				printf("BAR%d MEM32 %lx - %lx\n", i, bar_val,
 					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			}
 		}
 	}
 	if (cfg->rombar) {
-		printf("OpROM %x - %x\n", cfg->rombar & 0xfffff800,
+		printf("OpROM %lx - %lx\n", cfg->rombar & 0xfffff800,
 			   (cfg->rombar & 0xfffff800) + (uint32_t)pcires->rombar_size - 1);
 	}
 }
@@ -80,24 +79,23 @@ static void lspci_print_type1_header(const void* cfg_space, const struct PciKcal
 		   cfg->subbus);
 	for (int i = 0; i < 2; i++) {
 		if (cfg->bar[i] && (cfg->bar[i] & 1)) {
-			printf("BAR%d IO %x - %x\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC,
+			printf("BAR%d IO %x - %lx\n", i, (unsigned int)cfg->bar[i] & 0xFFFFFFFC,
 				   ((unsigned int)cfg->bar[i] & 0xFFFFFFFC) + (uint32_t)pcires->bar_size[i] - 1);
 		} else if (cfg->bar[i] && (cfg->bar[i] & 6)) {
 			uint64_t bar_val = ((uint64_t)cfg->bar[i + 1] << 32) | (cfg->bar[i] & 0xFFFFFFF0);
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM64 %x %x - %x %x pref\n", i, bar_val,
+				printf("BAR%d MEM64 %llx - %llx pref\n", i, bar_val,
 					   bar_val + pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM64 %x %x - %x %x\n", i, bar_val,
-					   bar_val + pcires->bar_size[i] - 1);
+				printf("BAR%d MEM64 %llx - %llx\n", i, bar_val, bar_val + pcires->bar_size[i] - 1);
 			}
 		} else if (cfg->bar[i]) {
 			uint32_t bar_val = (unsigned int)cfg->bar[i] & 0xFFFFFFF0;
 			if (cfg->bar[i] & 8) {
-				printf("BAR%d MEM32 %x - %x pref\n", i, bar_val,
+				printf("BAR%d MEM32 %lx - %lx pref\n", i, bar_val,
 					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			} else {
-				printf("BAR%d MEM32 %x - %x\n", i, bar_val,
+				printf("BAR%d MEM32 %lx - %lx\n", i, bar_val,
 					   bar_val + (uint32_t)pcires->bar_size[i] - 1);
 			}
 		}
@@ -176,11 +174,11 @@ void lspci_print_device(unsigned int bus, unsigned int device, unsigned int func
 							   powof2((msgctl >> 4) & 7), (msgctl & (1 << 7)) ? "+" : "-",
 							   (msgctl & (1 << 8)) ? "+" : "-");
 						if ((msgctl & 1) && (msgctl & (1 << 7))) {
-							printf("    Message address %x, Message data %x\n",
+							printf("    Message address %lx, Message data %x\n",
 								   *(uint32_t*)(cfg_space + cap_off + 4),
 								   *(uint16_t*)(cfg_space + cap_off + 12));
 						} else if (msgctl & 1) {
-							printf("    Message address %x, Message data %x\n",
+							printf("    Message address %lx, Message data %x\n",
 								   *(uint32_t*)(cfg_space + cap_off + 4),
 								   *(uint16_t*)(cfg_space + cap_off + 8));
 						}
@@ -193,9 +191,9 @@ void lspci_print_device(unsigned int bus, unsigned int device, unsigned int func
 							   (msgctl & (1 << 15)) ? "+" : "-", (msgctl & (1 << 14)) ? "+" : "-",
 							   (msgctl & 0x7ff) + 1);
 						uint32_t tableoff = *(uint32_t*)(cfg_space + cap_off + 4);
-						printf("    Table offset %x BAR %d\n", tableoff >> 3, tableoff & 7);
+						printf("    Table offset %lx BAR %ld\n", tableoff >> 3, tableoff & 7);
 						uint32_t pbaoff = *(uint32_t*)(cfg_space + cap_off + 8);
-						printf("    PBA offset %x BAR %d\n", pbaoff >> 3, pbaoff & 7);
+						printf("    PBA offset %lx BAR %ld\n", pbaoff >> 3, pbaoff & 7);
 					}
 				} else {
 					printf("[%x] %s\n", cap_off, pci_cap_to_str(*((uint8_t*)cfg + cap_off)));

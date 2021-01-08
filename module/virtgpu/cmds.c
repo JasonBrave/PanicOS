@@ -73,8 +73,7 @@ int virtio_gpu_get_display_info(struct VirtioGPUDevice* dev,
 	return 0;
 }
 
-unsigned int virtio_gpu_get_edid(struct VirtioGPUDevice* dev, unsigned int scanout,
-								 void* edid) {
+unsigned int virtio_gpu_get_edid(struct VirtioGPUDevice* dev, unsigned int scanout, void* edid) {
 	acquire(&dev->lock);
 
 	struct virtio_gpu_get_edid* req = kalloc();
@@ -124,8 +123,7 @@ unsigned int virtio_gpu_get_edid(struct VirtioGPUDevice* dev, unsigned int scano
 }
 
 void virtio_gpu_res_create_2d(struct VirtioGPUDevice* dev, unsigned int resource_id,
-							  enum virtio_gpu_formats format, unsigned int w,
-							  unsigned int h) {
+							  enum virtio_gpu_formats format, unsigned int w, unsigned int h) {
 	acquire(&dev->lock);
 
 	struct virtio_gpu_resource_create_2d* req = kalloc();
@@ -206,8 +204,8 @@ void virtio_gpu_set_scanout(struct VirtioGPUDevice* dev, unsigned int scanout,
 	release(&dev->lock);
 }
 
-void virtio_gpu_flush(struct VirtioGPUDevice* dev, unsigned int resource_id,
-					  unsigned int w, unsigned int h) {
+void virtio_gpu_flush(struct VirtioGPUDevice* dev, unsigned int resource_id, unsigned int w,
+					  unsigned int h) {
 	acquire(&dev->lock);
 
 	struct virtio_gpu_resource_flush* req = kalloc();
@@ -289,8 +287,8 @@ void virtio_gpu_xfer_to_host_2d(struct VirtioGPUDevice* dev, unsigned int resour
 	release(&dev->lock);
 }
 
-void virtio_gpu_attach_banking(struct VirtioGPUDevice* dev, unsigned int resource_id,
-							   phyaddr_t fb, size_t length) {
+void virtio_gpu_attach_banking(struct VirtioGPUDevice* dev, unsigned int resource_id, phyaddr_t fb,
+							   size_t length) {
 	acquire(&dev->lock);
 
 	struct virtio_gpu_resource_attach_backing* req = kalloc();

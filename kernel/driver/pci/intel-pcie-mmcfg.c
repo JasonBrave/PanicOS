@@ -21,42 +21,36 @@
 #include <driver/pci/pci.h>
 
 static uint8_t intel_mmcfg_read_config_reg8(const struct PciAddress* addr, int reg) {
-	return *(volatile uint8_t*)(pci_host.pcie_ecam_base +
-								((addr->bus << 20) | (addr->device << 15) |
-								 (addr->function << 12) | reg));
+	return *(volatile uint8_t*)(pci_host.pcie_ecam_base + ((addr->bus << 20) |
+														   (addr->device << 15) |
+														   (addr->function << 12) | reg));
 }
 
 static uint16_t intel_mmcfg_read_config_reg16(const struct PciAddress* addr, int reg) {
-	return *(volatile uint16_t*)(pci_host.pcie_ecam_base +
-								 ((addr->bus << 20) | (addr->device << 15) |
-								  (addr->function << 12) | reg));
+	return *(volatile uint16_t*)(pci_host.pcie_ecam_base + ((addr->bus << 20) |
+															(addr->device << 15) |
+															(addr->function << 12) | reg));
 }
 
 static uint32_t intel_mmcfg_read_config_reg32(const struct PciAddress* addr, int reg) {
-	return *(volatile uint32_t*)(pci_host.pcie_ecam_base +
-								 ((addr->bus << 20) | (addr->device << 15) |
-								  (addr->function << 12) | reg));
+	return *(volatile uint32_t*)(pci_host.pcie_ecam_base + ((addr->bus << 20) |
+															(addr->device << 15) |
+															(addr->function << 12) | reg));
 }
 
-static void intel_mmcfg_write_config_reg8(const struct PciAddress* addr, int reg,
-										  uint8_t data) {
-	*(volatile uint8_t*)(pci_host.pcie_ecam_base +
-						 ((addr->bus << 20) | (addr->device << 15) |
-						  (addr->function << 12) | reg)) = data;
+static void intel_mmcfg_write_config_reg8(const struct PciAddress* addr, int reg, uint8_t data) {
+	*(volatile uint8_t*)(pci_host.pcie_ecam_base + ((addr->bus << 20) | (addr->device << 15) |
+													(addr->function << 12) | reg)) = data;
 }
 
-static void intel_mmcfg_write_config_reg16(const struct PciAddress* addr, int reg,
-										   uint16_t data) {
-	*(volatile uint16_t*)(pci_host.pcie_ecam_base +
-						  ((addr->bus << 20) | (addr->device << 15) |
-						   (addr->function << 12) | reg)) = data;
+static void intel_mmcfg_write_config_reg16(const struct PciAddress* addr, int reg, uint16_t data) {
+	*(volatile uint16_t*)(pci_host.pcie_ecam_base + ((addr->bus << 20) | (addr->device << 15) |
+													 (addr->function << 12) | reg)) = data;
 }
 
-static void intel_mmcfg_write_config_reg32(const struct PciAddress* addr, int reg,
-										   uint32_t data) {
-	*(volatile uint32_t*)(pci_host.pcie_ecam_base +
-						  ((addr->bus << 20) | (addr->device << 15) |
-						   (addr->function << 12) | reg)) = data;
+static void intel_mmcfg_write_config_reg32(const struct PciAddress* addr, int reg, uint32_t data) {
+	*(volatile uint32_t*)(pci_host.pcie_ecam_base + ((addr->bus << 20) | (addr->device << 15) |
+													 (addr->function << 12) | reg)) = data;
 }
 
 void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
@@ -86,12 +80,11 @@ void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
 	}
 	// ECAM base address
 	if ((pciexbar & 0xffc000000) > 0xe0000000) {
-		cprintf("[pci] PCIEXBAR too high, lo %x hi %x\n",
-				pciexbar); // print 64 bits integer as two 32 bits integer
+		cprintf("[pci] PCIEXBAR too high %llx\n", pciexbar);
 		return;
 	}
 	if ((pciexbar & 0xffc000000) < 0xb0000000) {
-		cprintf("[pci] PCIEXBAR too low, lo %x hi %x\n", pciexbar);
+		cprintf("[pci] PCIEXBAR too low %llx\n", pciexbar);
 		return;
 	}
 	phyaddr_t ecam_base = pciexbar & 0xfc000000;

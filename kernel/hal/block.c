@@ -25,9 +25,8 @@
 struct BlockDevice hal_block_map[HAL_BLOCK_MAX];
 struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
 
-struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs,
-												 unsigned int dev, unsigned int begin,
-												 unsigned int size) {
+struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs, unsigned int dev,
+												 unsigned int begin, unsigned int size) {
 	for (int i = 0; i < HAL_PARTITION_MAX; i++) {
 		if (hal_partition_map[i].fs_type == HAL_PARTITION_NONE) {
 			hal_partition_map[i].fs_type = fs;
@@ -122,8 +121,7 @@ int hal_disk_read(int id, int begin, int count, void* buf) {
 		return ERROR_INVAILD;
 	}
 
-	return hal_block_map[id].driver->block_read(hal_block_map[id].private, begin, count,
-												buf);
+	return hal_block_map[id].driver->block_read(hal_block_map[id].private, begin, count, buf);
 }
 
 int hal_partition_read(int id, int begin, int count, void* buf) {
@@ -133,8 +131,8 @@ int hal_partition_read(int id, int begin, int count, void* buf) {
 	if (hal_partition_map[id].fs_type == HAL_PARTITION_NONE) {
 		return -1;
 	}
-	return hal_block_read(hal_partition_map[id].dev,
-						  hal_partition_map[id].begin + begin, count, buf);
+	return hal_block_read(hal_partition_map[id].dev, hal_partition_map[id].begin + begin, count,
+						  buf);
 }
 
 int hal_block_write(int id, int begin, int count, const void* buf) {
@@ -168,8 +166,7 @@ int hal_disk_write(int id, int begin, int count, const void* buf) {
 		return ERROR_INVAILD;
 	}
 
-	return hal_block_map[id].driver->block_write(hal_block_map[id].private, begin,
-												 count, buf);
+	return hal_block_map[id].driver->block_write(hal_block_map[id].private, begin, count, buf);
 }
 
 int hal_partition_write(int id, int begin, int count, const void* buf) {
@@ -179,6 +176,6 @@ int hal_partition_write(int id, int begin, int count, const void* buf) {
 	if (hal_partition_map[id].fs_type == HAL_PARTITION_NONE) {
 		return -1;
 	}
-	return hal_block_write(hal_partition_map[id].dev,
-						   hal_partition_map[id].begin + begin, count, buf);
+	return hal_block_write(hal_partition_map[id].dev, hal_partition_map[id].begin + begin, count,
+						   buf);
 }
