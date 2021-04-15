@@ -34,6 +34,9 @@ struct PCIDevice {
 	void* private;
 	void (*intx_intr_handler)(struct PCIDevice*);
 	const struct PCIDriver* driver;
+	// MSI-X specific
+	volatile uint32_t* msix_table;
+	volatile uint32_t* msix_pba;
 };
 
 struct PCIDeviceID {
@@ -47,6 +50,8 @@ struct PCIDriver {
 	void (*init)(struct PCIDevice*);
 };
 
+struct MSIMessage;
+
 static inline uint8_t pci_read_config_reg8(const struct PciAddress* addr, int reg) {
 	return kernsrv->pci_read_config_reg8(addr, reg);
 }
@@ -59,18 +64,15 @@ static inline uint32_t pci_read_config_reg32(const struct PciAddress* addr, int 
 	return kernsrv->pci_read_config_reg32(addr, reg);
 }
 
-static inline void pci_write_config_reg8(const struct PciAddress* addr, int reg,
-										 uint8_t data) {
+static inline void pci_write_config_reg8(const struct PciAddress* addr, int reg, uint8_t data) {
 	return kernsrv->pci_write_config_reg8(addr, reg, data);
 }
 
-static inline void pci_write_config_reg16(const struct PciAddress* addr, int reg,
-										  uint16_t data) {
+static inline void pci_write_config_reg16(const struct PciAddress* addr, int reg, uint16_t data) {
 	return kernsrv->pci_write_config_reg16(addr, reg, data);
 }
 
-static inline void pci_write_config_reg32(const struct PciAddress* addr, int reg,
-										  uint32_t data) {
+static inline void pci_write_config_reg32(const struct PciAddress* addr, int reg, uint32_t data) {
 	return kernsrv->pci_write_config_reg32(addr, reg, data);
 }
 
@@ -110,17 +112,8 @@ static inline void pci_disable_intx_intr(const struct PciAddress* addr) {
 	return kernsrv->pci_disable_intx_intr(addr);
 }
 
-static inline int pci_msi_alloc_vector(void (*handler)(void*), void* private) {
-	return kernsrv->pci_msi_alloc_vector(handler, private);
-}
-
-static inline void pci_msi_free_vector(int vector) {
-	return kernsrv->pci_msi_free_vector(vector);
-}
-
-static inline int pci_msi_enable(const struct PciAddress* addr, int vector,
-								 int lapicid) {
-	return kernsrv->pci_msi_enable(addr, vector, lapicid);
+static inline int pci_msi_enable(const struct PciAddress* addr, const struct MSIMessage* msg) {
+	return kernsrv->pci_msi_enable(addr, msg);
 }
 
 static inline void pci_msi_disable(const struct PciAddress* addr) {

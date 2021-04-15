@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/msi.h>
 #include <common/spinlock.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
@@ -145,6 +146,9 @@ static struct KernerServiceTable {
 	void* (*map_mmio_region)(phyaddr_t, size_t);
 	void* (*map_ram_region)(phyaddr_t, size_t);
 	void* (*map_rom_region)(phyaddr_t, size_t);
+	// arch specific
+	int (*msi_alloc_vector)(struct MSIMessage* msg, void (*handler)(void*), void* private);
+	void (*msi_free_vector)(const struct MSIMessage* msg);
 	// process control
 	void (*sleep)(void*, struct spinlock*);
 	void (*wakeup)(void*);
@@ -168,10 +172,8 @@ static struct KernerServiceTable {
 	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
 	void (*pci_enable_intx_intr)(const struct PciAddress*);
 	void (*pci_disable_intx_intr)(const struct PciAddress*);
-	int (*pci_msi_alloc_vector)(void (*)(void*), void*);
-	void (*pci_msi_free_vector)(int);
-	int (*pci_msi_enable)(const struct PciAddress*, int, int);
-	void (*pci_msi_disable)(const struct PciAddress*);
+	int (*pci_msi_enable)(const struct PciAddress* addr, const struct MSIMessage* msg);
+	void (*pci_msi_disable)(const struct PciAddress* addr);
 	void (*pci_register_driver)(const struct PCIDriver*);
 	// driver/virtio/virtio.h
 	void (*virtio_register_driver)(const struct VirtioDriver*);
@@ -207,6 +209,8 @@ void module_init(void) {
 	kernsrv->map_mmio_region = map_mmio_region;
 	kernsrv->map_ram_region = map_ram_region;
 	kernsrv->map_rom_region = map_rom_region;
+	kernsrv->msi_alloc_vector = msi_alloc_vector;
+	kernsrv->msi_free_vector = msi_free_vector;
 	kernsrv->sleep = sleep;
 	kernsrv->wakeup = wakeup;
 	kernsrv->initlock = initlock;
@@ -227,8 +231,6 @@ void module_init(void) {
 	kernsrv->pci_register_intr_handler = pci_register_intr_handler;
 	kernsrv->pci_enable_intx_intr = pci_enable_intx_intr;
 	kernsrv->pci_disable_intx_intr = pci_disable_intx_intr;
-	kernsrv->pci_msi_alloc_vector = pci_msi_alloc_vector;
-	kernsrv->pci_msi_free_vector = pci_msi_free_vector;
 	kernsrv->pci_msi_enable = pci_msi_enable;
 	kernsrv->pci_msi_disable = pci_msi_disable;
 	kernsrv->pci_register_driver = pci_register_driver;

@@ -19,9 +19,9 @@
 
 #include <common/x86.h>
 #include <defs.h>
-#include <driver/ioapic.h>
 #include <driver/pci/pci-config.h>
 #include <driver/pci/pci.h>
+#include <driver/x86/ioapic.h>
 #include <memlayout.h>
 
 #include "ata.h"

@@ -93,4 +93,7 @@ struct VirtioPciCommonConfig {
 #define VIRTIO_STATUS_DRIVER_OK 4
 #define VIRTIO_STATUS_DEVICE_NEEDS_RESET 64
 
+/* Vector value used to disable MSI for queue */
+#define VIRTIO_MSI_NO_VECTOR 0xffff
+
 #endif

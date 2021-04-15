@@ -20,7 +20,7 @@
 #include <common/types.h>
 #include <common/x86.h>
 #include <defs.h>
-#include <driver/ioapic.h>
+#include <driver/x86/ioapic.h>
 #include <hal/hal.h>
 
 #include "ps2.h"

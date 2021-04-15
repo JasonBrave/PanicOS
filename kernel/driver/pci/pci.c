@@ -18,7 +18,7 @@
  */
 
 #include <defs.h>
-#include <driver/ioapic.h>
+#include <driver/x86/ioapic.h>
 #include <memlayout.h>
 #include <proc/kcall.h>
 
@@ -28,15 +28,7 @@
 static const char* pci_intx_name[] = {[1] = "INTA", [2] = "INTB", [3] = "INTC", [4] = "INTD"};
 
 void pci_init(void) {
-	memset(pci_msi_vector, 0, sizeof(pci_msi_vector));
 	memset(pci_device_table, 0, sizeof(pci_device_table));
-	// PCIe ECAM
-	const struct PciAddress pci_host_bridge_addr = {.bus = 0, .device = 0, .function = 0};
-	if ((pci_read_config_reg16(&pci_host_bridge_addr, PCI_CONF_VENDOR) == 0x8086) &&
-		(pci_read_config_reg16(&pci_host_bridge_addr, PCI_CONF_DEVICE) ==
-		 0x29c0)) { // Q35 and P35 chipset
-		intel_pcie_mmcfg_init(&pci_host_bridge_addr);
-	}
 	// display list of devices
 	struct PciAddress addr;
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {

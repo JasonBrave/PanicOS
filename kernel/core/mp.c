@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/lapic.h>
 #include <common/x86.h>
 #include <core/mmu.h>
 #include <core/mp.h>
@@ -90,14 +91,11 @@ void mpinit(void) {
 
 	if ((conf = mpconfig(&mp)) == 0) {
 		cprintf("[mp] MP Table not found, disable SMP\n");
-		lapic = (uint32_t*)0xfee00000;
 		cpus[0].apicid = lapicid();
 		ncpu++;
-		cprintf("[mp] Faking lapic %x lapicid %x ncpu %d\n", lapic, cpus[0].apicid, ncpu);
+		cprintf("[mp] Faking BSP lapicid %x ncpu %d\n", cpus[0].apicid, ncpu);
 		return;
 	}
-	lapic = (uint32_t*)conf->lapicaddr;
-	cprintf("[mp] Local APIC %x\n", lapic);
 	for (p = (unsigned char*)(conf + 1), e = (unsigned char*)conf + conf->length; p < e;) {
 		switch (*p) {
 		case MPPROC:

@@ -191,9 +191,10 @@ void lspci_print_device(unsigned int bus, unsigned int device, unsigned int func
 							   (msgctl & (1 << 15)) ? "+" : "-", (msgctl & (1 << 14)) ? "+" : "-",
 							   (msgctl & 0x7ff) + 1);
 						uint32_t tableoff = *(uint32_t*)(cfg_space + cap_off + 4);
-						printf("    Table offset %lx BAR %ld\n", tableoff >> 3, tableoff & 7);
+						printf("    Table offset %lx BAR %ld\n", tableoff & 0xfffffff8,
+							   tableoff & 7);
 						uint32_t pbaoff = *(uint32_t*)(cfg_space + cap_off + 8);
-						printf("    PBA offset %lx BAR %ld\n", pbaoff >> 3, pbaoff & 7);
+						printf("    PBA offset %lx BAR %ld\n", pbaoff & 0xfffffff8, pbaoff & 7);
 					}
 				} else {
 					printf("[%x] %s\n", cap_off, pci_cap_to_str(*((uint8_t*)cfg + cap_off)));

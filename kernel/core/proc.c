@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/lapic.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
 #include <core/mmu.h>

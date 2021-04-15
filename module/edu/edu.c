@@ -20,6 +20,7 @@
 // Reference:
 // https://github.com/qemu/qemu/blob/master/docs/specs/edu.txt
 
+#include <arch.h>
 #include <kernel.h>
 #include <memory.h>
 #include <pci.h>
@@ -71,11 +72,12 @@ void edu_init_dev(struct PCIDevice* pcidev) {
 	pci_register_intr_handler(pcidev, edu_intx_intr);
 // set message signaled interrupt
 #ifdef EDU_USE_MSI
-	int msi_vec = pci_msi_alloc_vector(edu_msi_intr, dev);
+	struct MSIMessage msimsg;
+	int msi_vec = msi_alloc_vector(&msimsg, edu_msi_intr, dev);
 	if (!msi_vec) {
 		cprintf("[edu] out of MSI interrupt vector\n");
 	} else {
-		pci_msi_enable(addr, msi_vec, 0);
+		pci_msi_enable(addr, &msimsg);
 	}
 #endif
 	// try factorial

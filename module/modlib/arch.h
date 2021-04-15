@@ -1,5 +1,5 @@
 /*
- * Legacy PIC
+ * Kernel arch specific functions
  *
  * This file is part of PanicOS.
  *
@@ -17,27 +17,22 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <common/x86.h>
-#include <core/traps.h>
+#ifndef _MODLIB_ARCH_H
+#define _MODLIB_ARCH_H
 
-// I/O Addresses of the two programmable interrupt controllers
-#define IO_PIC1 0x20 // Master (IRQs 0-7)
-#define IO_PIC2 0xA0 // Slave (IRQs 8-15)
+#include <kernsrv.h>
 
-void picinit(void) {
-	// mask all interrupts
-	outb(IO_PIC1 + 1, 0xFF);
-	outb(IO_PIC2 + 1, 0xFF);
+struct MSIMessage {
+	uint64_t addr;
+	uint32_t data;
+};
 
-	outb(IO_PIC1, 0x11);
-	outb(IO_PIC2, 0x11);
-
-	outb(IO_PIC1 + 1, 32);
-	outb(IO_PIC2 + 1, 40);
-
-	outb(IO_PIC1 + 1, 0x04);
-	outb(IO_PIC2 + 1, 0x02);
-
-	outb(IO_PIC1 + 1, 0x01);
-	outb(IO_PIC1 + 1, 0x01);
+static inline int msi_alloc_vector(struct MSIMessage* msg, void (*handler)(void*), void* private) {
+	return kernsrv->msi_alloc_vector(msg, handler, private);
 }
+
+static inline void msi_free_vector(const struct MSIMessage* msg) {
+	return kernsrv->msi_free_vector(msg);
+}
+
+#endif

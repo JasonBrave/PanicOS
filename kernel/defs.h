@@ -33,8 +33,8 @@ void module_print(void);
 int exec(char*, char**);
 
 // elf.c
-int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name,
-				  unsigned int* entry, unsigned int* dynamic, unsigned int* interp);
+int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name, unsigned int* entry,
+				  unsigned int* dynamic, unsigned int* interp);
 
 // dynamic.c
 int proc_load_dynamic(struct proc* proc, const char* name, unsigned int* dynamic,
@@ -53,21 +53,9 @@ void kinit1(void*, void*);
 void kinit2(void*, void*);
 void print_memory_usage(void);
 
-// lapic.c
-int lapicid(void);
-extern volatile uint32_t* lapic;
-void lapiceoi(void);
-void lapicinit(void);
-void lapicstartap(unsigned char, unsigned int);
-void microdelay(int);
-
 // mp.c
 extern int ismp;
 void mpinit(void);
-
-// picirq.c
-void picenable(int);
-void picinit(void);
 
 // proc.c
 int cpuid(void);
@@ -135,8 +123,7 @@ void switchkvm(void);
 int copyout(pde_t*, unsigned int, void*, unsigned int);
 void clearpteu(pde_t* pgdir, char* uva);
 int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int perm);
-pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin,
-				 unsigned int end);
+pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned int end);
 void* map_mmio_region(phyaddr_t phyaddr, size_t size);
 void* map_ram_region(phyaddr_t phyaddr, size_t size);
 void* map_rom_region(phyaddr_t phyaddr, size_t size);

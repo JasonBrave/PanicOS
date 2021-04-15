@@ -1,64 +1,67 @@
 OBJS = \
-	core/console.o\
-	proc/exec/exec.o\
-	core/kalloc.o\
-	core/lapic.o\
-	core/main.o\
-	core/mp.o\
-	core/picirq.o\
-	core/proc.o\
+	arch/x86/lapic.o\
+	arch/x86/msi.o\
 	common/sleeplock.o\
 	common/spinlock.o\
 	common/string.o\
+	core/console.o\
+	core/kalloc.o\
+	core/main.o\
+	core/mp.o\
+	core/proc.o\
 	core/swtch.o\
+	core/trap.o\
+	core/trapasm.o\
+	core/vm.o\
+	driver/ata/adapter.o\
+	driver/ata/ata.o\
+	driver/bochs-display/bochs-display.o\
+	driver/pci/driver.o\
+	driver/pci/intx.o\
+	driver/pci/msi.o\
+	driver/pci/msix.o\
+	driver/pci/pci-kcall.o\
+	driver/pci/pci.o\
+	driver/ps2/keyboard.o\
+	driver/ps2/mouse.o\
+	driver/uhci/uhci.o\
+	driver/usb/hub.o\
+	driver/usb/request.o\
+	driver/usb/transfer.o\
+	driver/usb/usb.o\
+	driver/virtio/virtio-blk.o\
+	driver/virtio/virtio.o\
+	driver/x86/intel-pcie-mmcfg.o\
+	driver/x86/ioapic.o\
+	driver/x86/pci-legacy.o\
+	driver/x86/pic.o\
+	driver/x86/platform.o\
+	driver/x86/rtc.o\
+	driver/x86/uart.o\
+	filesystem/fat32/cluster.o\
+	filesystem/fat32/dir.o\
+	filesystem/fat32/fat.o\
+	filesystem/fat32/mount.o\
+	filesystem/initramfs/initramfs.o\
+	filesystem/vfs/dir.o\
+	filesystem/vfs/filedesc.o\
+	filesystem/vfs/path.o\
+	filesystem/vfs/vfs.o\
+	hal/block.o\
+	hal/display.o\
+	hal/hid.o\
+	hal/mbr.o\
+	hal/module.o\
+	hal/power.o\
+	proc/exec/dynamic.o\
+	proc/exec/elf.o\
+	proc/exec/exec.o\
 	proc/syscall/syscall.o\
 	proc/syscall/sysfile.o\
 	proc/syscall/sysproc.o\
-	core/trapasm.o\
-	core/trap.o\
-	vectors.o\
-	core/vm.o\
-	filesystem/initramfs/initramfs.o\
-	filesystem/vfs/dir.o\
-	filesystem/vfs/vfs.o\
-	filesystem/vfs/filedesc.o\
-	proc/exec/elf.o\
-	driver/pci/pci.o\
-	driver/pci/intx.o\
-	driver/virtio/virtio-blk.o\
-	hal/block.o\
-	filesystem/fat32/mount.o\
-	filesystem/vfs/path.o\
-	filesystem/fat32/dir.o\
-	filesystem/fat32/cluster.o\
-	filesystem/fat32/fat.o\
-	driver/virtio/virtio.o\
-	proc/exec/dynamic.o\
 	proc/kcall.o\
-	driver/bochs-display/bochs-display.o\
-	hal/display.o\
-	driver/ps2/mouse.o\
-	driver/ps2/keyboard.o\
 	proc/pty.o\
-	driver/pci/intel-pcie-mmcfg.o\
-	driver/pci/pci-legacy.o\
-	driver/ata/adapter.o\
-	driver/ata/ata.o\
-	driver/pci/msi.o\
-	driver/pci/driver.o\
-	hal/mbr.o\
-	hal/module.o\
-	hal/hid.o\
-	driver/uhci/uhci.o\
-	driver/usb/usb.o\
-	driver/pci/pci-kcall.o\
-	hal/power.o\
-	driver/ioapic.o\
-	driver/uart.o\
-	driver/rtc.o\
-	driver/usb/hub.o\
-	driver/usb/transfer.o\
-	driver/usb/request.o\
+	vectors.o\
 
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.

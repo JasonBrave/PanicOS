@@ -20,6 +20,7 @@
 // Input is from the keyboard or serial port.
 // Output is written to the screen and serial port.
 
+#include <arch/x86/lapic.h>
 #include <common/sleeplock.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
@@ -27,7 +28,7 @@
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
-#include <driver/uart.h>
+#include <driver/x86/uart.h>
 #include <memlayout.h>
 #include <param.h>
 

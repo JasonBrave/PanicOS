@@ -55,7 +55,7 @@
 #define TCCR (0x0390 / 4) // Timer Current Count
 #define TDCR (0x03E0 / 4) // Timer Divide Configuration
 
-volatile uint32_t* lapic; // Initialized in mp.c
+volatile uint32_t* lapic = (volatile uint32_t*)0xfee00000; // Initialized in mp.c
 
 // PAGEBREAK!
 static void lapicw(int index, int value) {
@@ -64,8 +64,6 @@ static void lapicw(int index, int value) {
 }
 
 void lapicinit(void) {
-	if (!lapic)
-		return;
 
 	// Enable local APIC; set spurious interrupt vector.
 	lapicw(SVR, ENABLE | (T_IRQ0 + IRQ_SPURIOUS));

@@ -19,7 +19,7 @@
 
 #include <common/x86.h>
 #include <defs.h>
-#include <driver/ioapic.h>
+#include <driver/x86/ioapic.h>
 
 #define NUM_UART 4
 
@@ -85,9 +85,9 @@ void uart_putc(unsigned char c) {
 	if (!uart_devices[0].exist)
 		return;
 	ioport_t iobase = uart_devices[0].iobase;
-	for (int i = 0;
+	/*for (int i = 0;
 		 i < 128 && !(inb(iobase + UART_REG_LINE_STATUS) & UART_REG_LINE_STATUS_THR_EMPTY); i++)
-		microdelay(10);
+		 microdelay(10);*/
 	outb(iobase + UART_REG_CHAR, c);
 }
 

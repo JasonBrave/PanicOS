@@ -33,6 +33,9 @@ extern struct PCIDevice {
 	void* private;
 	void (*intx_intr_handler)(struct PCIDevice*);
 	const struct PCIDriver* driver;
+	// MSI-X specific
+	volatile uint32_t* msix_table;
+	volatile uint32_t* msix_pba;
 } pci_device_table[PCI_DEVICE_TABLE_SIZE];
 
 struct PCIDeviceID {
@@ -60,52 +63,39 @@ phyaddr_t pci_read_rom_bar(const struct PciAddress* addr);
 size_t pci_read_rom_bar_size(const struct PciAddress* addr);
 void pci_enable_bus_mastering(const struct PciAddress* addr);
 int pci_find_capability(const struct PciAddress* addr, uint8_t cap_id);
-struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor,
-								   uint16_t device);
-struct PciAddress* pci_find_class(struct PciAddress* pciaddr, uint8_t class,
-								  uint8_t subclass);
-struct PciAddress* pci_find_progif(struct PciAddress* pciaddr, uint8_t class,
-								   uint8_t subclass, uint8_t progif);
-struct PciAddress* pci_next_device(struct PciAddress* pciaddr, uint16_t vendor,
-								   uint16_t device);
-struct PciAddress* pci_next_class(struct PciAddress* pciaddr, uint8_t class,
-								  uint8_t subclass);
-struct PciAddress* pci_next_progif(struct PciAddress* pciaddr, uint8_t class,
-								   uint8_t subclass, uint8_t progif);
+struct PciAddress* pci_find_device(struct PciAddress* pciaddr, uint16_t vendor, uint16_t device);
+struct PciAddress* pci_find_class(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass);
+struct PciAddress* pci_find_progif(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass,
+								   uint8_t progif);
+struct PciAddress* pci_next_device(struct PciAddress* pciaddr, uint16_t vendor, uint16_t device);
+struct PciAddress* pci_next_class(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass);
+struct PciAddress* pci_next_progif(struct PciAddress* pciaddr, uint8_t class, uint8_t subclass,
+								   uint8_t progif);
 void pci_enable_device(const struct PciAddress* addr);
 
 // intx.c
 void pci_interrupt(int irq);
-void pci_register_intr_handler(struct PCIDevice* dev,
-							   void (*handler)(struct PCIDevice*));
+void pci_register_intr_handler(struct PCIDevice* dev, void (*handler)(struct PCIDevice*));
 void pci_enable_intx_intr(const struct PciAddress* addr);
 void pci_disable_intx_intr(const struct PciAddress* addr);
 
-// intel-pcie-mmcfg.c
-void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr);
-
 // msi.c
-#define PCI_MSI_VECTOR_MAX 190
-#define PCI_MSI_VECTOR_BASE 65
+struct MSIMessage;
 
-extern struct PCIMSIVector {
-	struct {
-		unsigned char used : 1;
-	};
-	void (*handler)(void*);
-	void* private;
-} pci_msi_vector[PCI_MSI_VECTOR_MAX];
-
-void pci_msi_intr(int vector);
-int pci_msi_alloc_vector(void (*handler)(void*), void* private);
-void pci_msi_free_vector(int vector);
-int pci_msi_enable(const struct PciAddress* addr, int vector, int lapicid);
+int pci_msi_enable(const struct PciAddress* addr, const struct MSIMessage* msg);
 void pci_msi_disable(const struct PciAddress* addr);
 
+// msix.c
+int pci_msix_enable(struct PCIDevice* pci_dev);
+unsigned int pci_msix_get_num_vectors(struct PCIDevice* pci_dev);
+void pci_msix_set_message(struct PCIDevice* pci_dev, unsigned int vec,
+						  const struct MSIMessage* msg);
+void pci_msix_mask(struct PCIDevice* pci_dev, unsigned int vec);
+void pci_msix_unmask(struct PCIDevice* pci_dev, unsigned int vec);
+
 // driver.c
-void pci_add_device(const struct PciAddress* addr, uint16_t vendor_id,
-					uint16_t device_id, uint8_t class, uint8_t subclass, uint8_t progif,
-					uint8_t irq);
+void pci_add_device(const struct PciAddress* addr, uint16_t vendor_id, uint16_t device_id,
+					uint8_t class, uint8_t subclass, uint8_t progif, uint8_t irq);
 void pci_register_driver(const struct PCIDriver* driver);
 void pci_print_devices(void);
 

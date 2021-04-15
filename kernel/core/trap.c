@@ -17,6 +17,8 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/lapic.h>
+#include <arch/x86/msi.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
 #include <core/mmu.h>
@@ -26,7 +28,7 @@
 #include <driver/ata/ata.h>
 #include <driver/pci/pci.h>
 #include <driver/ps2/ps2.h>
-#include <driver/uart.h>
+#include <driver/x86/uart.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -112,7 +114,7 @@ void trap(struct trapframe* tf) {
 		lapiceoi();
 		break;
 	case T_MSI ... T_MSI_END:
-		pci_msi_intr(tf->trapno);
+		msi_intr(tf->trapno);
 		lapiceoi();
 		break;
 	// PAGEBREAK: 13

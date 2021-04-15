@@ -17,12 +17,16 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/msi.h>
 #include <defs.h>
 #include <driver/pci/pci.h>
 #include <memlayout.h>
 
+#include "virtio-blk.h"
 #include "virtio-regs.h"
 #include "virtio.h"
+
+#define VIRTIO_PCI_USE_MSIX
 
 struct VirtioDevice virtio_device_table[VIRTIO_DEVICE_TABLE_SIZE];
 
@@ -69,23 +73,50 @@ static unsigned int virtio_set_feature(struct VirtioDevice* dev, unsigned int fe
 	return ack_feature;
 }
 
+/*
+For virtio MSI-X interrupts
+the device consume num_queues vectors
+vector queue_n is used for queues
+*/
+#ifdef VIRTIO_PCI_USE_MSIX
+static void virtio_pci_queue_msix_handler(void* private) {
+	struct VirtioQueue* queue = private;
+	queue->virtio_dev->driver->queue_intr_handler(queue->virtio_dev, 0);
+	return;
+}
+#endif
+
 void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, int queue_n) {
+	queue->virtio_dev = dev;
+	// allocate queue memory
 	queue->desc = kalloc();
 	queue->avail = kalloc();
 	queue->used = kalloc();
 	memset((void*)queue->desc, 0, 4096);
 	memset((void*)queue->avail, 0, 4096);
 	memset((void*)queue->used, 0, 4096);
+	// select current queue
 	dev->cmcfg->queue_select = queue_n;
 	if (dev->cmcfg->queue_size > VIRTIO_QUEUE_SIZE_MAX) {
 		dev->cmcfg->queue_size = VIRTIO_QUEUE_SIZE_MAX;
 	}
+	// set VirtioQueue structures
 	queue->size = dev->cmcfg->queue_size;
+	queue->notify = dev->notify_begin + dev->cmcfg->queue_notify_off * dev->notify_off_multiplier;
+// config MSI-X
+#ifdef VIRTIO_PCI_USE_MSIX
+	struct MSIMessage msix_msg;
+	if (msi_alloc_vector(&msix_msg, virtio_pci_queue_msix_handler, queue) == 0) {
+		cprintf("[virtio] MSI-X out MSI vector\n");
+	}
+	pci_msix_set_message(dev->pcidev, queue_n, &msix_msg);
+	pci_msix_unmask(dev->pcidev, queue_n);
+	dev->cmcfg->queue_msix_vector = queue_n; // MSI-X vector
+#endif
 	dev->cmcfg->queue_desc = V2P(queue->desc);
 	dev->cmcfg->queue_driver = V2P(queue->avail);
 	dev->cmcfg->queue_device = V2P(queue->used);
 	dev->cmcfg->queue_enable = 1;
-	queue->notify = dev->notify_begin + dev->cmcfg->queue_notify_off * dev->notify_off_multiplier;
 }
 
 void virtio_queue_notify(struct VirtioDevice* dev, struct VirtioQueue* queue) {
@@ -132,6 +163,7 @@ void virtio_free_desc(struct VirtioQueue* queue, int desc) {
 	} while (desc != -1);
 }
 
+#ifndef VIRTIO_PCI_USE_MSIX
 static int virtio_intr_ack(struct VirtioDevice* dev) {
 	return *dev->isr;
 }
@@ -142,10 +174,16 @@ static void virtio_pci_intr_handler(struct PCIDevice* pcidev) {
 	dev->driver->queue_intr_handler(dev, 0);
 	return;
 }
+#endif
 
 static unsigned int virtio_generic_init(struct VirtioDevice* dev, unsigned int features) {
 	pci_enable_bus_mastering(&dev->pcidev->addr);
+	// interrupt initialization
+#ifdef VIRTIO_PCI_USE_MSIX
+	pci_msix_enable(dev->pcidev);
+#else
 	pci_register_intr_handler(dev->pcidev, virtio_pci_intr_handler);
+#endif
 	// initialize lock
 	initlock(&dev->lock, "virtio-blk");
 	acquire(&dev->lock);
@@ -154,6 +192,8 @@ static unsigned int virtio_generic_init(struct VirtioDevice* dev, unsigned int f
 	dev->cmcfg->device_status = 0;
 	dev->cmcfg->device_status = VIRTIO_STATUS_ACKNOWLEDGE;
 	unsigned int ack_feature = virtio_set_feature(dev, features);
+	// do not send interrupt on configuration change
+	dev->cmcfg->msix_config = VIRTIO_MSI_NO_VECTOR;
 
 	release(&dev->lock);
 	return ack_feature;
@@ -210,6 +250,7 @@ const static struct PCIDriver virtio_pci_driver = {
 
 void virtio_init(void) {
 	memset(virtio_device_table, 0, sizeof(virtio_device_table));
+	// virtio PCI transport
 	for (int i = 0; i < 256; i++) {
 		virtio_pci_device_id[i].vendor_id = 0x1af4;
 		virtio_pci_device_id[i].device_id = 0x1000 + i;
@@ -217,6 +258,8 @@ void virtio_init(void) {
 	virtio_pci_device_id[256].vendor_id = 0;
 	virtio_pci_device_id[256].device_id = 0;
 	pci_register_driver(&virtio_pci_driver);
+	// virtio device types
+	virtio_blk_init(); // virtio block device
 }
 
 void virtio_print_devices(void) {

@@ -1,5 +1,5 @@
-#ifndef _DRIVER_IOAPIC_H
-#define _DRIVER_IOAPIC_H
+#ifndef _DRIVER_X86_IOAPIC_H
+#define _DRIVER_X86_IOAPIC_H
 
 enum IOAPICTriggerMode {
 	IOAPIC_EDGE_TRIGGER = 0,

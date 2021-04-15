@@ -52,6 +52,7 @@ struct VirtioDriver {
 };
 
 struct VirtioQueue {
+	struct VirtioDevice* virtio_dev;
 	int size;
 	volatile struct VirtqDesc* desc;
 	volatile struct VirtqAvail* avail;
@@ -63,8 +64,7 @@ struct VirtioQueue {
 
 extern struct VirtioDevice virtio_device_table[VIRTIO_DEVICE_TABLE_SIZE];
 
-void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
-					   int queue_n);
+void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, int queue_n);
 void virtio_queue_notify(struct VirtioDevice* dev, struct VirtioQueue* queue);
 void virtio_queue_notify_wait(struct VirtioDevice* dev, struct VirtioQueue* queue);
 void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc);

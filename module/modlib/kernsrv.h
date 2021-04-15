@@ -53,6 +53,7 @@ struct USBDevice;
 struct USBBus;
 struct USBDriver;
 struct USBHostControllerDriver;
+struct MSIMessage;
 
 const static struct KernerServiceTable {
 	// basic functions
@@ -63,6 +64,9 @@ const static struct KernerServiceTable {
 	void* (*map_mmio_region)(phyaddr_t, size_t);
 	void* (*map_ram_region)(phyaddr_t, size_t);
 	void* (*map_rom_region)(phyaddr_t, size_t);
+	// arch specific
+	int (*msi_alloc_vector)(struct MSIMessage* msg, void (*handler)(void*), void* private);
+	void (*msi_free_vector)(const struct MSIMessage* msg);
 	// process control
 	void (*sleep)(void*, struct spinlock*);
 	void (*wakeup)(void*);
@@ -86,10 +90,8 @@ const static struct KernerServiceTable {
 	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
 	void (*pci_enable_intx_intr)(const struct PciAddress*);
 	void (*pci_disable_intx_intr)(const struct PciAddress*);
-	int (*pci_msi_alloc_vector)(void (*)(void*), void*);
-	void (*pci_msi_free_vector)(int);
-	int (*pci_msi_enable)(const struct PciAddress*, int, int);
-	void (*pci_msi_disable)(const struct PciAddress*);
+	int (*pci_msi_enable)(const struct PciAddress* addr, const struct MSIMessage* msg);
+	void (*pci_msi_disable)(const struct PciAddress* addr);
 	void (*pci_register_driver)(const struct PCIDriver*);
 	// driver/virtio/virtio.h
 	void (*virtio_register_driver)(const struct VirtioDriver*);
@@ -98,22 +100,20 @@ const static struct KernerServiceTable {
 	void (*usb_register_host_controller)(void*, const char*, unsigned int,
 										 const struct USBHostControllerDriver*);
 	void (*usb_register_driver)(const struct USBDriver* r);
-	enum USBTransferStatus (*usb_control_transfer_in)(struct USBBus*, unsigned int,
-													  unsigned int, void*, void*, int);
+	enum USBTransferStatus (*usb_control_transfer_in)(struct USBBus*, unsigned int, unsigned int,
+													  void*, void*, int);
 	enum USBTransferStatus (*usb_control_transfer_nodata)(struct USBBus*, unsigned int,
 														  unsigned int, void*);
-	int (*usb_get_standard_descriptor)(struct USBDevice*, unsigned int, unsigned int,
-									   void*, unsigned int);
-	int (*usb_get_class_descriptor)(struct USBDevice*, unsigned int, unsigned int,
-									void*, unsigned int);
+	int (*usb_get_standard_descriptor)(struct USBDevice*, unsigned int, unsigned int, void*,
+									   unsigned int);
+	int (*usb_get_class_descriptor)(struct USBDevice*, unsigned int, unsigned int, void*,
+									unsigned int);
 	int (*usb_get_device_descriptor)(struct USBDevice*);
 	int (*usb_get_configuration_descriptor)(struct USBDevice*, unsigned int, uint8_t*);
 	int (*usb_set_configuration)(struct USBDevice*, uint8_t);
 	// hal/hal.h
-	void (*hal_block_register_device)(const char*, void*,
-									  const struct BlockDeviceDriver*);
-	void (*hal_display_register_device)(const char*, void*,
-										const struct FramebufferDriver*);
+	void (*hal_block_register_device)(const char*, void*, const struct BlockDeviceDriver*);
+	void (*hal_display_register_device)(const char*, void*, const struct FramebufferDriver*);
 	void (*hal_mouse_update)(unsigned int);
 	void (*hal_keyboard_update)(unsigned int);
 }* kernsrv = (void*)0x80010000;

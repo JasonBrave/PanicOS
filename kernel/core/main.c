@@ -17,6 +17,8 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/lapic.h>
+#include <arch/x86/msi.h>
 #include <common/x86.h>
 #include <core/mmu.h>
 #include <core/proc.h>
@@ -24,13 +26,7 @@
 #include <defs.h>
 #include <driver/ata/ata.h>
 #include <driver/bochs-display/bochs-display.h>
-#include <driver/ioapic.h>
-#include <driver/pci/pci.h>
-#include <driver/ps2/ps2.h>
-#include <driver/rtc.h>
-#include <driver/uart.h>
 #include <driver/usb/usb.h>
-#include <driver/virtio/virtio-blk.h>
 #include <driver/virtio/virtio.h>
 #include <filesystem/initramfs/initramfs.h>
 #include <filesystem/vfs/vfs.h>
@@ -47,6 +43,8 @@ static void mpmain(void) __attribute__((noreturn));
 extern pde_t* kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
+extern void platform_init(void);
+
 struct BootGraphicsMode boot_graphics_mode;
 
 // Bootstrap processor starts running C code here.
@@ -55,7 +53,7 @@ struct BootGraphicsMode boot_graphics_mode;
 void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	kinit1(end, P2V(4 * 1024 * 1024)); // phys page allocator
 	kvmalloc(); // kernel page table
-	cprintf("PanicOS alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
+	cprintf("PanicOS i686 alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
 	if (mb_sig == 0x2BADB002 && mb_addr < 0x100000) {
 		cprintf("[multiboot] Multiboot bootloader detected, info at %x\n", mb_addr);
 		struct multiboot_info* mbinfo = P2V(mb_addr);
@@ -119,7 +117,7 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	mpinit(); // detect other processors
 	lapicinit(); // interrupt controller
 	seginit(); // segment descriptors
-	picinit(); // disable legacy PIC
+	msi_init();
 	if (boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
 		fbcon_init(boot_graphics_mode.fb_addr, boot_graphics_mode.width, boot_graphics_mode.height);
 	} else {
@@ -142,31 +140,23 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	cprintf("|_|   \\__,_|_| |_|_|\\___|\\___/|____/ \n");
 	cprintf("Welcome to PanicOS pre-alpha version, this is free software licensed "
 			"under GNU General Public License v3+\n");
-	// subsystems
+	// subsystems and HAL
 	kcall_init();
 	hal_display_init();
 	hal_block_init();
 	hal_hid_init();
 	hal_power_init();
 	pty_init();
-	// onboard devices
-	ioapic_init();
-	uart_init();
-	// buses
-	pci_init();
-	virtio_init();
-	usb_init();
-	// kernel module
-	module_init();
-	// devices
-	ps2_keyboard_init();
-	ps2_mouse_init();
-	ata_init();
-	virtio_blk_init();
-	bochs_display_init();
-	rtc_init();
-	// virtual filesystem
-	vfs_init();
+	// device initialization
+	platform_init(); // platform devices (platform dependent) and PCI
+	virtio_init(); // virtio "bus" and devices
+	usb_init(); // usb bus and devices
+	// kernel built-in drivers
+	ata_init(); // parallel ata and ata subsystem
+	bochs_display_init(); // qemu virtual display adapter
+	// filesystem and user-mode
+	vfs_init(); // virtual filesystem
+	module_init(); // kernel modules
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
 }

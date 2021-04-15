@@ -130,7 +130,8 @@ void usb_register_driver(const struct USBDriver* driver) {
 void usb_init(void) {
 	memset(usb_bus, 0, sizeof(usb_bus));
 	uhci_init();
-	usb_hub_init();
+	// usb device types
+	usb_hub_init(); // USB hub
 }
 
 void usb_print_devices(void) {
