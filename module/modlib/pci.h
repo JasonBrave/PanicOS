@@ -120,6 +120,27 @@ static inline void pci_msi_disable(const struct PciAddress* addr) {
 	return kernsrv->pci_msi_disable(addr);
 }
 
+static inline int pci_msix_enable(struct PCIDevice* pci_dev) {
+	return kernsrv->pci_msix_enable(pci_dev);
+}
+
+static inline unsigned int pci_msix_get_num_vectors(struct PCIDevice* pci_dev) {
+	return kernsrv->pci_msix_get_num_vectors(pci_dev);
+}
+
+static inline void pci_msix_set_message(struct PCIDevice* pci_dev, unsigned int vec,
+										const struct MSIMessage* msg) {
+	return kernsrv->pci_msix_set_message(pci_dev, vec, msg);
+}
+
+static inline void pci_msix_mask(struct PCIDevice* pci_dev, unsigned int vec) {
+	return kernsrv->pci_msix_mask(pci_dev, vec);
+}
+
+static inline void pci_msix_unmask(struct PCIDevice* pci_dev, unsigned int vec) {
+	return kernsrv->pci_msix_unmask(pci_dev, vec);
+}
+
 static inline void pci_register_driver(const struct PCIDriver* driver) {
 	return kernsrv->pci_register_driver(driver);
 }

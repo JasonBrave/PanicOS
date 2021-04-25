@@ -7,7 +7,7 @@
 
 struct VirtioBlockDevice {
 	struct VirtioDevice* virtio_dev;
-	struct VirtioQueue virtio_queue;
+	struct VirtioQueue requestq;
 	struct spinlock lock;
 };
 

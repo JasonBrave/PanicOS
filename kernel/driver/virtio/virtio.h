@@ -23,6 +23,10 @@
 #include <common/spinlock.h>
 #include <driver/pci/pci.h>
 
+#define VIRTIO_MAX_NUM_VIRTQUEUE 8
+
+struct VirtioQueue;
+
 struct VirtioDevice {
 	unsigned int device_id;
 	const struct VirtioDriver* driver;
@@ -35,6 +39,8 @@ struct VirtioDevice {
 		unsigned int transport_is_pci : 1;
 		unsigned int is_legacy : 1;
 	};
+	struct VirtioQueue* virtqueue[VIRTIO_MAX_NUM_VIRTQUEUE];
+	// registers
 	volatile struct VirtioPciCommonConfig* cmcfg;
 	volatile unsigned int* isr;
 	volatile void* devcfg;
@@ -48,11 +54,11 @@ struct VirtioDriver {
 	unsigned int features;
 	void (*init)(struct VirtioDevice*, unsigned int features);
 	void (*uninit)(struct VirtioDevice*);
-	void (*queue_intr_handler)(struct VirtioDevice*, unsigned int);
 };
 
 struct VirtioQueue {
 	struct VirtioDevice* virtio_dev;
+	void (*intr_handler)(struct VirtioQueue*);
 	int size;
 	volatile struct VirtqDesc* desc;
 	volatile struct VirtqAvail* avail;
@@ -64,7 +70,8 @@ struct VirtioQueue {
 
 extern struct VirtioDevice virtio_device_table[VIRTIO_DEVICE_TABLE_SIZE];
 
-void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, int queue_n);
+void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, unsigned int queue_n,
+					   void (*intr_handler)(struct VirtioQueue*));
 void virtio_queue_notify(struct VirtioDevice* dev, struct VirtioQueue* queue);
 void virtio_queue_notify_wait(struct VirtioDevice* dev, struct VirtioQueue* queue);
 void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc);

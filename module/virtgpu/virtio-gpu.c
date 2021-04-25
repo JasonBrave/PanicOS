@@ -25,20 +25,22 @@
 #include "virtio-gpu-regs.h"
 #include "virtio-gpu.h"
 
-static void virtio_gpu_intr(struct VirtioDevice* virtio_dev, unsigned int queue_n) {
-	struct VirtioGPUDevice* dev = virtio_dev->private;
+static void virtio_gpu_controlq_intr(struct VirtioQueue* queue) {
+	struct VirtioGPUDevice* dev = queue->virtio_dev->private;
 	acquire(&dev->lock);
 	volatile struct virtio_gpu_config* gpucfg = dev->virtio_dev->devcfg;
-	if (queue_n == 0) {
-		if (gpucfg->events_read) {
-			cprintf("[virtio-gpu] event %x\n", gpucfg->events_read);
-			gpucfg->events_clear = gpucfg->events_read;
-		}
-		static unsigned short last = 0;
-		for (; last != dev->controlq.used->idx; last++) {
-		}
+	if (gpucfg->events_read) {
+		cprintf("[virtio-gpu] event %x\n", gpucfg->events_read);
+		gpucfg->events_clear = gpucfg->events_read;
+	}
+	static unsigned short last = 0;
+	for (; last != queue->used->idx; last++) {
 	}
 	release(&dev->lock);
+}
+
+static void virtio_gpu_cursorq_intr(struct VirtioQueue* queue) {
+	return;
 }
 
 unsigned int virtio_gpu_alloc_resource_id(struct VirtioGPUDevice* dev) {
@@ -58,8 +60,8 @@ void virtio_gpu_init(struct VirtioDevice* virtio_dev, unsigned int features) {
 	initlock(&dev->lock, "virtio-gpu");
 	acquire(&dev->lock);
 	// initialize queues
-	virtio_init_queue(dev->virtio_dev, &dev->controlq, 0);
-	virtio_init_queue(dev->virtio_dev, &dev->cursorq, 1);
+	virtio_init_queue(dev->virtio_dev, &dev->controlq, 0, virtio_gpu_controlq_intr);
+	virtio_init_queue(dev->virtio_dev, &dev->cursorq, 1, virtio_gpu_cursorq_intr);
 
 	cprintf("[virtio-gpu] Feature 3D%s EDID%s UUID%s\n", BOOL2SIGN(features & VIRTIO_GPU_F_VIRGL),
 			BOOL2SIGN(features & VIRTIO_GPU_F_EDID),
@@ -83,7 +85,6 @@ void module_init(void) {
 	virtio_gpu_virtio_driver.features = VIRTIO_GPU_F_EDID;
 	virtio_gpu_virtio_driver.init = virtio_gpu_init;
 	virtio_gpu_virtio_driver.uninit = 0;
-	virtio_gpu_virtio_driver.queue_intr_handler = virtio_gpu_intr;
 	virtio_gpu_display_global_init();
 	virtio_register_driver(&virtio_gpu_virtio_driver);
 }

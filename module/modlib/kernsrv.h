@@ -90,16 +90,22 @@ const static struct KernerServiceTable {
 	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
 	void (*pci_enable_intx_intr)(const struct PciAddress*);
 	void (*pci_disable_intx_intr)(const struct PciAddress*);
-	int (*pci_msi_enable)(const struct PciAddress* addr, const struct MSIMessage* msg);
-	void (*pci_msi_disable)(const struct PciAddress* addr);
+	int (*pci_msi_enable)(const struct PciAddress*, const struct MSIMessage*);
+	void (*pci_msi_disable)(const struct PciAddress*);
+	int (*pci_msix_enable)(struct PCIDevice*);
+	unsigned int (*pci_msix_get_num_vectors)(struct PCIDevice*);
+	void (*pci_msix_set_message)(struct PCIDevice*, unsigned int, const struct MSIMessage*);
+	void (*pci_msix_mask)(struct PCIDevice*, unsigned int);
+	void (*pci_msix_unmask)(struct PCIDevice*, unsigned int);
 	void (*pci_register_driver)(const struct PCIDriver*);
 	// driver/virtio/virtio.h
 	void (*virtio_register_driver)(const struct VirtioDriver*);
-	void (*virtio_init_queue)(struct VirtioDevice*, struct VirtioQueue*, int);
+	void (*virtio_init_queue)(struct VirtioDevice*, struct VirtioQueue*, unsigned int,
+							  void (*)(struct VirtioQueue*));
 	// driver/usb/usb.h
 	void (*usb_register_host_controller)(void*, const char*, unsigned int,
 										 const struct USBHostControllerDriver*);
-	void (*usb_register_driver)(const struct USBDriver* r);
+	void (*usb_register_driver)(const struct USBDriver*);
 	enum USBTransferStatus (*usb_control_transfer_in)(struct USBBus*, unsigned int, unsigned int,
 													  void*, void*, int);
 	enum USBTransferStatus (*usb_control_transfer_nodata)(struct USBBus*, unsigned int,

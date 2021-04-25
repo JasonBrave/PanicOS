@@ -22,6 +22,10 @@
 
 #include <kernsrv.h>
 
+#define VIRTIO_MAX_NUM_VIRTQUEUE 8
+
+struct VirtioQueue;
+
 struct VirtioDevice {
 	unsigned int device_id;
 	const struct VirtioDriver* driver;
@@ -34,6 +38,8 @@ struct VirtioDevice {
 		unsigned int transport_is_pci : 1;
 		unsigned int is_legacy : 1;
 	};
+	struct VirtioQueue* virtqueue[VIRTIO_MAX_NUM_VIRTQUEUE];
+	// registers
 	volatile struct VirtioPciCommonConfig* cmcfg;
 	volatile unsigned int* isr;
 	volatile void* devcfg;
@@ -47,7 +53,6 @@ struct VirtioDriver {
 	unsigned int features;
 	void (*init)(struct VirtioDevice*, unsigned int features);
 	void (*uninit)(struct VirtioDevice*);
-	void (*queue_intr_handler)(struct VirtioDevice*, unsigned int);
 };
 
 #define VIRTIO_QUEUE_SIZE_MAX 256
@@ -92,6 +97,8 @@ struct VirtqUsed {
 };
 
 struct VirtioQueue {
+	struct VirtioDevice* virtio_dev;
+	void (*intr_handler)(struct VirtioQueue*);
 	int size;
 	volatile struct VirtqDesc* desc;
 	volatile struct VirtqAvail* avail;
@@ -103,18 +110,17 @@ static inline void virtio_register_driver(const struct VirtioDriver* driver) {
 	return kernsrv->virtio_register_driver(driver);
 }
 
-static inline void virtio_init_queue(struct VirtioDevice* dev,
-									 struct VirtioQueue* queue, int queue_n) {
-	return kernsrv->virtio_init_queue(dev, queue, queue_n);
+static inline void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
+									 unsigned int queue_n,
+									 void (*intr_handler)(struct VirtioQueue*)) {
+	return kernsrv->virtio_init_queue(dev, queue, queue_n, intr_handler);
 }
 
-static inline void virtio_queue_notify(struct VirtioDevice* dev,
-									   struct VirtioQueue* queue) {
+static inline void virtio_queue_notify(struct VirtioDevice* dev, struct VirtioQueue* queue) {
 	*queue->notify = 0;
 }
 
-static inline void virtio_queue_notify_wait(struct VirtioDevice* dev,
-											struct VirtioQueue* queue) {
+static inline void virtio_queue_notify_wait(struct VirtioDevice* dev, struct VirtioQueue* queue) {
 	int prev = queue->used->idx;
 	*queue->notify = 0;
 	while (prev == queue->used->idx) {

@@ -81,13 +81,25 @@ vector queue_n is used for queues
 #ifdef VIRTIO_PCI_USE_MSIX
 static void virtio_pci_queue_msix_handler(void* private) {
 	struct VirtioQueue* queue = private;
-	queue->virtio_dev->driver->queue_intr_handler(queue->virtio_dev, 0);
+	queue->intr_handler(queue);
 	return;
 }
 #endif
 
-void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, int queue_n) {
+static void virtio_add_virtq_to_dev(struct VirtioDevice* dev, struct VirtioQueue* queue) {
+	for (int i = 0; i < VIRTIO_MAX_NUM_VIRTQUEUE; i++) {
+		if (!dev->virtqueue[i]) {
+			dev->virtqueue[i] = queue;
+			return;
+		}
+	}
+	panic("virtio only support max 8 virtqueue");
+}
+
+void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, unsigned int queue_n,
+					   void (*intr_handler)(struct VirtioQueue*)) {
 	queue->virtio_dev = dev;
+	virtio_add_virtq_to_dev(dev, queue);
 	// allocate queue memory
 	queue->desc = kalloc();
 	queue->avail = kalloc();
@@ -103,6 +115,7 @@ void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, int 
 	// set VirtioQueue structures
 	queue->size = dev->cmcfg->queue_size;
 	queue->notify = dev->notify_begin + dev->cmcfg->queue_notify_off * dev->notify_off_multiplier;
+	queue->intr_handler = intr_handler;
 // config MSI-X
 #ifdef VIRTIO_PCI_USE_MSIX
 	struct MSIMessage msix_msg;
@@ -170,8 +183,13 @@ static int virtio_intr_ack(struct VirtioDevice* dev) {
 
 static void virtio_pci_intr_handler(struct PCIDevice* pcidev) {
 	struct VirtioDevice* dev = pcidev->private;
-	virtio_intr_ack(dev);
-	dev->driver->queue_intr_handler(dev, 0);
+	if (virtio_intr_ack(dev) & 1) { // is queue interrupt?
+		for (int i = 0; i < VIRTIO_MAX_NUM_VIRTQUEUE; i++) {
+			if (dev->virtqueue[i]) {
+				dev->virtqueue[i]->intr_handler(dev->virtqueue[i]);
+			}
+		}
+	}
 	return;
 }
 #endif
@@ -218,6 +236,7 @@ void virtio_register_driver(const struct VirtioDriver* driver) {
 static struct VirtioDevice* virtio_alloc_device(void) {
 	for (int i = 0; i < VIRTIO_DEVICE_TABLE_SIZE; i++) {
 		if (!virtio_device_table[i].device_id) {
+			memset(&virtio_device_table[i], 0, sizeof(struct VirtioDevice));
 			return &virtio_device_table[i];
 		}
 	}
