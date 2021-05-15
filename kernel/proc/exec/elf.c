@@ -23,7 +23,7 @@
 
 #include "elf.h"
 
-int proc_elf_load(pde_t* pgdir, unsigned int base, const char* name, unsigned int* entry,
+int proc_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, unsigned int* entry,
 				  unsigned int* dynamic, unsigned int* interp) {
 	struct FileDesc fd;
 	if (vfs_fd_open(&fd, name, O_READ) < 0) {

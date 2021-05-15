@@ -34,7 +34,7 @@ struct ModuleInfo {
 	unsigned int base;
 } module_info[MAX_MODULES];
 
-static int module_elf_load(pde_t* pgdir, unsigned int base, const char* name, unsigned int* entry) {
+static int module_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, unsigned int* entry) {
 	struct FileDesc fd;
 	if (vfs_fd_open(&fd, name, O_READ) < 0) {
 		return -1;
@@ -87,7 +87,7 @@ static int module_elf_load(pde_t* pgdir, unsigned int base, const char* name, un
 }
 
 static unsigned int module_base = PROC_MODULE_BOTTOM;
-extern pde_t* kpgdir;
+extern pdpte_t* kpgdir;
 
 void module_info_add(const char* name, unsigned int base) {
 	for (int i = 0; i < MAX_MODULES; i++) {
@@ -122,7 +122,7 @@ int module_load(const char* name) {
 	return 0;
 }
 
-void module_set_pgdir(pde_t* pgdir) {
+void module_set_pgdir(pdpte_t* pgdir) {
 	if (copypgdir(pgdir, kpgdir, PROC_MODULE_BOTTOM, module_base) == 0) {
 		panic("module_set_pgdir failed");
 	}

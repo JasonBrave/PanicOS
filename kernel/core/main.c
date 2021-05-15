@@ -40,7 +40,7 @@
 
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
-extern pde_t* kpgdir;
+extern pdpte_t* kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
 extern void platform_init(void);
@@ -53,7 +53,7 @@ struct BootGraphicsMode boot_graphics_mode;
 void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	kinit1(end, P2V(4 * 1024 * 1024)); // phys page allocator
 	kvmalloc(); // kernel page table
-	cprintf("PanicOS i686 alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
+	cprintf("PanicOS i686-pae alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
 	if (mb_sig == 0x2BADB002 && mb_addr < 0x100000) {
 		cprintf("[multiboot] Multiboot bootloader detected, info at %x\n", mb_addr);
 		struct multiboot_info* mbinfo = P2V(mb_addr);
@@ -174,7 +174,7 @@ static void mpmain(void) {
 	scheduler(); // start running processes
 }
 
-pde_t entrypgdir[]; // For entry.S
+extern pdpte_t entry_pdpt[]; // For entry.S
 
 // Start the non-boot (AP) processors.
 static void startothers(void) {
@@ -199,7 +199,7 @@ static void startothers(void) {
 		stack = kalloc();
 		*(void**)(code - 4) = stack + KSTACKSIZE;
 		*(void (**)(void))(code - 8) = mpenter;
-		*(int**)(code - 12) = (void*)V2P(entrypgdir);
+		*(int**)(code - 12) = (void*)V2P(entry_pdpt);
 
 		lapicstartap(c->apicid, V2P(code));
 
@@ -208,15 +208,3 @@ static void startothers(void) {
 			;
 	}
 }
-
-// The boot page table used in entry.S and entryother.S.
-// Page directories (and page tables) must start on page boundaries,
-// hence the __aligned__ attribute.
-// PTE_PS in a page directory entry enables 4Mbyte pages.
-
-__attribute__((__aligned__(PGSIZE))) pde_t entrypgdir[NPDENTRIES] = {
-	// Map VA's [0, 4MB) to PA's [0, 4MB)
-	[0] = (0) | PTE_P | PTE_W | PTE_PS,
-	// Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
-	[KERNBASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
-};

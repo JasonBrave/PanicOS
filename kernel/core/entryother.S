@@ -55,9 +55,9 @@ start32:
   movw    %ax, %fs                # -> FS
   movw    %ax, %gs                # -> GS
 
-  # Turn on page size extension for 4Mbyte pages
+  # Turn on PAE and PSE
   movl    %cr4, %eax
-  orl     $(CR4_PSE), %eax
+  orl     $(CR4_PSE|CR4_PAE), %eax
   movl    %eax, %cr4
   # Use entrypgdir as our initial page table
   movl    (start-12), %eax

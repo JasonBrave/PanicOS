@@ -26,7 +26,7 @@ int exec(char* path, char** argv) {
 	char *s, *last;
 	unsigned int argc, sp, ustack[3 + MAXARG + 1];
 	int sz;
-	pde_t *pgdir = 0, *oldpgdir;
+	pdpte_t *pgdir = 0, *oldpgdir;
 	struct proc* curproc = myproc();
 	unsigned int entry, dynamic, interp = 0;
 
