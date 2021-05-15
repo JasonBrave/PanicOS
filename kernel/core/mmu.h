@@ -29,6 +29,7 @@
 #define CR0_PG 0x80000000 // Paging
 
 #define CR4_PSE 0x00000010 // Page size extension
+#define CR4_PAE 0x00000020 // Physical address extension
 
 // various segment selectors.
 #define SEG_KCODE 1 // kernel code
@@ -59,17 +60,15 @@ struct segdesc {
 };
 
 // Normal segment
-#define SEG(type, base, lim, dpl)                                                      \
-	(struct segdesc) {                                                                 \
-		((lim) >> 12) & 0xffff, (unsigned int)(base)&0xffff,                           \
-			((unsigned int)(base) >> 16) & 0xff, type, 1, dpl, 1,                      \
-			(unsigned int)(lim) >> 28, 0, 0, 1, 1, (unsigned int)(base) >> 24          \
+#define SEG(type, base, lim, dpl)                                                                  \
+	(struct segdesc) {                                                                             \
+		((lim) >> 12) & 0xffff, (unsigned int)(base)&0xffff, ((unsigned int)(base) >> 16) & 0xff,  \
+			type, 1, dpl, 1, (unsigned int)(lim) >> 28, 0, 0, 1, 1, (unsigned int)(base) >> 24     \
 	}
-#define SEG16(type, base, lim, dpl)                                                    \
-	(struct segdesc) {                                                                 \
-		(lim) & 0xffff, (unsigned int)(base)&0xffff,                                   \
-			((unsigned int)(base) >> 16) & 0xff, type, 1, dpl, 1,                      \
-			(unsigned int)(lim) >> 16, 0, 0, 1, 0, (unsigned int)(base) >> 24          \
+#define SEG16(type, base, lim, dpl)                                                                \
+	(struct segdesc) {                                                                             \
+		(lim) & 0xffff, (unsigned int)(base)&0xffff, ((unsigned int)(base) >> 16) & 0xff, type, 1, \
+			dpl, 1, (unsigned int)(lim) >> 16, 0, 0, 1, 0, (unsigned int)(base) >> 24              \
 	}
 #endif
 
@@ -87,28 +86,34 @@ struct segdesc {
 
 // A virtual address 'la' has a three-part structure as follows:
 //
-// +--------10------+-------10-------+---------12----------+
-// | Page Directory |   Page Table   | Offset within Page  |
-// |      Index     |      Index     |                     |
-// +----------------+----------------+---------------------+
-//  \--- PDX(va) --/ \--- PTX(va) --/
+// +----2----+--------9------+-------9-------+---------12----------+
+// |  PDPT   |Page Directory |   Page Table  | Offset within Page  |
+// |  Index  |     Index     |      Index    |                     |
+// +---------+---------------+---------------+---------------------+
+// \PDPTX(va)/\-- PDX(va) --/ \--- PTX(va) --/
 
 // page directory index
-#define PDX(va) (((unsigned int)(va) >> PDXSHIFT) & 0x3FF)
+#define PDX(va) (((unsigned int)(va) >> PDXSHIFT) & 0x1FF)
 
 // page table index
-#define PTX(va) (((unsigned int)(va) >> PTXSHIFT) & 0x3FF)
+#define PTX(va) (((unsigned int)(va) >> PTXSHIFT) & 0x1FF)
+
+// page directory pointer table index
+#define PDPTX(va) (((unsigned int)(va) >> PDPTXSHIFT) & 0x3)
 
 // construct virtual address from indexes and offset
-#define PGADDR(d, t, o) ((unsigned int)((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
+#define PGADDR(pdpte, pde, pte, off)                                                               \
+	((unsigned int)((pdpte) << PDPTXSHIFT | (pde) << PDXSHIFT | (pte) << PTXSHIFT | (off)))
 
 // Page directory and page table constants.
-#define NPDENTRIES 1024 // # directory entries per page directory
-#define NPTENTRIES 1024 // # PTEs per page table
+#define NPDENTRIES 512 // # directory entries per page directory
+#define NPTENTRIES 512 // # PTEs per page table
+#define NPDPTENTRIES 512 // # PDPTEs per PDPT
 #define PGSIZE 4096 // bytes mapped by a page
 
+#define PDPTXSHIFT 30 // offset of PDPTX in a linear address
 #define PTXSHIFT 12 // offset of PTX in a linear address
-#define PDXSHIFT 22 // offset of PDX in a linear address
+#define PDXSHIFT 21 // offset of PDX in a linear address
 
 #define PGROUNDUP(sz) (((sz) + PGSIZE - 1) & ~(PGSIZE - 1))
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE - 1))
@@ -120,12 +125,13 @@ struct segdesc {
 #define PTE_PS 0x080 // Page Size
 
 // Address in page table or page directory entry
-#define PTE_ADDR(pte) ((unsigned int)(pte) & ~0xFFF)
-#define PTE_FLAGS(pte) ((unsigned int)(pte)&0xFFF)
+#define PTE_ADDR(pte) ((unsigned long long)(pte) & ~(0xfff0000000000fff))
+#define PTE_FLAGS(pte) ((unsigned long long)(pte)&0xfff0000000000fff)
 
 #ifndef __ASSEMBLER__
-typedef unsigned int pde_t;
-typedef unsigned int pte_t;
+typedef unsigned long long pde_t;
+typedef unsigned long long pte_t;
+typedef unsigned long long pdpte_t;
 
 // Task state segment format
 struct taskstate {
@@ -189,17 +195,17 @@ struct gatedesc {
 // - dpl: Descriptor Privilege Level -
 //        the privilege level required for software to invoke
 //        this interrupt/trap gate explicitly using an int instruction.
-#define SETGATE(gate, istrap, sel, off, d)                                             \
-	{                                                                                  \
-		(gate).off_15_0 = (unsigned int)(off)&0xffff;                                  \
-		(gate).cs = (sel);                                                             \
-		(gate).args = 0;                                                               \
-		(gate).rsv1 = 0;                                                               \
-		(gate).type = (istrap) ? STS_TG32 : STS_IG32;                                  \
-		(gate).s = 0;                                                                  \
-		(gate).dpl = (d);                                                              \
-		(gate).p = 1;                                                                  \
-		(gate).off_31_16 = (unsigned int)(off) >> 16;                                  \
+#define SETGATE(gate, istrap, sel, off, d)                                                         \
+	{                                                                                              \
+		(gate).off_15_0 = (unsigned int)(off)&0xffff;                                              \
+		(gate).cs = (sel);                                                                         \
+		(gate).args = 0;                                                                           \
+		(gate).rsv1 = 0;                                                                           \
+		(gate).type = (istrap) ? STS_TG32 : STS_IG32;                                              \
+		(gate).s = 0;                                                                              \
+		(gate).dpl = (d);                                                                          \
+		(gate).p = 1;                                                                              \
+		(gate).off_31_16 = (unsigned int)(off) >> 16;                                              \
 	}
 
 #endif

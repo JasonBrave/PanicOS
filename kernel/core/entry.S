@@ -44,12 +44,12 @@ entry:
 	movw    $0, %ax                 # Zero segments not ready for use
 	movw    %ax, %fs                # -> FS
 	movw    %ax, %gs                # -> GS
-	# Turn on page size extension for 4Mbyte pages
+	# Turn on PAE and PSE
 	movl    %cr4, %eax
-	orl     $(CR4_PSE), %eax
+	orl     $(CR4_PSE|CR4_PAE), %eax
 	movl    %eax, %cr4
 	# Set page directory
-	movl    $(V2P_WO(entrypgdir)), %eax
+	movl    $(V2P_WO(entry_pdpt)), %eax
 	movl    %eax, %cr3
 	# Turn on paging.
 	movl    %cr0, %eax
@@ -79,5 +79,36 @@ gdt:
 gdtdesc:
 	.word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
 	.long   gdt - KERNBASE    
+
+.p2align 12
+entry_pd:
+	.long	0x000083
+	.long	0
+	.long	0x200083
+	.long	0
+	.long	0x400083
+	.long	0
+	.long	0x600083
+	.long	0
+	.long	0x800083
+	.long	0
+	.long	0x1000083
+	.long	0
+	.long	0x1200083
+	.long	0
+	.long	0x1400083
+	.long	0
 	
+.p2align 12
+.globl entry_pdpt
+entry_pdpt:	
+	.long	(V2P_WO(entry_pd) + 1)
+	.long	0
+	.long	0
+	.long	0
+	.long	(V2P_WO(entry_pd) + 1)
+	.long	0
+	.long	0
+	.long	0
+
 .comm stack, KSTACKSIZE

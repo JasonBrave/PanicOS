@@ -79,7 +79,7 @@ struct proc {
 	unsigned int sz; // size of executable image (bytes)
 	unsigned int stack_size; // size of process stack (bytes)
 	unsigned int heap_size; // size of process heap (bytes)
-	pde_t* pgdir; // Page table
+	pdpte_t* pgdir; // Page table
 	char* kstack; // Bottom of kernel stack for this process
 	enum procstate state; // Process state
 	int pid; // Process ID

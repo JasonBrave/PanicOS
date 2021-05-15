@@ -27,7 +27,7 @@
 #include <param.h>
 
 extern char data[]; // defined by kernel.ld
-pde_t* kpgdir; // for use in scheduler()
+pdpte_t* kpgdir; // for use in scheduler()
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -49,30 +49,43 @@ void seginit(void) {
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc, int perm) {
-	pde_t* pde;
-	pte_t* pgtab;
+static pte_t* walkpgdir(pdpte_t* pdpte_table, const void* va, int alloc, int perm) {
+	pte_t* pte_tab;
 
-	pde = &pgdir[PDX(va)];
-	if (*pde & PTE_P) {
-		pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+	pdpte_t* pdpte = &pdpte_table[PDPTX(va)];
+	if (*pdpte & PTE_P) {
+		pde_t* pde_tab = (pde_t*)P2V(PTE_ADDR(*pdpte));
+		pde_t* pde = &pde_tab[PDX(va)];
+		if (*pde & PTE_P) {
+			pte_tab = (pte_t*)P2V(PTE_ADDR(*pde));
+		} else {
+			if (!alloc || (pte_tab = (pte_t*)kalloc()) == 0) {
+				return 0;
+			}
+			memset(pte_tab, 0, PGSIZE);
+			*pde = V2P(pte_tab) | PTE_P | perm;
+		}
 	} else {
-		if (!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+		pde_t* pde_tab;
+		if (!alloc || (pde_tab = (pde_t*)kalloc()) == 0) {
 			return 0;
-		// Make sure all those PTE_P bits are zero.
-		memset(pgtab, 0, PGSIZE);
-		// The permissions here are overly generous, but they can
-		// be further restricted by the permissions in the page table
-		// entries, if necessary.
-		*pde = V2P(pgtab) | PTE_P | perm;
+		}
+		memset(pde_tab, 0, PGSIZE);
+		*pdpte = V2P(pde_tab) | PTE_P;
+		pde_t* pde = &pde_tab[PDX(va)];
+		if (!alloc || (pte_tab = (pte_t*)kalloc()) == 0) {
+			return 0;
+		}
+		memset(pte_tab, 0, PGSIZE);
+		*pde = V2P(pte_tab) | PTE_P | perm;
 	}
-	return &pgtab[PTX(va)];
+	return &pte_tab[PTX(va)];
 }
 
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int perm) {
+int mappages(pdpte_t* pgdir, void* va, unsigned int size, unsigned int pa, int perm) {
 	char *a, *last;
 	pte_t* pte;
 
@@ -92,7 +105,7 @@ int mappages(pde_t* pgdir, void* va, unsigned int size, unsigned int pa, int per
 	return 0;
 }
 
-int unmappages(pde_t* pgdir, void* va, unsigned int size) {
+int unmappages(pdpte_t* pgdir, void* va, unsigned int size) {
 	char *a, *last;
 	pte_t* pte;
 
@@ -144,24 +157,27 @@ static struct kmap {
 	{(void*)DEVSPACE, DEVSPACE, 0, PTE_W}, // more devices
 };
 
-extern void module_set_pgdir(pde_t* pgdir);
+extern void module_set_pgdir(pdpte_t* pgdir);
 
 // Set up kernel part of a page table.
-pde_t* setupkvm(void) {
-	pde_t* pgdir;
+pdpte_t* setupkvm(void) {
+	pdpte_t* pgdir;
 	struct kmap* k;
 
-	if ((pgdir = (pde_t*)kalloc()) == 0)
+	if ((pgdir = (pdpte_t*)kalloc()) == 0) {
 		return 0;
+	}
 	memset(pgdir, 0, PGSIZE);
-	if (P2V(PHYSTOP) > (void*)DEVSPACE)
+	if (P2V(PHYSTOP) > (void*)DEVSPACE) {
 		panic("PHYSTOP too high");
-	for (k = kmap; k < &kmap[NELEM(kmap)]; k++)
+	}
+	for (k = kmap; k < &kmap[NELEM(kmap)]; k++) {
 		if (mappages(pgdir, k->virt, k->phys_end - k->phys_start, (unsigned int)k->phys_start,
 					 k->perm) < 0) {
 			freevm(pgdir);
 			return 0;
 		}
+	}
 	// copy kernel module map
 	module_set_pgdir(pgdir);
 	return pgdir;
@@ -204,7 +220,7 @@ void switchuvm(struct proc* p) {
 
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
-void inituvm(pde_t* pgdir, char* init, unsigned int sz) {
+void inituvm(pdpte_t* pgdir, char* init, unsigned int sz) {
 	char* mem;
 
 	if (sz >= PGSIZE)
@@ -217,7 +233,7 @@ void inituvm(pde_t* pgdir, char* init, unsigned int sz) {
 
 // Load a program segment into pgdir.  addr must be page-aligned
 // and the pages from addr to addr+sz must already be mapped.
-int loaduvm(pde_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset, unsigned int sz) {
+int loaduvm(pdpte_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset, unsigned int sz) {
 	unsigned int i, pa;
 	int n;
 	pte_t* pte;
@@ -244,7 +260,7 @@ int loaduvm(pde_t* pgdir, char* addr, struct FileDesc* fd, unsigned int offset, 
 
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
-int allocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz, int perm) {
+int allocuvm(pdpte_t* pgdir, unsigned int oldsz, unsigned int newsz, int perm) {
 	char* mem;
 	unsigned int a;
 
@@ -274,7 +290,7 @@ int allocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz, int perm) {
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
 // process size.  Returns the new process size.
-int deallocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz) {
+int deallocuvm(pdpte_t* pgdir, unsigned int oldsz, unsigned int newsz) {
 	pte_t* pte;
 	unsigned int a, pa;
 
@@ -284,9 +300,7 @@ int deallocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz) {
 	a = PGROUNDUP(newsz);
 	for (; a < oldsz; a += PGSIZE) {
 		pte = walkpgdir(pgdir, (char*)a, 0, PTE_W | PTE_U);
-		if (!pte)
-			a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
-		else if ((*pte & PTE_P) != 0) {
+		if (pte && (*pte & PTE_P)) {
 			pa = PTE_ADDR(*pte);
 			if (pa == 0)
 				panic("kfree");
@@ -300,7 +314,7 @@ int deallocuvm(pde_t* pgdir, unsigned int oldsz, unsigned int newsz) {
 
 // Free a page table and all the physical memory pages
 // in the user part.
-void freevm(pde_t* pgdir) {
+void freevm(pdpte_t* pgdir) {
 	unsigned int i;
 
 	if (pgdir == 0)
@@ -317,7 +331,7 @@ void freevm(pde_t* pgdir) {
 
 // Clear PTE_U on a page. Used to create an inaccessible
 // page beneath the user stack.
-void clearpteu(pde_t* pgdir, char* uva) {
+void clearpteu(pdpte_t* pgdir, char* uva) {
 	pte_t* pte;
 
 	pte = walkpgdir(pgdir, uva, 0, PTE_W | PTE_U);
@@ -328,7 +342,7 @@ void clearpteu(pde_t* pgdir, char* uva) {
 
 // Given a parent process's page table, create a copy
 // of it for a child.
-pde_t* copyuvm(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned int end) {
+pdpte_t* copyuvm(pdpte_t* newpgdir, pdpte_t* oldpgdir, unsigned int begin, unsigned int end) {
 	pte_t* pte;
 	unsigned int pa, i, flags;
 	char* mem;
@@ -353,7 +367,7 @@ pde_t* copyuvm(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned in
 
 // PAGEBREAK!
 // Map user virtual address to kernel address.
-char* uva2ka(pde_t* pgdir, char* uva) {
+char* uva2ka(pdpte_t* pgdir, char* uva) {
 	pte_t* pte;
 
 	pte = walkpgdir(pgdir, uva, 0, PTE_W | PTE_U);
@@ -367,7 +381,7 @@ char* uva2ka(pde_t* pgdir, char* uva) {
 // Copy len bytes from p to user address va in page table pgdir.
 // Most useful when pgdir is not the current page table.
 // uva2ka ensures this only works for PTE_U pages.
-int copyout(pde_t* pgdir, unsigned int va, void* p, unsigned int len) {
+int copyout(pdpte_t* pgdir, unsigned int va, void* p, unsigned int len) {
 	char *buf, *pa0;
 	unsigned int n, va0;
 
@@ -388,7 +402,7 @@ int copyout(pde_t* pgdir, unsigned int va, void* p, unsigned int len) {
 	return 0;
 }
 
-pde_t* copypgdir(pde_t* newpgdir, pde_t* oldpgdir, unsigned int begin, unsigned int end) {
+pdpte_t* copypgdir(pdpte_t* newpgdir, pdpte_t* oldpgdir, unsigned int begin, unsigned int end) {
 	pte_t* pte;
 	unsigned int pa, i, flags;
 
