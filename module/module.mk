@@ -1,4 +1,4 @@
-CFLAGS += -I../modlib/ -fPIE -fno-builtin
+CFLAGS += -I../modlib/ -fPIE -fno-builtin -Wno-error=array-bounds
 
 $(MOD).mod : $(OBJS)
 	$(LD) -pie --no-dynamic-linker -e module_init $(OBJS) -o $(MOD).mod

@@ -53,39 +53,64 @@ static void intel_mmcfg_write_config_reg32(const struct PciAddress* addr, int re
 													 (addr->function << 12) | reg)) = data;
 }
 
-void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
+int intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
+	// ensure this is an Intel host bridge
+	if (pci_read_config_reg16(host_bridge_addr, 0x0) != 0x8086) {
+		return -1;
+	}
 	// read PCIEXBAR
 	uint64_t pciexbar = pci_read_config_reg32(host_bridge_addr, 0x64);
 	pciexbar = pciexbar << 32;
 	pciexbar |= pci_read_config_reg32(host_bridge_addr, 0x60);
-
+	// check no reserved bytes are set
+	if (!pciexbar) {
+		return -1;
+	}
+	if (pciexbar & 0xffffff8000000000) {
+		return -1;
+	}
+	if (pciexbar & 0x3fffff0) {
+		return -1;
+	}
 	if (!(pciexbar & 1)) {
 		cprintf("[pci] PCIEXBAR %x disabled\n", pciexbar);
-		return;
+		return -1;
 	}
 	// number of bus
 	int num_bus;
 	switch (pciexbar & 6) {
-	case 0:
+	case 0 << 1:
 		num_bus = 256;
 		break;
-	case 2:
+	case 1 << 1:
 		num_bus = 128;
 		break;
-	case 4:
+	case 2 << 1:
 		num_bus = 64;
+		break;
+	case 3 << 1:
+		num_bus = 512;
+		break;
+	case 4 << 1:
+		num_bus = 1024;
+		break;
+	case 5 << 1:
+		num_bus = 2048;
+		break;
+	case 6 << 1:
+		num_bus = 4096;
 		break;
 	default:
 		panic("invaild PCIEXBAR");
 	}
 	// ECAM base address
-	if ((pciexbar & 0xffc000000) > 0xe0000000) {
+	if ((pciexbar & 0x7ffc000000) > 0xe0000000) {
 		cprintf("[pci] PCIEXBAR too high %llx\n", pciexbar);
-		return;
+		return -1;
 	}
-	if ((pciexbar & 0xffc000000) < 0xb0000000) {
+	if ((pciexbar & 0x7ffc000000) < 0xb0000000) {
 		cprintf("[pci] PCIEXBAR too low %llx\n", pciexbar);
-		return;
+		return -1;
 	}
 	phyaddr_t ecam_base = pciexbar & 0xfc000000;
 	cprintf("[pci] PCIe ECAM addr %x bus %d\n", ecam_base, num_bus);
@@ -98,4 +123,5 @@ void intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr) {
 	pci_host.write32 = intel_mmcfg_write_config_reg32;
 	pci_host.bus_num = num_bus;
 	pci_host.pcie_ecam_base = map_mmio_region(ecam_base, num_bus * 0x100000);
+	return 0;
 }

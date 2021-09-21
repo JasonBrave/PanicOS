@@ -17,6 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/delay.h>
 #include <common/errorcode.h>
 #include <common/x86.h>
 #include <defs.h>
@@ -78,6 +79,9 @@ void ata_init(void) {
 uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int drive) {
 	outb(adapter->cmdblock_base[channel] + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT));
+
+	udelay(5);
+
 	return (inb(adapter->cmdblock_base[channel] + ATA_IO_COUNT) << 24) |
 		   (inb(adapter->cmdblock_base[channel] + ATA_IO_LBALO) << 16) |
 		   (inb(adapter->cmdblock_base[channel] + ATA_IO_LBAMID) << 8) |
@@ -137,7 +141,10 @@ int ata_identify(struct ATAAdapter* adapter, int channel, int drive, struct ATAD
 
 void ata_bus_reset(const struct ATAAdapter* adapter, int channel) {
 	outb(adapter->control_base[channel], 1 << 2);
+	udelay(5);
 	outb(adapter->control_base[channel], 0);
+	// wait for reset to finish
+	mdelay(2);
 }
 
 int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
@@ -146,6 +153,7 @@ int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t 
 	acquire(&adapter->lock[channel]);
 	outb(iobase + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	udelay(1);
 	outb(iobase + ATA_IO_COUNT, count);
 	outb(iobase + ATA_IO_LBALO, lba & 0xff);
 	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
@@ -173,6 +181,7 @@ int ata_exec_dma_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t 
 	ata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
 	outb(iobase + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	udelay(1);
 	outb(iobase + ATA_IO_COUNT, count);
 	outb(iobase + ATA_IO_LBALO, lba & 0xff);
 	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
@@ -220,6 +229,7 @@ int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t
 	acquire(&adapter->lock[channel]);
 	outb(iobase + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	udelay(1);
 	outb(iobase + ATA_IO_COUNT, count);
 	outb(iobase + ATA_IO_LBALO, lba & 0xff);
 	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
@@ -249,6 +259,7 @@ int ata_exec_dma_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t
 	ata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
 	outb(iobase + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	udelay(1);
 	outb(iobase + ATA_IO_COUNT, count);
 	outb(iobase + ATA_IO_LBALO, lba & 0xff);
 	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);

@@ -184,13 +184,15 @@ static unsigned short* crt = (unsigned short*)P2V(0xb8000); // CGA memory
 static void cgaputc(int c) {
 	static int pos = 0;
 
-	if (c == '\n')
+	if (c == '\n') {
 		pos += 80 - pos % 80;
-	else if (c == BACKSPACE) {
-		if (pos > 0)
+	} else if (c == BACKSPACE) {
+		if (pos > 0) {
 			--pos;
-	} else
+		}
+	} else {
 		crt[pos++] = (c & 0xff) | 0x0700; // black on white
+	}
 
 	if (pos < 0 || pos > 25 * 80)
 		panic("pos under/overflow");

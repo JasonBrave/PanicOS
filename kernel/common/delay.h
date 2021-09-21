@@ -1,5 +1,5 @@
 /*
- * x86 platform driver
+ * Millisecond and microsecond delay
  *
  * This file is part of PanicOS.
  *
@@ -17,25 +17,24 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <defs.h>
-#include <driver/pci/pci.h>
-#include <driver/ps2/ps2.h>
-#include <driver/x86/ioapic.h>
-#include <driver/x86/rtc.h>
-#include <driver/x86/uart.h>
+#ifndef _COMMON_DELAY_H
+#define _COMMON_DELAY_H
 
-extern int intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr);
-extern void picinit(void);
+#include <common/types.h>
 
-void platform_init(void) {
-	// onboard devices
-	picinit();
-	ioapic_init();
-	uart_init();
-	rtc_init();
-	ps2_keyboard_init();
-	ps2_mouse_init();
-	const struct PciAddress pci_host_addr = {0, 0, 0};
-	intel_pcie_mmcfg_init(&pci_host_addr);
-	pci_init();
+#define _X86GPRINTRIN_H_INCLUDED
+#include <ia32intrin.h>
+
+static inline void mdelay(uint64_t ms) {
+	uint64_t end = __rdtsc() + ms * 2000 * 1000;
+	while (__rdtsc() < end) {
+	}
 }
+
+static inline void udelay(uint64_t us) {
+	uint64_t end = __rdtsc() + us * 2000;
+	while (__rdtsc() < end) {
+	}
+}
+
+#endif
