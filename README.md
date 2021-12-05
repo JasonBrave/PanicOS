@@ -1,7 +1,10 @@
 # PanicOS
-A simple operating system for 32-bits x86.
+A simple operating system for 32-bits x86 PCs.
+
+![PanicOS](https://user-images.githubusercontent.com/40355221/144753051-f3bd442b-8f74-4bd6-b399-73bd82aa9b40.png)
 
 ## Features
+
 ### Kernel
 * 32-bits x86 support
 * Legacy BIOS and UEFI booting with GRUB2
@@ -25,6 +28,7 @@ A simple operating system for 32-bits x86.
 * Master Boot Record partition table support
 * Hardware abstraction layer abstracts block device, display device and HID device
 * Reboot and shutdown
+
 ### User Space
 * Dynamic linking
 * C++ global constructor and destructor
