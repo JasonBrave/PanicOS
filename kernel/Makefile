@@ -63,7 +63,7 @@ OBJS = \
 	proc/pty.o\
 	vectors.o\
 
-CFLAGS += -I. -fno-builtin -Wno-error=array-bounds
+CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.
 
 kernel : $(OBJS) core/entry.o entryother initcode kernel.ld

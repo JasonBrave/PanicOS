@@ -4,8 +4,8 @@ endif
 
 PREFIX = i686-elf-
 CC= $(PREFIX)gcc
-CFLAGS= -fno-strict-aliasing -O2 -Wall -std=c17 -fno-omit-frame-pointer \
-		-fno-stack-protector -gdwarf-4 -Werror
+CFLAGS= -fno-strict-aliasing -O2 -Wall -Wextra -std=c17 -fno-omit-frame-pointer \
+		-fno-stack-protector -gdwarf-5
 LD= $(PREFIX)ld
 CFLAGS += -I$(PANICOS_PATH)module/modlib -fPIE -fno-builtin
 
