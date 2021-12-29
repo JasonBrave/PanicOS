@@ -13,6 +13,7 @@ OBJS = \
 	core/trap.o\
 	core/trapasm.o\
 	core/vm.o\
+	driver/ahci/ahci.o\
 	driver/ata/adapter.o\
 	driver/ata/ata.o\
 	driver/bochs-display/bochs-display.o\
