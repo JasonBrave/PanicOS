@@ -20,6 +20,8 @@
 #ifndef _DRIVER_AHCI_AHCI_REG_H
 #define _DRIVER_AHCI_AHCI_REG_H
 
+// AHCI Generic Host Control registers
+
 #define AHCI_CAP 0x0
 #define AHCI_CAP_S64A (1 << 31)
 #define AHCI_CAP_SNCQ (1 << 30)
@@ -110,5 +112,77 @@
 #define AHCI_BOHC_SOOE (1 << 2)
 #define AHCI_BOHC_OOS (1 << 1)
 #define AHCI_BOHC_BOS (1 << 0)
+
+// AHCI Port Control registers
+#define AHCI_PORT_CONTROL_OFFSET(port) (0x100 + port * 0x80)
+
+#define AHCI_PxCLB_LOWER 0x0
+#define AHCI_PxCLB_UPPER 0x4
+#define AHCI_PxFB_LOWER 0x8
+#define AHCI_PxFB_UPPER 0xc
+
+#define AHCI_PxIS 0x10
+#define AHCI_PxIS_CPDS (1 << 31)
+#define AHCI_PxIS_TFES (1 << 30)
+#define AHCI_PxIS_HBFS (1 << 29)
+#define AHCI_PxIS_HBDS (1 << 28)
+#define AHCI_PxIS_IFS (1 << 27)
+#define AHCI_PxIS_INFS (1 << 26)
+#define AHCI_PxIS_OFS (1 << 24)
+#define AHCI_PxIS_IPMS (1 << 23)
+#define AHCI_PxIS_PRCS (1 << 22)
+#define AHCI_PxIS_DMPS (1 << 7)
+#define AHCI_PxIS_PCS (1 << 6)
+#define AHCI_PxIS_DPS (1 << 5)
+#define AHCI_PxIS_UFS (1 << 4)
+#define AHCI_PxIS_SDBS (1 << 3)
+#define AHCI_PxIS_DSS (1 << 2)
+#define AHCI_PxIS_PSS (1 << 1)
+#define AHCI_PxIS_DHRS (1 << 0)
+
+#define AHCI_PxIE 0x14
+#define AHCI_PxIE_CPDE (1 << 31)
+
+#define AHCI_PxCMD 0x18
+#define AHCI_PxCMD_FRE (1 << 4)
+
+#define AHCI_PxTFD 0x20
+
+#define AHCI_PxSIG 0x24
+
+#define AHCI_PxSSTS 0x28
+#define AHCI_PxSSTS_IPM_SHIFT 8
+#define AHCI_PxSSTS_IPM_MASK 0xf
+#define AHCI_PxSSTS_IPM_NOT_PRESENT 0
+#define AHCI_PxSSTS_IPM_ACTIVE 1
+#define AHCI_PxSSTS_IPM_PARTIAL 2
+#define AHCI_PxSSTS_IPM_SLUMBER 6
+#define AHCI_PxSSTS_IPM_DEVSLEEP 8
+#define AHCI_PxSSTS_SPD_SHIFT 4
+#define AHCI_PxSSTS_SPD_MASK 0xf
+#define AHCI_PxSSTS_SPD_NOT_PRESENT 0
+#define AHCI_PxSSTS_SPD_GEN1 1
+#define AHCI_PxSSTS_SPD_GEN2 2
+#define AHCI_PxSSTS_SPD_GEN3 3
+#define AHCI_PxSSTS_DET_SHIFT 0
+#define AHCI_PxSSTS_DET_MASK 0xf
+#define AHCI_PxSSTS_DET_NO_DETECT 0
+#define AHCI_PxSSTS_DET_PRESENSE_NO_COMM 1
+#define AHCI_PxSSTS_DET_PRESENSE_COMM 3
+#define AHCI_PxSSTS_DET_PHY_OFFLINE 4
+
+#define AHCI_PxSCTL 0x2c
+
+#define AHCI_PxSERR 0x30
+
+#define AHCI_PxSACT 0x34
+
+#define AHCI_PxCI 0x38
+
+#define AHCI_PxSNTF 0x3c
+
+#define AHCI_PxFBS 0x40
+
+#define AHCI_PxDEVSLP 0x44
 
 #endif

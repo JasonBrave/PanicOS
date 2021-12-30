@@ -19,6 +19,7 @@
 
 #include <defs.h>
 #include <driver/pci/pci.h>
+#include <memlayout.h>
 
 #include "ahci.h"
 #include "ahci_reg.h"
@@ -66,6 +67,63 @@ void ahci_controller_init(struct PCIDevice *pci_dev) {
 	// AHCI BIOS OS handoff
 	if (ahci_read_reg32(ahci, AHCI_CAP2) & AHCI_CAP2_BOH) {
 		cprintf("[ahci] Start BIOS OS handoff");
+	}
+	for (unsigned int i = 0;
+		 i
+		 < ((ahci_read_reg32(ahci, AHCI_CAP) >> AHCI_CAP_NPORTS_SHIFT) & AHCI_CAP_NPORTS_MASK) + 1;
+		 i++) {
+		if (((ahci_read_reg32(ahci, AHCI_PORTIMPL) >> i) & 1) == 0) {
+			continue;
+		}
+		cprintf("[ahci] Port %d SStatus %x SControl %x SError %x SActive %x\n", i,
+				ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSSTS),
+				ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSCTL),
+				ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSERR),
+				ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSACT));
+		if (((ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSSTS)
+			  >> AHCI_PxSSTS_DET_SHIFT)
+			 & AHCI_PxSSTS_DET_MASK)
+			== AHCI_PxSSTS_DET_PRESENSE_COMM) {
+			if (((ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSSTS)
+				  >> AHCI_PxSSTS_IPM_SHIFT)
+				 & AHCI_PxSSTS_IPM_MASK)
+				== AHCI_PxSSTS_IPM_ACTIVE) {
+				cprintf("[ahci] Port %d connected Gen%d\n", i,
+						(ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSSTS)
+						 >> AHCI_PxSSTS_SPD_SHIFT)
+							& AHCI_PxSSTS_SPD_MASK);
+			} else {
+				continue;
+			}
+		} else {
+			continue;
+		}
+		// allocate command list
+		volatile void *cmdlist = kalloc();
+		ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxCLB_LOWER, V2P(cmdlist));
+		ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxCLB_UPPER, 0);
+		// allocate received FIS buffer
+		volatile void *rxfis = kalloc();
+		ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxFB_LOWER, V2P(rxfis));
+		ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxFB_UPPER, 0);
+		// enable receive FIS
+		ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxCMD,
+						 ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxCMD)
+							 | AHCI_PxCMD_FRE);
+		// clear error register
+		ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSERR, 0xffffffff);
+		// read and print signature
+		uint32_t atasig = ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(i) + AHCI_PxSIG);
+		switch (atasig) {
+		case 0x00000101:
+			cprintf("[ahci] Port %d ATA signature %x Type ATA Disk\n", i, atasig);
+			break;
+		case 0xeb140101:
+			cprintf("[ahci] Port %d ATA signature %x Type ATAPI Device\n", i, atasig);
+			break;
+		default:
+			cprintf("[ahci] Port %d ATA signature %x Type other\n", i, atasig);
+		}
 	}
 }
 
