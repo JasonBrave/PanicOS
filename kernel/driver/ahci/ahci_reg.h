@@ -142,13 +142,67 @@
 
 #define AHCI_PxIE 0x14
 #define AHCI_PxIE_CPDE (1 << 31)
+#define AHCI_PxIE_TFEE (1 << 30)
+#define AHCI_PxIE_HBFE (1 << 29)
+#define AHCI_PxIE_HBDE (1 << 28)
+#define AHCI_PxIE_IFE (1 << 27)
+#define AHCI_PxIE_INFE (1 << 26)
+#define AHCI_PxIE_OFE (1 << 24)
+#define AHCI_PxIE_IPME (1 << 23)
+#define AHCI_PxIE_PRCE (1 << 22)
+#define AHCI_PxIE_DMPE (1 << 7)
+#define AHCI_PxIE_PCE (1 << 6)
+#define AHCI_PxIE_DPE (1 << 5)
+#define AHCI_PxIE_UFE (1 << 4)
+#define AHCI_PxIE_SDBE (1 << 3)
+#define AHCI_PxIE_DSE (1 << 2)
+#define AHCI_PxIE_PSE (1 << 1)
+#define AHCI_PxIE_DHRE (1 << 0)
 
 #define AHCI_PxCMD 0x18
+#define AHCI_PxCMD_ICC_SHIFT 28
+#define AHCI_PxCMD_ICC_MASK 0xf
+#define AHCI_PxCMD_ICC_DEVSLEEP 0x8
+#define AHCI_PxCMD_ICC_SLUMBER 0x6
+#define AHCI_PxCMD_ICC_PARTIAL 0x2
+#define AHCI_PxCMD_ICC_ACTIVE 0x1
+#define AHCI_PxCMD_ICC_IDLE 0x0
+
+#define AHCI_PxCMD_ASP (1 << 27)
+#define AHCI_PxCMD_ALPE (1 << 26)
+#define AHCI_PxCMD_DLAE (1 << 25)
+#define AHCI_PxCMD_ATAPI (1 << 24)
+#define AHCI_PxCMD_APSTE (1 << 23)
+#define AHCI_PxCMD_FBSCP (1 << 22)
+#define AHCI_PxCMD_ESP (1 << 21)
+#define AHCI_PxCMD_CPD (1 << 20)
+#define AHCI_PxCMD_MPSP (1 << 19)
+#define AHCI_PxCMD_HPCP (1 << 18)
+#define AHCI_PxCMD_PMA (1 << 17)
+#define AHCI_PxCMD_CPS (1 << 16)
+#define AHCI_PxCMD_CR (1 << 15)
+#define AHCI_PxCMD_FR (1 << 14)
+#define AHCI_PxCMD_MPSS (1 << 13)
+#define AHCI_PxCMD_CCS_SHIFT 8
+#define AHCI_PxCMD_CCS_MASK 0x1f
 #define AHCI_PxCMD_FRE (1 << 4)
+#define AHCI_PxCMD_CLO (1 << 3)
+#define AHCI_PxCMD_POD (1 << 2)
+#define AHCI_PxCMD_SUD (1 << 1)
+#define AHCI_PxCMD_ST (1 << 0)
 
 #define AHCI_PxTFD 0x20
+#define AHCI_PxTFD_ERROR_SHIFT 8
+#define AHCI_PxTFD_ERROR_MASK 0xf
+#define AHCI_PxTFD_STATUS_SHIFT 0
+#define AHCI_PxTFD_STATUS_MASK 0xf
+#define AHCI_PxTFD_STATUS_BSY (1 << 7)
+#define AHCI_PxTFD_STATUS_DRQ (1 << 3)
+#define AHCI_PxTFD_STATUS_ERR (1 << 0)
 
 #define AHCI_PxSIG 0x24
+#define AHCI_PxSIG_DRIVE 0x00000101
+#define AHCI_PxSIG_ATAPI 0xeb140101
 
 #define AHCI_PxSSTS 0x28
 #define AHCI_PxSSTS_IPM_SHIFT 8
@@ -172,17 +226,80 @@
 #define AHCI_PxSSTS_DET_PHY_OFFLINE 4
 
 #define AHCI_PxSCTL 0x2c
+#define AHCI_PxSCTL_IPM_SHIFT 8
+#define AHCI_PxSCTL_IPM_MASK 0xf
+#define AHCI_PxSCTL_IPM_NO_RESTRICTIONS 0
+#define AHCI_PxSCTL_IPM_PARTIAL_DISABLED 1
+#define AHCI_PxSCTL_IPM_SLUMBER_DISABLED 2
+#define AHCI_PxSCTL_IPM_PARTIAL_SLUMBER_DISABLED 3
+#define AHCI_PxSCTL_IPM_DEVSLEEP_DISABLED 4
+#define AHCI_PxSCTL_IPM_PARTIAL_DEVSLEEP_DISABLED 5
+#define AHCI_PxSCTL_IPM_SLUMBER_DEVSLEEP_DISABLED 6
+#define AHCI_PxSCTL_IPM_PARTIAL_SLUMBER_DEVSLEE_DISABLED 7
+#define AHCI_PxSCTL_SPD_SHIFT 4
+#define AHCI_PxSCTL_SPD_MASK 0xf
+#define AHCI_PxSCTL_SPD_NO_RESTRICTIONS 0
+#define AHCI_PxSCTL_SPD_MAX_GEN1 1
+#define AHCI_PxSCTL_SPD_MAX_GEN2 2
+#define AHCI_PxSCTL_SPD_MAX_GEN3 3
+#define AHCI_PxSCTL_DET_SHIFT 0
+#define AHCI_PxSCTL_DET_MASK 0xf
+#define AHCI_PxSCTL_DET_NO_REQUEST 0
+#define AHCI_PxSCTL_DET_INTERFACE_INIT 1
+#define AHCI_PxSCTL_DET_DISABLE_SATA_INTERFACE 4
 
 #define AHCI_PxSERR 0x30
+#define AHCI_PxSERR_DIAG_SHIFT 16
+#define AHCI_PxSERR_DIAG_MASK 0xffff
+#define AHCI_PxSERR_DIAG_X (1 << 26)
+#define AHCI_PxSERR_DIAG_F (1 << 25)
+#define AHCI_PxSERR_DIAG_T (1 << 24)
+#define AHCI_PxSERR_DIAG_S (1 << 23)
+#define AHCI_PxSERR_DIAG_H (1 << 22)
+#define AHCI_PxSERR_DIAG_C (1 << 21)
+#define AHCI_PxSERR_DIAG_D (1 << 20)
+#define AHCI_PxSERR_DIAG_B (1 << 19)
+#define AHCI_PxSERR_DIAG_W (1 << 18)
+#define AHCI_PxSERR_DIAG_I (1 << 17)
+#define AHCI_PxSERR_DIAG_N (1 << 16)
+#define AHCI_PxSERR_ERR_SHIFT 0
+#define AHCI_PxSERR_ERR_MASK 0xffff
+#define AHCI_PxSERR_ERR_E (1 << 11)
+#define AHCI_PxSERR_ERR_P (1 << 10)
+#define AHCI_PxSERR_ERR_C (1 << 9)
+#define AHCI_PxSERR_ERR_T (1 << 8)
+#define AHCI_PxSERR_ERR_M (1 << 1)
+#define AHCI_PxSERR_ERR_I (1 << 0)
 
 #define AHCI_PxSACT 0x34
 
 #define AHCI_PxCI 0x38
 
 #define AHCI_PxSNTF 0x3c
+#define AHCI_PxSNTF_SHIFT 0
+#define AHCI_PxSNTF_MASK 0xffff
 
 #define AHCI_PxFBS 0x40
+#define AHCI_PxFBS_DWE_SHIFT 16
+#define AHCI_PxFBS_DWE_MASK 0xf
+#define AHCI_PxFBS_ADO_SHIFT 12
+#define AHCI_PxFBS_ADO_MASK 0xf
+#define AHCI_PxFBS_DEV_SHIFT 8
+#define AHCI_PxFBS_DEV_MASK 0xf
+#define AHCI_PxFBS_SDE (1 << 2)
+#define AHCI_PxFBS_DEC (1 << 1)
+#define AHCI_PxFBS_EN (1 << 0)
 
 #define AHCI_PxDEVSLP 0x44
+#define AHCI_PxDEVSLP_DM_SHIFT 25
+#define AHCI_PxDEVSLP_DM_MASK 0xf
+#define AHCI_PxDEVSLP_DITO_SHIFT 15
+#define AHCI_PxDEVSLP_DIOT_MASK 0x3f
+#define AHCI_PxDEVSLP_MDAT_SHIFT 10
+#define AHCI_PxDEVSLP_MDAT_MASK 0x1f
+#define AHCI_PxDEVSLP_DETO_SHIFT 2
+#define AHCI_PxDEVSLP_DETO_MASK 0xff
+#define AHCI_PxDEVSLP_DSP (1 << 1)
+#define AHCI_PxDEVSLP_ADSE (1 << 0)
 
 #endif
