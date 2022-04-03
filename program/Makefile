@@ -16,6 +16,7 @@ all:
 	$(MAKE) -C shutdown install
 	$(MAKE) -C date install
 	$(MAKE) -C devmgr install
+	$(MAKE) -C imgview install
 
 .PHONY: clean
 clean:
@@ -36,3 +37,4 @@ clean:
 	$(MAKE) -C shutdown clean
 	$(MAKE) -C date clean
 	$(MAKE) -C devmgr clean
+	$(MAKE) -C imgview clean
