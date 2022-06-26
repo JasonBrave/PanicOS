@@ -70,9 +70,6 @@ ASFLAGS += -I.
 kernel : $(OBJS) core/entry.o entryother initcode kernel.ld
 	$(LD) $(LDFLAGS) -T kernel.ld -o kernel core/entry.o $(OBJS) $(shell $(CC) -print-libgcc-file-name) -b binary initcode entryother
 
-vectors.S: ../tools/vectors.pl
-	../tools/vectors.pl > vectors.S
-
 entryother: core/entryother.S
 	$(CC) $(CFLAGS) -fno-pic -nostdinc -I. -c core/entryother.S
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o bootblockother.o entryother.o
@@ -85,4 +82,4 @@ initcode: proc/init/initcode.S
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS)  vectors.S kernel entryother bootblockother.o initcode.out initcode core/entry.o entryother.o initcode.o
+	rm -f $(OBJS) kernel entryother bootblockother.o initcode.out initcode core/entry.o entryother.o initcode.o

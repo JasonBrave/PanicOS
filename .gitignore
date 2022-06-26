@@ -7,7 +7,6 @@ kernel/entryother
 kernel/initcode
 kernel/initcode.out
 kernel/kernel
-kernel/vectors.S
 program/about/about
 program/cat/cat
 program/desktop/desktop
