@@ -1,5 +1,5 @@
 /*
- * AHCI MMIO registers definition
+ * AHCI MMIO registers and memory structures definition
  *
  * This file is part of PanicOS.
  *
@@ -19,6 +19,8 @@
 
 #ifndef _DRIVER_AHCI_AHCI_REG_H
 #define _DRIVER_AHCI_AHCI_REG_H
+
+#include <common/types.h>
 
 // AHCI Generic Host Control registers
 
@@ -301,5 +303,49 @@
 #define AHCI_PxDEVSLP_DETO_MASK 0xff
 #define AHCI_PxDEVSLP_DSP (1 << 1)
 #define AHCI_PxDEVSLP_ADSE (1 << 0)
+
+#define AHCI_RECEIVED_FIS_DSFIS_OFFSET 0x00
+#define AHCI_RECEIVED_FIS_PSFIS_OFFSET 0x20
+#define AHCI_RECEIVED_FIS_RFIS_OFFSET 0x40
+#define AHCI_RECEIVED_FIS_SDBFIS_OFFSET 0x58
+#define AHCI_RECEIVED_FIS_UFIS_OFFSET 0x60
+
+struct AHCICommandList {
+	uint32_t dw0;
+	uint32_t prdbc;
+	uint32_t ctba;
+	uint32_t ctba_upper;
+	uint32_t reserved[4];
+} PACKED;
+
+#define AHCI_CMDLIST_DW0_PRDTL_SHIFT 16
+#define AHCI_CMDLIST_DW0_PRDTL_MASK 0xffff
+#define AHCI_CMDLIST_DW0_PMP_SHIFT 12
+#define AHCI_CMDLIST_DW0_PMP_MASK 0xff
+#define AHCI_CMDLIST_DW0_C (1 << 10)
+#define AHCI_CMDLIST_DW0_B (1 << 9)
+#define AHCI_CMDLIST_DW0_R (1 << 8)
+#define AHCI_CMDLIST_DW0_P (1 << 7)
+#define AHCI_CMDLIST_DW0_W (1 << 6)
+#define AHCI_CMDLIST_DW0_A (1 << 5)
+#define AHCI_CMDLIST_DW0_CFL_SHIFT 0
+#define AHCI_CMDLIST_DW0_CFL_MASK 0x1f
+
+struct AHCIPRDT {
+	uint32_t dba, dba_upper;
+	uint32_t reserved;
+	uint32_t dbc_i;
+} PACKED;
+
+#define AHCI_PRDT_DBC_I_I (1 << 31)
+#define AHCI_PRDT_DBC_I_DBC_SHIFT 0
+#define AHCI_PRDT_DBC_I_DBC_MASK 0x3fffff
+
+struct AHCICommandTable {
+	uint8_t cfis[0x40];
+	uint8_t acmd[0x10];
+	uint8_t reserved[0x30];
+	struct AHCIPRDT prdt[];
+} PACKED;
 
 #endif
