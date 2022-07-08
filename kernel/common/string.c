@@ -28,8 +28,31 @@ void* memset(void* dst, int c, unsigned int n) {
 	return dst;
 }
 
-int memcmp(const void* v1, const void* v2, unsigned int n) {
+volatile void *memset_volatile(volatile void *dst, int c, unsigned int n) {
+	volatile char *p = dst;
+	while (n--) {
+		*p = c;
+		p++;
+	}
+	return dst;
+}
+
+int memcmp(const void *v1, const void *v2, unsigned int n) {
 	const unsigned char *s1, *s2;
+
+	s1 = v1;
+	s2 = v2;
+	while (n-- > 0) {
+		if (*s1 != *s2)
+			return *s1 - *s2;
+		s1++, s2++;
+	}
+
+	return 0;
+}
+
+int memcmp_volatile(const volatile void *v1, const volatile void *v2, unsigned int n) {
+	const volatile unsigned char *s1, *s2;
 
 	s1 = v1;
 	s2 = v2;
@@ -45,6 +68,24 @@ int memcmp(const void* v1, const void* v2, unsigned int n) {
 void* memmove(void* dst, const void* src, unsigned int n) {
 	const char* s;
 	char* d;
+
+	s = src;
+	d = dst;
+	if (s < d && s + n > d) {
+		s += n;
+		d += n;
+		while (n-- > 0)
+			*--d = *--s;
+	} else
+		while (n-- > 0)
+			*d++ = *s++;
+
+	return dst;
+}
+
+volatile void* memmove_volatile(volatile void* dst, const volatile void* src, unsigned int n) {
+	const volatile char* s;
+	volatile char* d;
 
 	s = src;
 	d = dst;

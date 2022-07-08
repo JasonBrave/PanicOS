@@ -82,9 +82,12 @@ struct proc* proc_search_pid(int pid);
 void swtch(struct context**, struct context*);
 
 // string.c
-int memcmp(const void*, const void*, unsigned int);
-void* memmove(void*, const void*, unsigned int);
-void* memset(void*, int, unsigned int);
+void* memset(void* dst, int c, unsigned int n);
+volatile void *memset_volatile(volatile void *dst, int c, unsigned int n);
+int memcmp(const void *v1, const void *v2, unsigned int n);
+int memcmp_volatile(const volatile void *v1, const volatile void *v2, unsigned int n);
+void* memmove(void* dst, const void* src, unsigned int n);
+volatile void* memmove_volatile(volatile void* dst, const volatile void* src, unsigned int n);
 char* safestrcpy(char*, const char*, int);
 int strlen(const char*);
 int strncmp(const char*, const char*, unsigned int);
