@@ -80,7 +80,7 @@ void trap(struct trapframe* tf) {
 		break;
 	case T_IRQ0 + IRQ_IDE:
 	case T_IRQ0 + IRQ_IDE + 1:
-		ata_legacy_intr(tf->trapno - T_IRQ0);
+		pata_adapter_legacy_intr(tf->trapno - T_IRQ0);
 		lapiceoi();
 		break;
 	case T_IRQ0 + IRQ_KBD:

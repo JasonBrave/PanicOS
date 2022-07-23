@@ -29,28 +29,25 @@
 const static char* bus_master_str[] = {"Non-Bus Mastering", "Bus Mastering"};
 const static char* pci_native_str[] = {"ISA Compatibility", "PCI Native"};
 
-struct ATABMDMAPRD {
+struct PATABMDMAPRD {
 	uint32_t base;
 	uint16_t size;
 	uint16_t eot;
 } PACKED;
 
-static struct ATAAdapter* ata_adapter_alloc(void) {
-	struct ATAAdapter* dev = kalloc();
-	memset(dev, 0, sizeof(struct ATAAdapter));
+static struct PATAAdapter* pata_adapter_alloc(void) {
+	struct PATAAdapter* dev = kalloc();
+	memset(dev, 0, sizeof(struct PATAAdapter));
 	return dev;
 }
 
-void ata_adapter_dev_init(struct PCIDevice* pcidev) {
+void pata_adapter_dev_init(struct PCIDevice* pcidev) {
 	const struct PciAddress* addr = &pcidev->addr;
-	struct ATAAdapter* adapter = ata_adapter_alloc();
-	if (!adapter) {
-		panic("too many ATA adapter");
-	}
+	struct PATAAdapter* adapter = pata_adapter_alloc();
 
 	pcidev->private = adapter;
-	initlock(&adapter->lock[0], "ata");
-	initlock(&adapter->lock[1], "ata");
+	initlock(&adapter->lock[0], "pata-adapter");
+	initlock(&adapter->lock[1], "pata-adapter");
 	acquire(&adapter->lock[0]);
 	const uint8_t progif = pci_read_config_reg8(addr, PCI_CONF_PROGIF);
 	if (progif & (1 << 7)) {
@@ -88,22 +85,22 @@ void ata_adapter_dev_init(struct PCIDevice* pcidev) {
 			adapter->bus_master_base);
 	// enable PCI interrupt
 	if (adapter->pci_native) {
-		pci_register_intr_handler(pcidev, ata_pci_intr);
+		pci_register_intr_handler(pcidev, pata_adapter_pci_intr);
 	}
 	release(&adapter->lock[0]);
 	ata_register_adapter(adapter);
 }
 
-void ata_adapter_bmdma_init(struct ATAAdapter* dev, int channel, int drive) {
+void pata_adapter_bmdma_init(struct PATAAdapter* dev, int channel, int drive) {
 	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
 	uint8_t bmdma_status = inb(bmdma_base + 2);
 	bmdma_status |= 1 << (5 + drive) | 6;
 	outb(bmdma_base + 2, bmdma_status);
 }
 
-void ata_adapter_bmdma_prepare(struct ATAAdapter* dev, int channel, phyaddr_t addr,
-							   unsigned int size) {
-	volatile struct ATABMDMAPRD* prd = dev->prd[channel];
+void pata_adapter_bmdma_prepare(struct PATAAdapter* dev, int channel, phyaddr_t addr,
+								unsigned int size) {
+	volatile struct PATABMDMAPRD* prd = dev->prd[channel];
 	prd[0].base = addr;
 	prd[0].size = size;
 	prd[0].eot = 0x8000;
@@ -114,14 +111,14 @@ void ata_adapter_bmdma_prepare(struct ATAAdapter* dev, int channel, phyaddr_t ad
 	outb(bmdma_base + 2, bmdma_status);
 }
 
-void ata_adapter_bmdma_start_write(struct ATAAdapter* dev, int channel) {
+void pata_adapter_bmdma_start_write(struct PATAAdapter* dev, int channel) {
 	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
 	uint8_t bmdma_command = inb(bmdma_base + 0);
 	bmdma_command |= 9;
 	outb(bmdma_base + 0, bmdma_command);
 }
 
-void ata_adapter_bmdma_start_read(struct ATAAdapter* dev, int channel) {
+void pata_adapter_bmdma_start_read(struct PATAAdapter* dev, int channel) {
 	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
 	uint8_t bmdma_command = inb(bmdma_base + 0);
 	bmdma_command &= ~8;
@@ -129,12 +126,12 @@ void ata_adapter_bmdma_start_read(struct ATAAdapter* dev, int channel) {
 	outb(bmdma_base + 0, bmdma_command);
 }
 
-int ata_adapter_bmdma_busy(struct ATAAdapter* dev, int channel) {
+int pata_adapter_bmdma_busy(struct PATAAdapter* dev, int channel) {
 	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
 	return inb(bmdma_base + 2) & 1;
 }
 
-void ata_adapter_bmdma_stop(struct ATAAdapter* dev, int channel) {
+void pata_adapter_bmdma_stop(struct PATAAdapter* dev, int channel) {
 	ioport_t bmdma_base = dev->bus_master_base + channel * 8;
 	outb(bmdma_base + 0, 0);
 	uint8_t bmdma_status = inb(bmdma_base + 2);
@@ -145,20 +142,20 @@ void ata_adapter_bmdma_stop(struct ATAAdapter* dev, int channel) {
 	outb(bmdma_base + 2, bmdma_status);
 }
 
-struct PCIDriver ata_adapter_pci_driver = {
+struct PCIDriver pata_adapter_pci_driver = {
 	.name = "pci-ide-adapter",
 	.class_type = 0x0101ff, // PCI IDE Controller
-	.init = ata_adapter_dev_init,
+	.init = pata_adapter_dev_init,
 };
 
-void ata_adapter_init(void) {
+void pata_adapter_init(void) {
 	// enable legacy IRQ
 	ioapic_enable(14, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
 	ioapic_enable(15, 0, IOAPIC_EDGE_TRIGGER, IOAPIC_ACTIVE_HIGH);
 
-	pci_register_driver(&ata_adapter_pci_driver);
+	pci_register_driver(&pata_adapter_pci_driver);
 }
 
-void ata_legacy_intr(int irq) {}
+void pata_adapter_legacy_intr(int irq) {}
 
-void ata_pci_intr(struct PCIDevice* dev) {}
+void pata_adapter_pci_intr(struct PCIDevice* dev) {}

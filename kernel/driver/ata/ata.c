@@ -73,10 +73,10 @@ static struct ATADevice* ata_device_alloc(void) {
 }
 
 void ata_init(void) {
-	ata_adapter_init();
+	pata_adapter_init();
 }
 
-uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int drive) {
+uint32_t ata_read_signature(const struct PATAAdapter* adapter, int channel, int drive) {
 	outb(adapter->cmdblock_base[channel] + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT));
 
@@ -88,7 +88,7 @@ uint32_t ata_read_signature(const struct ATAAdapter* adapter, int channel, int d
 		   inb(adapter->cmdblock_base[channel] + ATA_IO_LBAHI);
 }
 
-int ata_identify(struct ATAAdapter* adapter, int channel, int drive, struct ATADevice* dev,
+int ata_identify(struct PATAAdapter* adapter, int channel, int drive, struct ATADevice* dev,
 				 char* model) {
 	uint16_t* identify = kalloc();
 	if (ata_exec_pio_in(adapter, channel, drive, ATA_COMMAND_IDENTIFY, 0, 0, identify, 1)) {
@@ -139,7 +139,7 @@ int ata_identify(struct ATAAdapter* adapter, int channel, int drive, struct ATAD
 	return 0;
 }
 
-void ata_bus_reset(const struct ATAAdapter* adapter, int channel) {
+void ata_bus_reset(const struct PATAAdapter* adapter, int channel) {
 	outb(adapter->control_base[channel], 1 << 2);
 	udelay(5);
 	outb(adapter->control_base[channel], 0);
@@ -147,7 +147,7 @@ void ata_bus_reset(const struct ATAAdapter* adapter, int channel) {
 	mdelay(2);
 }
 
-int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+int ata_exec_pio_in(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
 					unsigned int lba, unsigned int count, void* buf, int blocks) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
@@ -174,11 +174,11 @@ int ata_exec_pio_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t 
 	return 0;
 }
 
-int ata_exec_dma_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+int ata_exec_dma_in(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
 					unsigned int lba, unsigned int count, void* buf, int blocks) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
-	ata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
+	pata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
 	outb(iobase + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
 	udelay(1);
@@ -187,12 +187,12 @@ int ata_exec_dma_in(struct ATAAdapter* adapter, int channel, int drive, uint8_t 
 	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
 	outb(iobase + ATA_IO_LBAHI, (lba >> 16) & 0xff);
 	outb(iobase + ATA_IO_COMMAND, cmd);
-	ata_adapter_bmdma_start_write(adapter, channel);
+	pata_adapter_bmdma_start_write(adapter, channel);
 	// check status
 	while ((inb(iobase + ATA_IO_STATUS) & ATA_STATUS_BSY) ||
-		   ata_adapter_bmdma_busy(adapter, channel)) {
+		   pata_adapter_bmdma_busy(adapter, channel)) {
 	}
-	ata_adapter_bmdma_stop(adapter, channel);
+	pata_adapter_bmdma_stop(adapter, channel);
 	uint8_t status = inb(iobase + ATA_IO_STATUS);
 	if (status == 0 || status & ATA_STATUS_ERR) {
 		release(&adapter->lock[channel]);
@@ -223,7 +223,7 @@ int ata_read(void* private, unsigned int begin, int count, void* buf) {
 	return 0;
 }
 
-int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+int ata_exec_pio_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
 					 unsigned int lba, unsigned int count, const void* buf, int blocks) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
@@ -252,11 +252,11 @@ int ata_exec_pio_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t
 	return 0;
 }
 
-int ata_exec_dma_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+int ata_exec_dma_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
 					 unsigned int lba, unsigned int count, const void* buf, int blocks) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
-	ata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
+	pata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
 	outb(iobase + ATA_IO_DRIVE,
 		 ATA_DRIVE_DEFAULT | (drive << ATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
 	udelay(1);
@@ -265,12 +265,12 @@ int ata_exec_dma_out(struct ATAAdapter* adapter, int channel, int drive, uint8_t
 	outb(iobase + ATA_IO_LBAMID, (lba >> 8) & 0xff);
 	outb(iobase + ATA_IO_LBAHI, (lba >> 16) & 0xff);
 	outb(iobase + ATA_IO_COMMAND, cmd);
-	ata_adapter_bmdma_start_read(adapter, channel);
+	pata_adapter_bmdma_start_read(adapter, channel);
 	// check status
 	while ((inb(iobase + ATA_IO_STATUS) & ATA_STATUS_BSY) ||
-		   ata_adapter_bmdma_busy(adapter, channel)) {
+		   pata_adapter_bmdma_busy(adapter, channel)) {
 	}
-	ata_adapter_bmdma_stop(adapter, channel);
+	pata_adapter_bmdma_stop(adapter, channel);
 	uint8_t status = inb(iobase + ATA_IO_STATUS);
 	if (status == 0 || status & ATA_STATUS_ERR) {
 		release(&adapter->lock[channel]);
@@ -306,7 +306,7 @@ const struct BlockDeviceDriver ata_block_driver = {
 	.block_write = ata_write,
 };
 
-void ata_register_adapter(struct ATAAdapter* adapter) {
+void ata_register_adapter(struct PATAAdapter* adapter) {
 	for (int channel = 0; channel < 2; channel++) {
 		ata_bus_reset(adapter, channel);
 		uint32_t devtype[2];
@@ -328,7 +328,7 @@ void ata_register_adapter(struct ATAAdapter* adapter) {
 					if (ata_dev->dma && ata_dev->adapter->bus_master) {
 						ata_dev->use_dma = 1;
 						cprintf("[ata] Use DMA for channel %d drive %d\n", channel, drive);
-						ata_adapter_bmdma_init(ata_dev->adapter, channel, drive);
+						pata_adapter_bmdma_init(ata_dev->adapter, channel, drive);
 					} else {
 						ata_dev->use_dma = 0;
 						cprintf("[ata] Use PIO for channel %d drive %d\n", channel, drive);
