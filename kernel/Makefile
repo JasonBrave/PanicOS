@@ -16,6 +16,7 @@ OBJS = \
 	driver/ahci/ahci.o\
 	driver/ata/adapter.o\
 	driver/ata/ata.o\
+	driver/ata/pata.o\
 	driver/bochs-display/bochs-display.o\
 	driver/pci/driver.o\
 	driver/pci/intx.o\

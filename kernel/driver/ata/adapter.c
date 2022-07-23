@@ -88,7 +88,7 @@ void pata_adapter_dev_init(struct PCIDevice* pcidev) {
 		pci_register_intr_handler(pcidev, pata_adapter_pci_intr);
 	}
 	release(&adapter->lock[0]);
-	ata_register_adapter(adapter);
+	pata_register_adapter(adapter);
 }
 
 void pata_adapter_bmdma_init(struct PATAAdapter* dev, int channel, int drive) {

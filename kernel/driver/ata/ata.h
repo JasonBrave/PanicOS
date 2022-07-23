@@ -18,30 +18,51 @@ struct PATAAdapter {
 	struct spinlock lock[2];
 };
 
-struct ATADevice {
+enum ATATransport {
+	ATA_TRANSPORT_PARALLEL_ATA,
+	ATA_TRANSPORT_SERIAL_ATA
+};
+
+struct PATADevice {
 	struct PATAAdapter* adapter;
 	struct {
 		unsigned char channel : 1; // primary/secondary
 		unsigned char drive : 1; // master/slave
 		unsigned char use_dma : 1; // use DMA
 	};
+	char dma, pio, mdma, udma;
+};
+
+struct ATADevice {
+	enum ATATransport transport;
 	unsigned int sectors; // number of sectors
-	char dma, pio, mdma, udma, ata_rev;
+	unsigned int ata_rev;
+	union {
+		struct PATADevice pata;
+	};
 };
 
 // ata.c
 void ata_init(void);
-void ata_register_adapter(struct PATAAdapter* adapter);
-uint32_t ata_read_signature(const struct PATAAdapter* adapter, int channel, int drive);
-int ata_identify(struct PATAAdapter* adapter, int channel, int drive, struct ATADevice* dev,
-				 char* model);
-void ata_bus_reset(const struct PATAAdapter* adapter, int channel);
-int ata_exec_pio_in(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					unsigned int lba, unsigned int count, void* buf, int blocks);
+int ata_identify(struct ATADevice* dev, char* model);
 int ata_read(void* private, unsigned int begin, int count, void* buf);
-int ata_exec_pio_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					 unsigned int lba, unsigned int count, const void* buf, int blocks);
 int ata_write(void* private, unsigned int begin, int count, const void* buf);
+void ata_register_ata_device(struct ATADevice* ata_dev);
+void ata_register_atapi_device(struct ATADevice* ata_dev);
+struct ATADevice* ata_device_alloc(void);
+
+// pata.c
+uint32_t pata_read_signature(const struct PATAAdapter* adapter, int channel, int drive);
+void pata_bus_reset(const struct PATAAdapter* adapter, int channel);
+int pata_exec_pio_in(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					 unsigned int lba, unsigned int count, void* buf, int blocks);
+int pata_exec_dma_in(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					 unsigned int lba, unsigned int count, void* buf, int blocks);
+int pata_exec_pio_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					  unsigned int lba, unsigned int count, const void* buf, int blocks);
+int pata_exec_dma_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
+					  unsigned int lba, unsigned int count, const void* buf, int blocks);
+void pata_register_adapter(struct PATAAdapter* adapter);
 
 // adapter.c
 void pata_adapter_dev_init(struct PCIDevice* dev);
