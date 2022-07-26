@@ -19,6 +19,7 @@
 
 #include <common/delay.h>
 #include <common/errorcode.h>
+#include <common/types.h>
 #include <common/x86.h>
 #include <defs.h>
 #include <hal/hal.h>
@@ -70,6 +71,11 @@ int ata_identify(struct ATADevice* dev, char* model) {
 	model[40] = '\0';
 
 	dev->sectors = identify[60] + (identify[61] << 16);
+	for (int i = 1; i <= 14; i++) {
+		if (identify[80] & (1 << i)) {
+			dev->ata_rev = i;
+		}
+	}
 
 	if (dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
 		if (identify[49] & (1 << 8)) {
@@ -83,11 +89,6 @@ int ata_identify(struct ATADevice* dev, char* model) {
 		for (int i = 0; i <= 2; i++) {
 			if (identify[63] & (1 << i)) {
 				dev->pata.mdma = i;
-			}
-		}
-		for (int i = 1; i <= 14; i++) {
-			if (identify[80] & (1 << i)) {
-				dev->ata_rev = i;
 			}
 		}
 		for (int i = 0; i <= 6; i++) {
@@ -161,11 +162,12 @@ const struct BlockDeviceDriver ata_block_driver = {
 void ata_register_ata_device(struct ATADevice* ata_dev) {
 	char model[50];
 	if (ata_identify(ata_dev, model) == 0) {
-		cprintf("[ata] Disk model %s %d sectors\n", model, ata_dev->sectors);
+		cprintf("[ata] Disk model %s %d sectors ata_rev %d\n", model, ata_dev->sectors,
+				ata_dev->ata_rev);
 
 		if (ata_dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
-			cprintf("[ata] dma %d pio %d mdma %d udma %d ata_rev %d\n", ata_dev->pata.dma,
-					ata_dev->pata.pio, ata_dev->pata.mdma, ata_dev->pata.udma, ata_dev->ata_rev);
+			cprintf("[ata] PATA dma %d pio %d mdma %d udma %d\n", ata_dev->pata.dma,
+					ata_dev->pata.pio, ata_dev->pata.mdma, ata_dev->pata.udma);
 			if (ata_dev->pata.dma && ata_dev->pata.adapter->bus_master) {
 				ata_dev->pata.use_dma = 1;
 				cprintf("[ata] Use DMA for channel %d drive %d\n", ata_dev->pata.channel,

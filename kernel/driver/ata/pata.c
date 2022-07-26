@@ -198,7 +198,8 @@ void pata_register_adapter(struct PATAAdapter* adapter) {
 		}
 		for (int drive = 0; drive < 2; drive++) {
 			if (devtype[drive] == PATA_SIGNATURE_DISK) {
-				cprintf("[ata] ATA device found channel %d drive %d\n", channel, drive);
+				cprintf("[ata] ATA device on PATA controller channel %d drive %d\n", channel,
+						drive);
 				struct ATADevice* ata_dev = ata_device_alloc();
 				ata_dev->transport = ATA_TRANSPORT_PARALLEL_ATA;
 				ata_dev->pata.adapter = adapter;
@@ -207,7 +208,8 @@ void pata_register_adapter(struct PATAAdapter* adapter) {
 
 				ata_register_ata_device(ata_dev);
 			} else if (devtype[drive] == PATA_SIGNATURE_PACKET) {
-				cprintf("[ata] ATAPI device found channel %d drive %d\n", channel, drive);
+				cprintf("[ata] ATAPI device on PATA controller channel %d drive %d\n", channel,
+						drive);
 			}
 		}
 	}
