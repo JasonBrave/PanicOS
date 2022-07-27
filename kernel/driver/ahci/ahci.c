@@ -25,73 +25,22 @@
 #include "ahci_reg.h"
 #include "sata_struct.h"
 
-static struct AHCIController *ahci_controller_new(void) {
-	struct AHCIController *dev = kalloc();
+static struct AHCIController* ahci_controller_new(void) {
+	struct AHCIController* dev = kalloc();
 	memset(dev, 0, sizeof(struct AHCIController));
 	return dev;
 }
 
-static inline uint32_t ahci_read_reg32(struct AHCIController *ahci, unsigned int offset) {
+static inline uint32_t ahci_read_reg32(struct AHCIController* ahci, unsigned int offset) {
 	return ahci->abar[offset >> 2];
 }
 
-static inline void ahci_write_reg32(struct AHCIController *ahci, unsigned int offset,
+static inline void ahci_write_reg32(struct AHCIController* ahci, unsigned int offset,
 									uint32_t value) {
 	ahci->abar[offset >> 2] = value;
 }
 
-void ahci_port_identify(struct AHCIController *ahci, unsigned int port,
-						volatile struct AHCICommandList *command_list) {
-	cprintf("[ahci] executing IDENTIFY command\n");
-	// allocate command table
-	volatile struct AHCICommandTable *identify_cmd_table = kalloc();
-	memset_volatile(identify_cmd_table, 0, 4096);
-	// Set command list
-	command_list[0].ctba = V2P(identify_cmd_table);
-	command_list[0].ctba_upper = 0;
-	command_list[0].dw0 = (1 << AHCI_CMDLIST_DW0_PRDTL_SHIFT) | (5 << AHCI_CMDLIST_DW0_CFL_SHIFT);
-	command_list[0].prdbc = 0;
-	// Set FIS
-	volatile struct SATARegisterFISHostToDevice *fis
-		= (volatile struct SATARegisterFISHostToDevice *)identify_cmd_table;
-	fis->fis_type = RegisterFISHostToDevice;
-	fis->pm_c = SATA_REGISTER_FIS_H2D_PM_C_COMMAND;
-	fis->command = 0xec;
-	// Set receive buffer
-	volatile uint8_t *id_rx = kalloc();
-	memset_volatile(id_rx, 0, 4096);
-	identify_cmd_table->prdt[0].dba = V2P(id_rx);
-	identify_cmd_table->prdt[0].dba_upper = 0;
-	identify_cmd_table->prdt[0].dbc_i = AHCI_PRDT_DBC_I_I | (512 - 1);
-	// enable command list
-	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCMD,
-					 ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCMD)
-						 | AHCI_PxCMD_ST);
-	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxIS, 0xffffffff);
-	// issue command
-	while (
-		(ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxTFD) & AHCI_PxTFD_STATUS_BSY)
-		|| (ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxTFD)
-			& AHCI_PxTFD_STATUS_DRQ)) {
-	}
-	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCI, 1);
-	while (ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCI) & 1) {
-	}
-	// print data
-	cprintf("IDENTIFY blob:\n");
-	for (int i = 0; i < 1024; i++) {
-		cprintf("%x ", id_rx[i]);
-	}
-	cprintf("\nModel: ");
-	for (int i = 27; i <= 46; i++) {
-		cprintf("%c%c", id_rx[i * 2 + 1], id_rx[i * 2]);
-	}
-	cprintf("\n");
-	kfree(identify_cmd_table);
-	kfree(id_rx);
-}
-
-void ahci_init_port(struct AHCIController *ahci, unsigned int port) {
+void ahci_init_port(struct AHCIController* ahci, unsigned int port) {
 	if (((ahci_read_reg32(ahci, AHCI_PORTIMPL) >> port) & 1) == 0) {
 		return;
 	}
@@ -119,12 +68,14 @@ void ahci_init_port(struct AHCIController *ahci, unsigned int port) {
 		return;
 	}
 	// allocate command list
-	volatile struct AHCICommandList *command_list = kalloc();
+	volatile struct AHCICommandList* command_list = kalloc();
+	ahci->command_list[port] = command_list;
 	memset_volatile(command_list, 0, 4096);
 	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCLB_LOWER, V2P(command_list));
 	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCLB_UPPER, 0);
 	// allocate received FIS buffer
-	volatile void *received_fis_buffer = kalloc();
+	volatile void* received_fis_buffer = kalloc();
+	ahci->received_fis_buffer[port] = received_fis_buffer;
 	memset_volatile(received_fis_buffer, 0, 4096);
 	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxFB_LOWER,
 					 V2P(received_fis_buffer));
@@ -147,14 +98,11 @@ void ahci_init_port(struct AHCIController *ahci, unsigned int port) {
 	default:
 		cprintf("[ahci] Port %d ATA signature %x Type other\n", port, atasig);
 	}
-	if (atasig == SATA_SIGNATURE_ATA) {
-		ahci_port_identify(ahci, port, command_list);
-	}
 }
 
-void ahci_controller_init(struct PCIDevice *pci_dev) {
-	const struct PciAddress *pci_addr = &pci_dev->addr;
-	struct AHCIController *ahci = ahci_controller_new();
+void ahci_controller_init(struct PCIDevice* pci_dev) {
+	const struct PciAddress* pci_addr = &pci_dev->addr;
+	struct AHCIController* ahci = ahci_controller_new();
 	pci_dev->private = ahci;
 	ahci->abar = map_mmio_region(pci_read_bar(pci_addr, 5), pci_read_bar_size(pci_addr, 5));
 	cprintf("[ahci] AHCI Controller at PCI %x:%x.%x ABAR %x\n", pci_addr->bus, pci_addr->device,
@@ -200,4 +148,66 @@ struct PCIDriver ahci_driver = {
 
 void ahci_init(void) {
 	pci_register_driver(&ahci_driver);
+}
+
+int ahci_port_get_link_status(struct AHCIController* ahci_controller, unsigned int port) {
+	if (((ahci_read_reg32(ahci_controller, AHCI_PORTIMPL) >> port) & 1) == 0) {
+		return 0;
+	}
+	return (ahci_read_reg32(ahci_controller, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxSSTS)
+			>> AHCI_PxSSTS_SPD_SHIFT)
+		   & AHCI_PxSSTS_SPD_MASK;
+}
+
+uint32_t ahci_port_get_signature(struct AHCIController* ahci_controller, unsigned int port) {
+	return ahci_read_reg32(ahci_controller, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxSIG);
+}
+
+void ahci_port_reset(struct AHCIController* ahci_controller, unsigned int port) {}
+
+int ahci_exec_pio_in(struct AHCIController* ahci, unsigned int port, uint8_t cmd,
+					 unsigned long long lba, unsigned int cont, void* buf, unsigned int blocks) {
+	// allocate command table
+	volatile struct AHCICommandTable* cmd_table = kalloc();
+	memset_volatile(cmd_table, 0, 4096);
+	// Set command list
+	ahci->command_list[port][0].ctba = V2P(cmd_table);
+	ahci->command_list[port][0].ctba_upper = 0;
+	ahci->command_list[port][0].dw0
+		= (1 << AHCI_CMDLIST_DW0_PRDTL_SHIFT) | (5 << AHCI_CMDLIST_DW0_CFL_SHIFT);
+	ahci->command_list[port][0].prdbc = 0;
+	// Set FIS
+	volatile struct SATARegisterFISHostToDevice* fis
+		= (volatile struct SATARegisterFISHostToDevice*)cmd_table;
+	fis->fis_type = RegisterFISHostToDevice;
+	fis->pm_c = SATA_REGISTER_FIS_H2D_PM_C_COMMAND;
+	fis->command = cmd;
+	fis->lba_7_0 = lba & 0xff;
+	fis->lba_15_8 = (lba >> 8) & 0xff;
+	fis->lba_23_16 = (lba >> 16) & 0xff;
+	fis->lba_31_24 = (lba >> 24) & 0xff;
+	fis->lba_39_32 = (lba >> 32) & 0xff;
+	fis->lba_47_40 = (lba >> 40) & 0xff;
+	fis->count_7_0 = cont & 0xff;
+	fis->count_15_8 = (cont >> 8) & 0xff;
+	// Set receive buffer
+	cmd_table->prdt[0].dba = V2P(buf);
+	cmd_table->prdt[0].dba_upper = 0;
+	cmd_table->prdt[0].dbc_i = AHCI_PRDT_DBC_I_I | (512 * blocks - 1);
+	// enable command list
+	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCMD,
+					 ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCMD)
+						 | AHCI_PxCMD_ST);
+	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxIS, 0xffffffff);
+	// issue command
+	while (
+		(ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxTFD) & AHCI_PxTFD_STATUS_BSY)
+		|| (ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxTFD)
+			& AHCI_PxTFD_STATUS_DRQ)) {
+	}
+	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCI, 1);
+	while (ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCI) & 1) {
+	}
+	kfree(cmd_table);
+	return 0;
 }
