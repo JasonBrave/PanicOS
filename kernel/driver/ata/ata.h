@@ -4,7 +4,10 @@
 #include <common/spinlock.h>
 #include <driver/pci/pci.h>
 
-struct PATABMDMAPRD;
+enum ATATransport {
+	ATA_TRANSPORT_PARALLEL_ATA,
+	ATA_TRANSPORT_SERIAL_ATA
+};
 
 struct PATAAdapter {
 	ioport_t cmdblock_base[2];
@@ -18,11 +21,6 @@ struct PATAAdapter {
 	struct spinlock lock[2];
 };
 
-enum ATATransport {
-	ATA_TRANSPORT_PARALLEL_ATA,
-	ATA_TRANSPORT_SERIAL_ATA
-};
-
 struct PATADevice {
 	struct PATAAdapter* adapter;
 	struct {
@@ -33,12 +31,37 @@ struct PATADevice {
 	char dma, pio, mdma, udma;
 };
 
+enum SATAControllerType {
+	SATA_CONTROLLER_TYPE_AHCI
+};
+
+struct SATAController {
+	enum SATAControllerType type;
+	unsigned int num_ports;
+	void* private; // pointer to controller type specific struct
+};
+
+struct SATADevice {
+	struct SATAController* controller;
+	unsigned int port;
+	unsigned int max_gen; // Maximum gen supported by both device and HBA
+	unsigned int ncq_queue_depth;
+	struct {
+		unsigned int support_ncq : 1;
+		unsigned int support_ncq_priority_info : 1;
+		unsigned int support_ncq_streaming : 1;
+		unsigned int support_ncq_queue_mgmt_cmd : 1;
+		unsigned int support_receive_send_fpdma_queued : 1;
+	};
+};
+
 struct ATADevice {
 	enum ATATransport transport;
 	unsigned int sectors; // number of sectors
 	unsigned int ata_rev;
 	union {
 		struct PATADevice pata;
+		struct SATADevice sata;
 	};
 };
 
@@ -63,6 +86,15 @@ int pata_exec_pio_out(struct PATAAdapter* adapter, int channel, int drive, uint8
 int pata_exec_dma_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
 					  unsigned int lba, unsigned int count, const void* buf, int blocks);
 void pata_register_adapter(struct PATAAdapter* adapter);
+
+// sata.c
+int sata_exec_pio_in(struct SATADevice* sata_dev, uint8_t cmd, unsigned long long lba,
+					 unsigned int cont, void* buf, unsigned int blocks);
+int sata_port_get_link_status(struct SATAController* sata_controller,
+							  unsigned int port); // link ON/OFF
+uint32_t sata_port_get_signature(struct SATAController* sata_controller, unsigned int port);
+void sata_port_reset(struct SATAController* sata_controller, unsigned int port);
+void sata_register_controller(struct SATAController* sata_controller);
 
 // adapter.c
 void pata_adapter_dev_init(struct PCIDevice* dev);
