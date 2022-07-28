@@ -18,6 +18,7 @@
  */
 
 #include <defs.h>
+#include <driver/ata/ata.h>
 #include <driver/pci/pci.h>
 #include <memlayout.h>
 
@@ -138,6 +139,14 @@ void ahci_controller_init(struct PCIDevice* pci_dev) {
 		 i++) {
 		ahci_init_port(ahci, i);
 	}
+	// register SATA controller
+	struct SATAController* sata_controller = kalloc();
+	memset(sata_controller, 0, sizeof(struct SATAController));
+	sata_controller->type = SATA_CONTROLLER_TYPE_AHCI;
+	sata_controller->num_ports
+		= ((ahci_read_reg32(ahci, AHCI_CAP) >> AHCI_CAP_NPORTS_SHIFT) & AHCI_CAP_NPORTS_MASK) + 1;
+	sata_controller->private = ahci;
+	sata_register_controller(sata_controller);
 }
 
 struct PCIDriver ahci_driver = {
