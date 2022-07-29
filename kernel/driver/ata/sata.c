@@ -65,6 +65,11 @@ void sata_register_controller(struct SATAController* sata_controller) {
 			switch (sata_port_get_signature(sata_controller, port)) {
 			case SATA_SIGNATURE_ATA:
 				cprintf("[ata] ATA device found on SATA controller port %d\n", port);
+				struct ATADevice* ata_dev = ata_device_alloc();
+				ata_dev->transport = ATA_TRANSPORT_SERIAL_ATA;
+				ata_dev->sata.controller = sata_controller;
+				ata_dev->sata.port = port;
+				ata_register_ata_device(ata_dev);
 				break;
 			case SATA_SIGNATURE_ATAPI:
 				cprintf("[ata] ATAPI device found on SATA controller port %d\n", port);

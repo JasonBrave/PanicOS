@@ -55,7 +55,10 @@ int ata_identify(struct ATADevice* dev, char* model) {
 			return -1;
 		}
 	} else if (dev->transport == ATA_TRANSPORT_SERIAL_ATA) {
-		panic("SATA not supported");
+		if (sata_exec_pio_in(&dev->sata, ATA_COMMAND_IDENTIFY, 0, 0, identify, 1)) {
+			kfree(identify);
+			return -1;
+		}
 	}
 
 	for (int i = 0; i < 20; i++) {
@@ -97,7 +100,22 @@ int ata_identify(struct ATADevice* dev, char* model) {
 			}
 		}
 	} else if (dev->transport == ATA_TRANSPORT_SERIAL_ATA) {
-		panic("SATA not supported");
+		dev->sata.ncq_queue_depth = (identify[75] & 0x1f) + 1;
+		if (identify[76] & (1 << 8)) {
+			dev->sata.support_ncq = 1;
+		}
+		if (identify[76] & (1 << 12)) {
+			dev->sata.support_ncq_priority_info = 1;
+		}
+		if (identify[77] & (1 << 4)) {
+			dev->sata.support_ncq_streaming = 1;
+		}
+		if (identify[77] & (1 << 5)) {
+			dev->sata.support_ncq_queue_mgmt_cmd = 1;
+		}
+		if (identify[77] & (1 << 6)) {
+			dev->sata.support_receive_send_fpdma_queued = 1;
+		}
 	}
 
 	kfree(identify);
@@ -180,7 +198,18 @@ void ata_register_ata_device(struct ATADevice* ata_dev) {
 						ata_dev->pata.drive);
 			}
 		} else if (ata_dev->transport == ATA_TRANSPORT_SERIAL_ATA) {
-			panic("SATA not supported");
+			if (ata_dev->sata.support_ncq) {
+				cprintf(
+					"[ata] SATA NCQ%s NCQPrio%s NCQStream%s NCQMgmtCmd%s NCQRXTXFPDMA%s QLen %d\n",
+					BOOL2SIGN(ata_dev->sata.support_ncq),
+					BOOL2SIGN(ata_dev->sata.support_ncq_priority_info),
+					BOOL2SIGN(ata_dev->sata.support_ncq_streaming),
+					BOOL2SIGN(ata_dev->sata.support_ncq_queue_mgmt_cmd),
+					BOOL2SIGN(ata_dev->sata.support_receive_send_fpdma_queued),
+					ata_dev->sata.ncq_queue_depth);
+			} else {
+				cprintf("[ata] SATA NCQ not supported\n");
+			}
 		}
 
 		hal_block_register_device("ata", ata_dev, &ata_block_driver);
