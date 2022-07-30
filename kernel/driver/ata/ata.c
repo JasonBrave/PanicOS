@@ -80,6 +80,10 @@ int ata_identify(struct ATADevice* dev, char* model) {
 		}
 	}
 
+	if (identify[83] & (1 << 10)) {
+		dev->support_lba48 = 1;
+	}
+
 	if (dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
 		if (identify[49] & (1 << 8)) {
 			dev->pata.dma = 1;
@@ -180,8 +184,8 @@ const struct BlockDeviceDriver ata_block_driver = {
 void ata_register_ata_device(struct ATADevice* ata_dev) {
 	char model[50];
 	if (ata_identify(ata_dev, model) == 0) {
-		cprintf("[ata] Disk model %s %d sectors ata_rev %d\n", model, ata_dev->sectors,
-				ata_dev->ata_rev);
+		cprintf("[ata] Disk model %s %d sectors ata_rev %d LBA48%s\n", model, ata_dev->sectors,
+				ata_dev->ata_rev, BOOL2SIGN(ata_dev->support_lba48));
 
 		if (ata_dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
 			cprintf("[ata] PATA dma %d pio %d mdma %d udma %d\n", ata_dev->pata.dma,

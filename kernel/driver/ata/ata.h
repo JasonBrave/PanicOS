@@ -59,6 +59,9 @@ struct ATADevice {
 	enum ATATransport transport;
 	unsigned int sectors; // number of sectors
 	unsigned int ata_rev;
+	struct {
+		unsigned int support_lba48 : 1;
+	};
 	union {
 		struct PATADevice pata;
 		struct SATADevice sata;
