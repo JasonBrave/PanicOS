@@ -199,6 +199,7 @@ int ahci_exec_pio_in(struct AHCIController* ahci, unsigned int port, uint8_t cmd
 	fis->lba_47_40 = (lba >> 40) & 0xff;
 	fis->count_7_0 = cont & 0xff;
 	fis->count_15_8 = (cont >> 8) & 0xff;
+	fis->device = (1 << 6); // Bit 6 shall be set to one
 	// Set receive buffer
 	cmd_table->prdt[0].dba = V2P(buf);
 	cmd_table->prdt[0].dba_upper = 0;

@@ -146,7 +146,9 @@ int ata_read(void* private, unsigned int begin, int count, void* buf) {
 			}
 		}
 	} else if (dev->transport == ATA_TRANSPORT_SERIAL_ATA) {
-		panic("SATA not supported");
+		if (sata_exec_pio_in(&dev->sata, ATA_COMMAND_READ_SECTOR, begin, count, buf, count)) {
+			return ERROR_READ_FAIL;
+		}
 	}
 	return 0;
 }
