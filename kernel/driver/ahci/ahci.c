@@ -221,3 +221,52 @@ int ahci_exec_pio_in(struct AHCIController* ahci, unsigned int port, uint8_t cmd
 	kfree(cmd_table);
 	return 0;
 }
+
+int ahci_exec_pio_out(struct AHCIController* ahci, unsigned int port, uint8_t cmd,
+					  unsigned long long lba, unsigned int cont, const void* buf,
+					  unsigned int blocks) {
+	// allocate command table
+	volatile struct AHCICommandTable* cmd_table = kalloc();
+	memset_volatile(cmd_table, 0, 4096);
+	// Set command list
+	ahci->command_list[port][0].ctba = V2P(cmd_table);
+	ahci->command_list[port][0].ctba_upper = 0;
+	ahci->command_list[port][0].dw0 = (1 << AHCI_CMDLIST_DW0_PRDTL_SHIFT)
+									  | (5 << AHCI_CMDLIST_DW0_CFL_SHIFT) | AHCI_CMDLIST_DW0_W;
+	ahci->command_list[port][0].prdbc = 0;
+	// Set FIS
+	volatile struct SATARegisterFISHostToDevice* fis
+		= (volatile struct SATARegisterFISHostToDevice*)cmd_table;
+	fis->fis_type = RegisterFISHostToDevice;
+	fis->pm_c = SATA_REGISTER_FIS_H2D_PM_C_COMMAND;
+	fis->command = cmd;
+	fis->lba_7_0 = lba & 0xff;
+	fis->lba_15_8 = (lba >> 8) & 0xff;
+	fis->lba_23_16 = (lba >> 16) & 0xff;
+	fis->lba_31_24 = (lba >> 24) & 0xff;
+	fis->lba_39_32 = (lba >> 32) & 0xff;
+	fis->lba_47_40 = (lba >> 40) & 0xff;
+	fis->count_7_0 = cont & 0xff;
+	fis->count_15_8 = (cont >> 8) & 0xff;
+	fis->device = (1 << 6); // Bit 6 shall be set to one
+	// Set receive buffer
+	cmd_table->prdt[0].dba = V2P(buf);
+	cmd_table->prdt[0].dba_upper = 0;
+	cmd_table->prdt[0].dbc_i = AHCI_PRDT_DBC_I_I | (512 * blocks - 1);
+	// enable command list
+	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCMD,
+					 ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCMD)
+						 | AHCI_PxCMD_ST);
+	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxIS, 0xffffffff);
+	// issue command
+	while (
+		(ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxTFD) & AHCI_PxTFD_STATUS_BSY)
+		|| (ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxTFD)
+			& AHCI_PxTFD_STATUS_DRQ)) {
+	}
+	ahci_write_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCI, 1);
+	while (ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxCI) & 1) {
+	}
+	kfree(cmd_table);
+	return 0;
+}

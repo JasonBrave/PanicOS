@@ -34,4 +34,7 @@ uint32_t ahci_port_get_signature(struct AHCIController* ahci_controller, unsigne
 void ahci_port_reset(struct AHCIController* ahci_controller, unsigned int port);
 int ahci_exec_pio_in(struct AHCIController* ahci_controller, unsigned int port, uint8_t cmd,
 					 unsigned long long lba, unsigned int cont, void* buf, unsigned int blocks);
+int ahci_exec_pio_out(struct AHCIController* ahci, unsigned int port, uint8_t cmd,
+					  unsigned long long lba, unsigned int cont, const void* buf,
+					  unsigned int blocks);
 #endif
