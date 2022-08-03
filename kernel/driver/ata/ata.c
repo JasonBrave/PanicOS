@@ -164,16 +164,18 @@ int ata_write(void* private, unsigned int begin, int count, const void* buf) {
 				panic("ata count");
 			if (pata_exec_dma_out(dev->pata.adapter, dev->pata.channel, dev->pata.drive,
 								  ATA_COMMAND_WRITE_DMA, begin, count, buf, count)) {
-				return ERROR_READ_FAIL;
+				return ERROR_WRITE_FAIL;
 			}
 		} else {
 			if (pata_exec_pio_out(dev->pata.adapter, dev->pata.channel, dev->pata.drive,
 								  ATA_COMMAND_WRITE_SECTOR, begin, count, buf, count)) {
-				return ERROR_READ_FAIL;
+				return ERROR_WRITE_FAIL;
 			}
 		}
 	} else if (dev->transport == ATA_TRANSPORT_SERIAL_ATA) {
-		panic("SATA not supported");
+		if (sata_exec_pio_out(&dev->sata, ATA_COMMAND_WRITE_SECTOR, begin, count, buf, count)) {
+			return ERROR_WRITE_FAIL;
+		}
 	}
 	return 0;
 }

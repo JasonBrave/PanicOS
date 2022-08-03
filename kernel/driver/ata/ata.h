@@ -93,6 +93,8 @@ void pata_register_adapter(struct PATAAdapter* adapter);
 // sata.c
 int sata_exec_pio_in(struct SATADevice* sata_dev, uint8_t cmd, unsigned long long lba,
 					 unsigned int cont, void* buf, unsigned int blocks);
+int sata_exec_pio_out(struct SATADevice* sata_dev, uint8_t cmd, unsigned long long lba,
+					  unsigned int cont, const void* buf, unsigned int blocks);
 int sata_port_get_link_status(struct SATAController* sata_controller,
 							  unsigned int port); // link ON/OFF
 uint32_t sata_port_get_signature(struct SATAController* sata_controller, unsigned int port);

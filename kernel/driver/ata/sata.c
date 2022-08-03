@@ -34,6 +34,16 @@ int sata_exec_pio_in(struct SATADevice* sata_dev, uint8_t cmd, unsigned long lon
 	}
 }
 
+int sata_exec_pio_out(struct SATADevice* sata_dev, uint8_t cmd, unsigned long long lba,
+					  unsigned int cont, const void* buf, unsigned int blocks) {
+	if (sata_dev->controller->type == SATA_CONTROLLER_TYPE_AHCI) {
+		return ahci_exec_pio_out(sata_dev->controller->private, sata_dev->port, cmd, lba, cont, buf,
+								 blocks);
+	} else {
+		panic("unknown SATA controller type");
+	}
+}
+
 int sata_port_get_link_status(struct SATAController* sata_controller, unsigned int port) {
 	if (sata_controller->type == SATA_CONTROLLER_TYPE_AHCI) {
 		return ahci_port_get_link_status(sata_controller->private, port);
