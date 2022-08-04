@@ -25,6 +25,7 @@ program/wm/wm
 program/date/date
 program/devmgr/devmgr
 program/imgview/imgview
+program/ls/ls
 /rootfs
 panicos.img
 panicos.tar.gz
