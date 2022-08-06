@@ -44,9 +44,10 @@ static void hal_block_probe_partition(int block_id) {
 	if (hal_disk_read(block_id, 1, 1, gptsect) < 0) {
 		panic("disk read error");
 	}
-	if (gptsect[0] == 0x5452415020494645ULL) { // EFI PART
+	if (gptsect[0] == 0x5452415020494645) { // EFI PART
 		// GPT
 		cprintf("[hal] GPT partition table on block %d\n", block_id);
+		gpt_probe_partition(block_id);
 	} else {
 		// MBR
 		cprintf("[hal] MBR partition table on block %d\n", block_id);

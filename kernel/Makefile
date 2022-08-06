@@ -52,6 +52,7 @@ OBJS = \
 	filesystem/vfs/vfs.o\
 	hal/block.o\
 	hal/display.o\
+	hal/gpt.o\
 	hal/hid.o\
 	hal/mbr.o\
 	hal/module.o\

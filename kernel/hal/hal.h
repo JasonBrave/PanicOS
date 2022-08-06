@@ -47,9 +47,8 @@ struct HalPartitionMap {
 // block.c
 extern struct BlockDevice hal_block_map[HAL_BLOCK_MAX];
 extern struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
-struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs,
-												 unsigned int dev, unsigned int begin,
-												 unsigned int size);
+struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs, unsigned int dev,
+												 unsigned int begin, unsigned int size);
 void hal_block_init(void);
 void hal_block_register_device(const char* name, void* private,
 							   const struct BlockDeviceDriver* driver);
@@ -63,8 +62,10 @@ int hal_partition_write(int id, int begin, int count, const void* buf);
 // mbr.c
 void mbr_probe_partition(int block_id);
 
-// display.c
+// gpt.c
+void gpt_probe_partition(int block_id);
 
+// display.c
 struct FramebufferDriver {
 	phyaddr_t (*enable)(void* private, int xres, int yres);
 	void (*disable)(void* private);
