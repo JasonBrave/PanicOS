@@ -58,6 +58,21 @@ struct GPTPartitionEntry {
 #define GPT_PARTITION_ENTRY_ATTRIBUTES_NO_BLOCK_IO_PROTOCOL (1 << 1)
 #define GPT_PARTITION_ENTRY_ATTRIBUTES_LEGACY_BIOS_BOOTABLE (1 << 2)
 
+enum GPTPartitionTypeGUID {
+	// Unused partition entry
+	GPT_PART_TYPE_UNUSED_ENTRY_LOWER = 0x0,
+	GPT_PART_TYPE_UNUSED_ENTRY_UPPER = 0x0,
+	// EFI System Partition
+	GPT_PART_TYPE_EFI_SYSTEM_PARTITION_LOWER = 0x3bc93ec9a0004bba,
+	GPT_PART_TYPE_EFI_SYSTEM_PARTITION_UPPER = 0x11d2f81fc12a7328,
+	// Microsoft basic data partition
+	GPT_PART_TYPE_MSFT_BASIC_DATA_LOWER = 0xc79926b7b668c087,
+	GPT_PART_TYPE_MSFT_BASIC_DATA_UPPER = 0x4433b9e5ebd0a0a2,
+	// Linux filesystem data
+	GPT_PART_TYPE_LINUX_FILESYSTEM_DATA_LOWER = 0xe47d47d8693d798e,
+	GPT_PART_TYPE_LINUX_FILESYSTEM_DATA_UPPER = 0x477284830fc63daf
+};
+
 void gpt_probe_partition(int block_id) {
 	struct GPTHeader* gpt_header = kalloc();
 	if (hal_disk_read(block_id, 1, 1, gpt_header) < 0) {
@@ -69,4 +84,50 @@ void gpt_probe_partition(int block_id) {
 	cprintf("[hal] GPT block %d revision %x num_parts %d\n", block_id, gpt_header->revision,
 			gpt_header->num_partition_entry);
 	kfree(gpt_header);
+
+	for (unsigned sector = 2; sector <= 33; sector++) {
+		void* sector_data = kalloc();
+		if (hal_disk_read(block_id, sector, 1, sector_data) < 0) {
+			panic("disk read error");
+		}
+		for (int i = 0; i < 4; i++) {
+			struct GPTPartitionEntry* part_entry = sector_data + i * 128;
+			if (!part_entry->partition_type_guid.lower && !part_entry->partition_type_guid.upper) {
+				continue;
+			}
+			enum HalPartitionFsType fs_type;
+			if (part_entry->partition_type_guid.lower == GPT_PART_TYPE_EFI_SYSTEM_PARTITION_LOWER
+				&& part_entry->partition_type_guid.upper
+					   == GPT_PART_TYPE_EFI_SYSTEM_PARTITION_UPPER) {
+				cprintf("[hal] GPT block %d entry %d EFI System Partition\n", block_id,
+						(sector - 2) * 4 + i);
+				fs_type = HAL_PARTITION_OTHER; // Although this is actually FAT32, register it as
+											   // OTHER to pervent it being used as root filesystem
+			} else if (part_entry->partition_type_guid.lower == GPT_PART_TYPE_MSFT_BASIC_DATA_LOWER
+					   && part_entry->partition_type_guid.upper
+							  == GPT_PART_TYPE_MSFT_BASIC_DATA_UPPER) {
+				cprintf("[hal] GPT block %d entry %d Microsoft Basic Data Partition\n", block_id,
+						(sector - 2) * 4 + i);
+				fs_type = HAL_PARTITION_FAT32; // Hope it's FAT32
+			} else if (part_entry->partition_type_guid.lower
+						   == GPT_PART_TYPE_LINUX_FILESYSTEM_DATA_LOWER
+					   && part_entry->partition_type_guid.upper
+							  == GPT_PART_TYPE_LINUX_FILESYSTEM_DATA_UPPER) {
+				cprintf("[hal] GPT block %d entry %d Linux Filesystem Data\n", block_id,
+						(sector - 2) * 4 + i);
+				fs_type = HAL_PARTITION_LINUX;
+			} else {
+				cprintf("[hal] GPT block %d entry %d GUID lower %llx upper %llx\n", block_id,
+						(sector - 2) * 4 + i, part_entry->partition_type_guid.lower,
+						part_entry->partition_type_guid.upper);
+				fs_type = HAL_PARTITION_OTHER;
+			}
+			if (!hal_partition_map_insert(fs_type, block_id, (unsigned int)part_entry->first_lba,
+										  (unsigned int)part_entry->last_lba - part_entry->first_lba
+											  + 1)) {
+				panic("hal too many partition");
+			}
+		}
+		kfree(sector_data);
+	}
 }
