@@ -95,32 +95,31 @@ void gpt_probe_partition(int block_id) {
 			if (!part_entry->partition_type_guid.lower && !part_entry->partition_type_guid.upper) {
 				continue;
 			}
-			enum HalPartitionFsType fs_type;
+			enum HalPartitionFilesystemType fs_type;
 			if (part_entry->partition_type_guid.lower == GPT_PART_TYPE_EFI_SYSTEM_PARTITION_LOWER
 				&& part_entry->partition_type_guid.upper
 					   == GPT_PART_TYPE_EFI_SYSTEM_PARTITION_UPPER) {
 				cprintf("[hal] GPT block %d entry %d EFI System Partition\n", block_id,
 						(sector - 2) * 4 + i);
-				fs_type = HAL_PARTITION_OTHER; // Although this is actually FAT32, register it as
-											   // OTHER to pervent it being used as root filesystem
+				fs_type = HAL_PARTITION_TYPE_ESP;
 			} else if (part_entry->partition_type_guid.lower == GPT_PART_TYPE_MSFT_BASIC_DATA_LOWER
 					   && part_entry->partition_type_guid.upper
 							  == GPT_PART_TYPE_MSFT_BASIC_DATA_UPPER) {
 				cprintf("[hal] GPT block %d entry %d Microsoft Basic Data Partition\n", block_id,
 						(sector - 2) * 4 + i);
-				fs_type = HAL_PARTITION_FAT32; // Hope it's FAT32
+				fs_type = HAL_PARTITION_TYPE_DATA;
 			} else if (part_entry->partition_type_guid.lower
 						   == GPT_PART_TYPE_LINUX_FILESYSTEM_DATA_LOWER
 					   && part_entry->partition_type_guid.upper
 							  == GPT_PART_TYPE_LINUX_FILESYSTEM_DATA_UPPER) {
 				cprintf("[hal] GPT block %d entry %d Linux Filesystem Data\n", block_id,
 						(sector - 2) * 4 + i);
-				fs_type = HAL_PARTITION_LINUX;
+				fs_type = HAL_PARTITION_TYPE_LINUX;
 			} else {
 				cprintf("[hal] GPT block %d entry %d GUID lower %llx upper %llx\n", block_id,
 						(sector - 2) * 4 + i, part_entry->partition_type_guid.lower,
 						part_entry->partition_type_guid.upper);
-				fs_type = HAL_PARTITION_OTHER;
+				fs_type = HAL_PARTITION_TYPE_OTHER;
 			}
 			if (!hal_partition_map_insert(fs_type, block_id, (unsigned int)part_entry->first_lba,
 										  (unsigned int)part_entry->last_lba - part_entry->first_lba

@@ -40,7 +40,7 @@ void vfs_init(void) {
 	}
 
 	for (int i = 0; i < HAL_PARTITION_MAX; i++) {
-		if (hal_partition_map[i].fs_type == HAL_PARTITION_FAT32) {
+		if (hal_partition_map[i].fs_type == HAL_PARTITION_TYPE_FAT32) {
 			if (fs_id == 0) {
 				cprintf("[vfs] mount fat32 on /\n");
 			} else if (fs_id == 1) {

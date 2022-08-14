@@ -27,16 +27,18 @@ struct BlockDevice {
 
 #define HAL_BLOCK_MAX 8
 
-// partition table cache
-enum HalPartitionFsType {
-	HAL_PARTITION_NONE,
-	HAL_PARTITION_OTHER,
-	HAL_PARTITION_FAT32,
-	HAL_PARTITION_LINUX,
+enum HalPartitionFilesystemType {
+	HAL_PARTITION_TYPE_NONE,
+	HAL_PARTITION_TYPE_OTHER,
+	HAL_PARTITION_TYPE_FAT32,
+	HAL_PARTITION_TYPE_LINUX,
+	HAL_PARTITION_TYPE_DATA,
+	HAL_PARTITION_TYPE_ESP
 };
 
+// partition table cache
 struct HalPartitionMap {
-	enum HalPartitionFsType fs_type;
+	enum HalPartitionFilesystemType fs_type;
 	unsigned int dev;
 	unsigned int begin;
 	unsigned int size;
@@ -47,8 +49,9 @@ struct HalPartitionMap {
 // block.c
 extern struct BlockDevice hal_block_map[HAL_BLOCK_MAX];
 extern struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
-struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFsType fs, unsigned int dev,
-												 unsigned int begin, unsigned int size);
+struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFilesystemType fs,
+												 unsigned int dev, unsigned int begin,
+												 unsigned int size);
 void hal_block_init(void);
 void hal_block_register_device(const char* name, void* private,
 							   const struct BlockDeviceDriver* driver);

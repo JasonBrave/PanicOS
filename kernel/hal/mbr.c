@@ -37,19 +37,19 @@ void mbr_probe_partition(int block_id) {
 	}
 	for (int j = 0; j < 4; j++) {
 		struct MBREntry* entry = bootsect + 0x1be + j * 0x10;
-		enum HalPartitionFsType fs;
+		enum HalPartitionFilesystemType fs;
 		if (entry->type == 0) {
 			continue;
 		} else if ((entry->type == 0xb) || (entry->type == 0xc)) {
 			cprintf("[mbr] FAT32 partition on block device %d MBR %d\n", block_id, j);
-			fs = HAL_PARTITION_FAT32;
+			fs = HAL_PARTITION_TYPE_FAT32;
 		} else if (entry->type == 0x83) {
 			cprintf("[mbr] Linux partition on block device %d MBR %d\n", block_id, j);
-			fs = HAL_PARTITION_LINUX;
+			fs = HAL_PARTITION_TYPE_LINUX;
 		} else {
 			cprintf("[mbr] Partition on block device %d MBR %d type %x\n", block_id, j,
 					entry->type);
-			fs = HAL_PARTITION_OTHER;
+			fs = HAL_PARTITION_TYPE_OTHER;
 		}
 		if (!hal_partition_map_insert(fs, block_id, entry->lba, entry->size)) {
 			panic("hal too many partition");
