@@ -29,7 +29,6 @@
 #include <driver/bochs-display/bochs-display.h>
 #include <driver/usb/usb.h>
 #include <driver/virtio/virtio.h>
-#include <filesystem/initramfs/initramfs.h>
 #include <filesystem/vfs/vfs.h>
 #include <hal/hal.h>
 #include <memlayout.h>
@@ -41,7 +40,7 @@
 
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
-extern pde_t *kpgdir;
+extern pde_t* kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
 extern void platform_init(void);
@@ -57,12 +56,12 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	cprintf("PanicOS i686 alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
 	if (mb_sig == 0x2BADB002 && mb_addr < 0x100000) {
 		cprintf("[multiboot] Multiboot bootloader detected, info at %x\n", mb_addr);
-		struct multiboot_info *mbinfo = P2V(mb_addr);
+		struct multiboot_info* mbinfo = P2V(mb_addr);
 		if ((mbinfo->flags & (1 << 6)) && mbinfo->mmap_addr < 0x100000) { // memory map
 			unsigned long long memory_size = 0;
 			cprintf("[multiboot] Memory map addr %x length %d\n", mbinfo->mmap_addr,
 					mbinfo->mmap_length);
-			struct multiboot_mmap_entry *mmap = P2V(mbinfo->mmap_addr);
+			struct multiboot_mmap_entry* mmap = P2V(mbinfo->mmap_addr);
 			for (unsigned int off = 0; off < mbinfo->mmap_length;
 				 off += (mmap->size + sizeof(mmap->size))) {
 				mmap = P2V(mbinfo->mmap_addr + off);
@@ -128,11 +127,7 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	tvinit(); // trap vectors
 	cprintf("[cpu] starting other cpus\n");
 	startothers(); // start other processors
-	if (initramfs_init() < 0) {
-		kinit2(P2V(4 * 1024 * 1024), P2V(PHYSTOP)); // no initramfs
-	} else {
-		kinit2(P2V(8 * 1024 * 1024), P2V(PHYSTOP));
-	}
+	kinit2(P2V(4 * 1024 * 1024), P2V(PHYSTOP));
 	// greeting
 	cprintf(" ____             _       ___  ____  \n");
 	cprintf("|  _ \\ __ _ _ __ (_) ___ / _ \\/ ___| \n");
@@ -184,9 +179,9 @@ pde_t entrypgdir[]; // For entry.S
 // Start the non-boot (AP) processors.
 static void startothers(void) {
 	extern unsigned char _binary_entryother_start[], _binary_entryother_size[];
-	unsigned char *code;
-	struct cpu *c;
-	char *stack;
+	unsigned char* code;
+	struct cpu* c;
+	char* stack;
 
 	// Write entry code to unused memory at 0x7000.
 	// The linker has placed the image of entryother.S in
@@ -202,9 +197,9 @@ static void startothers(void) {
 		// pgdir to use. We cannot use kpgdir yet, because the AP processor
 		// is running in low  memory, so we use entrypgdir for the APs too.
 		stack = kalloc();
-		*(void **)(code - 4) = stack + KSTACKSIZE;
+		*(void**)(code - 4) = stack + KSTACKSIZE;
 		*(void (**)(void))(code - 8) = mpenter;
-		*(int **)(code - 12) = (void *)V2P(entrypgdir);
+		*(int**)(code - 12) = (void*)V2P(entrypgdir);
 
 		lapicstartap(c->apicid, V2P(code));
 

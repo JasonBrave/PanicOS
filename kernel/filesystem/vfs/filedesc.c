@@ -20,7 +20,6 @@
 #include <common/errorcode.h>
 #include <defs.h>
 #include <filesystem/fat32/fat32.h>
-#include <filesystem/initramfs/initramfs.h>
 
 #include "vfs.h"
 
@@ -35,21 +34,7 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
-		// initramfs
-		if (mode & O_WRITE || mode & O_APPEND || mode & O_CREATE) {
-			kfree(filepath.pathbuf);
-			return ERROR_INVAILD; // initramfs is read-only
-		}
-		int blk = initramfs_open(path.pathbuf);
-		if (blk < 0) {
-			kfree(filepath.pathbuf);
-			return blk;
-		}
-		fd->block = blk;
-		fd->size = initramfs_file_get_size(path.pathbuf);
-		fd->read = 1;
-	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
 		// FAT32
 		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
 		if (fblock < 0) {
@@ -103,12 +88,7 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 	}
 
 	int status;
-	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_INITRAMFS) {
-		status = initramfs_read(fd->block, buf, fd->offset, size);
-		if (status > 0) {
-			fd->offset += status;
-		}
-	} else if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
+	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
 		if (fd->offset >= fd->size) { // EOF
 			return 0;
 		} else if (fd->offset + size > fd->size) {
@@ -116,8 +96,8 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 		} else {
 			status = size;
 		}
-		int ret =
-			fat32_read(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset, size);
+		int ret
+			= fat32_read(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset, size);
 		if (ret < 0) {
 			return ret;
 		}
@@ -142,8 +122,8 @@ int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
 		if (fd->append) {
 			fd->offset = fd->size;
 		}
-		int ret =
-			fat32_write(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset, size);
+		int ret = fat32_write(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset,
+							  size);
 		if (ret < 0) {
 			return ret;
 		}

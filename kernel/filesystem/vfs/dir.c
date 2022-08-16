@@ -20,7 +20,6 @@
 #include <common/errorcode.h>
 #include <defs.h>
 #include <filesystem/fat32/fat32.h>
-#include <filesystem/initramfs/initramfs.h>
 
 #include "vfs.h"
 
@@ -35,14 +34,7 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(dirpath, &path);
 
-	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
-		int off = initramfs_dir_open();
-		if (off < 0) {
-			kfree(dirpath.pathbuf);
-			return off;
-		}
-		fd->offset = off;
-	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
 		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
 		if (fblock < 0) {
 			kfree(dirpath.pathbuf);
@@ -73,11 +65,9 @@ int vfs_dir_read(struct FileDesc* fd, char* buffer) {
 		return ERROR_INVAILD;
 	}
 	int off;
-	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_INITRAMFS) {
-		off = initramfs_dir_read(fd->offset, buffer);
-	} else if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-		off =
-			fat32_dir_read(vfs_mount_table[fd->fs_id].partition_id, buffer, fd->block, fd->offset);
+	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
+		off = fat32_dir_read(vfs_mount_table[fd->fs_id].partition_id, buffer, fd->block,
+							 fd->offset);
 	} else {
 		panic("vfs_dir_read");
 	}

@@ -20,7 +20,6 @@
 #include <common/errorcode.h>
 #include <defs.h>
 #include <filesystem/fat32/fat32.h>
-#include <filesystem/initramfs/initramfs.h>
 #include <hal/hal.h>
 
 #include "vfs.h"
@@ -30,14 +29,6 @@ struct VfsMountTableEntry vfs_mount_table[VFS_MOUNT_TABLE_MAX];
 void vfs_init(void) {
 	memset(vfs_mount_table, 0, sizeof(vfs_mount_table));
 	int fs_id = 0;
-
-	int status = initramfs_init();
-	if (status == 0) {
-		cprintf("[vfs] mount initramfs on /\n");
-		vfs_mount_table[0].fs_type = VFS_FS_INITRAMFS;
-		vfs_mount_table[0].partition_id = 0; // N/A
-		fs_id++;
-	}
 
 	for (int i = 0; i < HAL_PARTITION_MAX; i++) {
 		if (hal_partition_map[i].fs_type == HAL_PARTITION_TYPE_FAT32) {
@@ -100,9 +91,7 @@ int vfs_file_get_size(const char* filename) {
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
 	int sz;
-	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
-		sz = initramfs_file_get_size(path.pathbuf);
-	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
 		sz = fat32_file_size(vfs_mount_table[fs_id].partition_id, path);
 	} else {
 		return ERROR_INVAILD;
@@ -122,9 +111,7 @@ int vfs_file_get_mode(const char* filename) {
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
 	int sz;
-	if (vfs_mount_table[fs_id].fs_type == VFS_FS_INITRAMFS) {
-		sz = initramfs_file_get_mode(path.pathbuf);
-	} else if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
+	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
 		sz = fat32_file_mode(vfs_mount_table[fs_id].partition_id, path);
 	} else {
 		return ERROR_INVAILD;

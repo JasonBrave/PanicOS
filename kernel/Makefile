@@ -45,7 +45,6 @@ OBJS = \
 	filesystem/fat32/dir.o\
 	filesystem/fat32/fat.o\
 	filesystem/fat32/mount.o\
-	filesystem/initramfs/initramfs.o\
 	filesystem/vfs/dir.o\
 	filesystem/vfs/filedesc.o\
 	filesystem/vfs/path.o\
