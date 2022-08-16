@@ -40,3 +40,11 @@ int fat32_mount(int partition_id) {
 	fat32_superblock = bootsect;
 	return 0;
 }
+
+int fat32_probe(int partition_id) {
+	struct FAT32BootSector* bootsect = (void*)kalloc();
+	if (hal_partition_read(partition_id, 0, 1, bootsect) < 0) {
+		return ERROR_READ_FAIL;
+	}
+	return strncmp(bootsect->fstype, "FAT32", 5);
+}

@@ -51,6 +51,20 @@ void vfs_init(void) {
 			vfs_mount_table[fs_id].partition_id = i;
 			fs_id++;
 			break;
+		} else if (hal_partition_map[i].fs_type == HAL_PARTITION_TYPE_DATA) {
+			if (fat32_probe(i) != 0) {
+				continue;
+			}
+			if (fs_id == 0) {
+				cprintf("[vfs] mount fat32 on /\n");
+			} else if (fs_id == 1) {
+				cprintf("[vfs] mount fat32 on /fat32\n");
+			}
+			fat32_mount(i);
+			vfs_mount_table[fs_id].fs_type = VFS_FS_FAT32;
+			vfs_mount_table[fs_id].partition_id = i;
+			fs_id++;
+			break;
 		}
 	}
 	if (fs_id == 0) {
