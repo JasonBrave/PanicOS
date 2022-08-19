@@ -1,10 +1,7 @@
 #ifndef _VFS_H
 #define _VFS_H
 
-struct VfsPath {
-	int parts;
-	char* pathbuf;
-};
+#include <filesystem/filesystem.h>
 
 struct FileDesc {
 	struct {

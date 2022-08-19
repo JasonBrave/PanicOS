@@ -29,7 +29,7 @@
 #include <driver/bochs-display/bochs-display.h>
 #include <driver/usb/usb.h>
 #include <driver/virtio/virtio.h>
-#include <filesystem/vfs/vfs.h>
+#include <filesystem/filesystem.h>
 #include <hal/hal.h>
 #include <memlayout.h>
 #include <param.h>
@@ -152,7 +152,7 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	ahci_init(); // AHCI driver
 	bochs_display_init(); // qemu virtual display adapter
 	// filesystem and user-mode
-	vfs_init(); // virtual filesystem
+	filesystem_init();
 	module_init(); // kernel modules
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
