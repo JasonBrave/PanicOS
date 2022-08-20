@@ -1,10 +1,10 @@
 PREFIX = i686-elf-
 export CC= $(PREFIX)gcc
 export CFLAGS= -fno-strict-aliasing -O2 -Wall -Wextra -std=c17 -fno-omit-frame-pointer \
-		-fno-stack-protector -gdwarf-5
+		-fno-stack-protector -gdwarf-5 -Werror-implicit-function-declaration
 export CXX= $(PREFIX)g++
 export CXXFLAGS= -fno-strict-aliasing -O2 -Wall -Wextra -std=c++20 -fno-omit-frame-pointer -fno-stack-protector \
-				-gdwarf-5 -fno-sized-deallocation -fno-exceptions -fno-rtti -fno-use-cxa-atexit
+				-gdwarf-5 -fno-sized-deallocation -fno-exceptions -fno-rtti -fno-use-cxa-atexit -Werror-implicit-function-declaration
 export AS= $(PREFIX)as
 export ASFLAGS = -gdwarf-5 -Wa,-divide
 export LD= $(PREFIX)ld

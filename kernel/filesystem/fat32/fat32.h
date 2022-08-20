@@ -39,4 +39,7 @@ int fat32_free_chain(int partition_id, unsigned int cluster);
 int fat32_mount(int partition_id);
 int fat32_probe(int partition_id);
 
+// fat32.c
+void fat32_init(void);
+
 #endif

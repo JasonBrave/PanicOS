@@ -18,6 +18,7 @@
  */
 
 #include <defs.h>
+#include <filesystem/fat32/fat32.h>
 #include <filesystem/filesystem.h>
 #include <filesystem/vfs/vfs.h>
 
@@ -30,5 +31,6 @@ void filesystem_register_driver(const struct FilesystemDriver* fs_driver) {
 }
 
 void filesystem_init(void) {
+	fat32_init();
 	vfs_init();
 }

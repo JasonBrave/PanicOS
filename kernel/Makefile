@@ -41,9 +41,11 @@ OBJS = \
 	driver/x86/platform.o\
 	driver/x86/rtc.o\
 	driver/x86/uart.o\
+	filesystem/fs-driver.o\
 	filesystem/fat32/cluster.o\
 	filesystem/fat32/dir.o\
 	filesystem/fat32/fat.o\
+	filesystem/fat32/fat32.o\
 	filesystem/fat32/mount.o\
 	filesystem/vfs/dir.o\
 	filesystem/vfs/filedesc.o\
