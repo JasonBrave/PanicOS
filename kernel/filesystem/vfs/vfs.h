@@ -34,14 +34,8 @@ enum FileSeekMode {
 	SEEK_END,
 };
 
-enum VfsFsType {
-	VFS_FS_NONE,
-	VFS_FS_INITRAMFS,
-	VFS_FS_FAT32,
-};
-
 struct VfsMountTableEntry {
-	enum VfsFsType fs_type;
+	const struct FilesystemDriver* fs_driver;
 	unsigned int partition_id;
 };
 
@@ -71,8 +65,7 @@ int vfs_dir_close(struct FileDesc* fd);
 
 // path.c
 int vfs_path_split(const char* path, char* buf);
-int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts,
-					 const char* rhs_buf);
+int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts, const char* rhs_buf);
 void vfs_path_tostring(struct VfsPath path, char* buf);
 void vfs_get_absolute_path(struct VfsPath* path);
 

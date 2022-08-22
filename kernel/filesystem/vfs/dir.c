@@ -19,7 +19,6 @@
 
 #include <common/errorcode.h>
 #include <defs.h>
-#include <filesystem/fat32/fat32.h>
 
 #include "vfs.h"
 
@@ -34,18 +33,15 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(dirpath, &path);
 
-	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
-		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
-		if (fblock < 0) {
-			kfree(dirpath.pathbuf);
-			return fblock;
-		}
-		fd->block = fblock;
-		fd->offset = fat32_dir_first_file(vfs_mount_table[fs_id].partition_id, fd->block);
-	} else {
+	int fblock = vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].partition_id, path);
+	if (fblock < 0) {
 		kfree(dirpath.pathbuf);
-		return ERROR_INVAILD;
+		return fblock;
 	}
+	fd->block = fblock;
+	fd->offset = vfs_mount_table[fs_id].fs_driver->dir_first_file(
+		vfs_mount_table[fs_id].partition_id, fd->block);
+
 	fd->fs_id = fs_id;
 	fd->dir = 1;
 	fd->read = 1;
@@ -64,13 +60,11 @@ int vfs_dir_read(struct FileDesc* fd, char* buffer) {
 	if (!fd->dir) {
 		return ERROR_INVAILD;
 	}
+
 	int off;
-	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-		off = fat32_dir_read(vfs_mount_table[fd->fs_id].partition_id, buffer, fd->block,
-							 fd->offset);
-	} else {
-		panic("vfs_dir_read");
-	}
+	off = vfs_mount_table[fd->fs_id].fs_driver->dir_read(vfs_mount_table[fd->fs_id].partition_id,
+														 buffer, fd->block, fd->offset);
+
 	if (off == 0) {
 		return 0; // EOF
 	} else if (off < 0) {

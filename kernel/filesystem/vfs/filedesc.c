@@ -19,7 +19,6 @@
 
 #include <common/errorcode.h>
 #include <defs.h>
-#include <filesystem/fat32/fat32.h>
 
 #include "vfs.h"
 
@@ -34,39 +33,36 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	if (vfs_mount_table[fs_id].fs_type == VFS_FS_FAT32) {
-		// FAT32
-		int fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
-		if (fblock < 0) {
-			if (mode & O_CREATE) {
-				// create and retry
-				fat32_file_create(vfs_mount_table[fs_id].partition_id, path);
-				fblock = fat32_open(vfs_mount_table[fs_id].partition_id, path);
-			} else {
-				kfree(filepath.pathbuf);
-				return ERROR_NOT_EXIST;
-			}
+	int fblock = vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].partition_id, path);
+	if (fblock < 0) {
+		if (mode & O_CREATE) {
+			// create and retry
+			vfs_mount_table[fs_id].fs_driver->create_file(vfs_mount_table[fs_id].partition_id,
+														  path);
+			fblock
+				= vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].partition_id, path);
+		} else {
+			kfree(filepath.pathbuf);
+			return ERROR_NOT_EXIST;
 		}
-		fd->block = fblock;
-		fd->size = fat32_file_size(vfs_mount_table[fs_id].partition_id, path);
-		if (mode & O_READ) {
-			fd->read = 1;
+	}
+	fd->block = fblock;
+	fd->size = vfs_mount_table[fs_id].fs_driver->get_file_size(vfs_mount_table[fs_id].partition_id,
+															   path);
+	if (mode & O_READ) {
+		fd->read = 1;
+	}
+	if (mode & O_WRITE) {
+		fd->path.parts = path.parts;
+		fd->path.pathbuf = kalloc();
+		memmove(fd->path.pathbuf, path.pathbuf, path.parts * 128);
+		fd->write = 1;
+		if (mode & O_APPEND) {
+			fd->append = 1;
 		}
-		if (mode & O_WRITE) {
-			fd->path.parts = path.parts;
-			fd->path.pathbuf = kalloc();
-			memmove(fd->path.pathbuf, path.pathbuf, path.parts * 128);
-			fd->write = 1;
-			if (mode & O_APPEND) {
-				fd->append = 1;
-			}
-			if (mode & O_TRUNC) {
-				fd->size = 0;
-			}
+		if (mode & O_TRUNC) {
+			fd->size = 0;
 		}
-	} else {
-		kfree(filepath.pathbuf);
-		return ERROR_INVAILD;
 	}
 
 	fd->offset = 0;
@@ -88,23 +84,20 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 	}
 
 	int status;
-	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-		if (fd->offset >= fd->size) { // EOF
-			return 0;
-		} else if (fd->offset + size > fd->size) {
-			status = fd->size - fd->offset;
-		} else {
-			status = size;
-		}
-		int ret
-			= fat32_read(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset, size);
-		if (ret < 0) {
-			return ret;
-		}
-		fd->offset += status;
+	if (fd->offset >= fd->size) { // EOF
+		return 0;
+	} else if (fd->offset + size > fd->size) {
+		status = fd->size - fd->offset;
 	} else {
-		status = ERROR_INVAILD;
+		status = size;
 	}
+	int ret = vfs_mount_table[fd->fs_id].fs_driver->read(vfs_mount_table[fd->fs_id].partition_id,
+														 fd->block, buf, fd->offset, size);
+	if (ret < 0) {
+		return ret;
+	}
+	fd->offset += status;
+
 	return status;
 }
 
@@ -118,23 +111,20 @@ int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
 	if (fd->dir) {
 		return ERROR_INVAILD;
 	}
-	if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-		if (fd->append) {
-			fd->offset = fd->size;
-		}
-		int ret = fat32_write(vfs_mount_table[fd->fs_id].partition_id, fd->block, buf, fd->offset,
-							  size);
-		if (ret < 0) {
-			return ret;
-		}
-		fd->offset += ret;
-		if (fd->offset > fd->size) {
-			fd->size += fd->offset - fd->size;
-		}
-		return ret;
-	} else {
-		return ERROR_INVAILD;
+
+	if (fd->append) {
+		fd->offset = fd->size;
 	}
+	int ret = vfs_mount_table[fd->fs_id].fs_driver->write(vfs_mount_table[fd->fs_id].partition_id,
+														  fd->block, buf, fd->offset, size);
+	if (ret < 0) {
+		return ret;
+	}
+	fd->offset += ret;
+	if (fd->offset > fd->size) {
+		fd->size += fd->offset - fd->size;
+	}
+	return ret;
 }
 
 int vfs_fd_close(struct FileDesc* fd) {
@@ -146,9 +136,8 @@ int vfs_fd_close(struct FileDesc* fd) {
 	}
 
 	if (fd->write) {
-		if (vfs_mount_table[fd->fs_id].fs_type == VFS_FS_FAT32) {
-			fat32_update_size(vfs_mount_table[fd->fs_id].partition_id, fd->path, fd->size);
-		}
+		vfs_mount_table[fd->fs_id].fs_driver->update_size(vfs_mount_table[fd->fs_id].partition_id,
+														  fd->path, fd->size);
 		kfree(fd->path.pathbuf);
 	}
 
