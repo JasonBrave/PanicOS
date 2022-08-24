@@ -9,25 +9,26 @@ struct VfsPath {
 struct FilesystemDriver {
 	const char* name;
 	// mounting
-	int (*mount)(int partition_id);
+	int (*mount)(int partition_id, void** private);
 	int (*probe)(int partition_id);
-	int (*unmount)(int partition_id);
+	int (*unmount)(void* private);
+	int (*set_default_attr)(void* private, unsigned int uid, unsigned int gid, unsigned int mode);
 	// directory
-	int (*dir_first_file)(int partition_id, unsigned int cluster);
-	int (*dir_read)(int partition_id, char* buf, unsigned int cluster, unsigned int entry);
+	int (*dir_first_file)(void* private, unsigned int cluster);
+	int (*dir_read)(void* private, char* buf, unsigned int cluster, unsigned int entry);
 	// file
-	int (*open)(int partition_id, struct VfsPath path);
-	int (*create_file)(int partition_id, struct VfsPath path);
-	int (*update_size)(int partition_id, struct VfsPath path, unsigned int size);
-	int (*read)(int partition_id, unsigned int cluster, void* buf, unsigned int offset,
+	int (*open)(void* private, struct VfsPath path);
+	int (*create_file)(void* private, struct VfsPath path);
+	int (*update_size)(void* private, struct VfsPath path, unsigned int size);
+	int (*read)(void* private, unsigned int cluster, void* buf, unsigned int offset,
 				unsigned int size);
-	int (*write)(int partition_id, unsigned int cluster, const void* buf, unsigned int offset,
+	int (*write)(void* private, unsigned int cluster, const void* buf, unsigned int offset,
 				 unsigned int size);
 	// infomation
-	int (*get_file_size)(int partition_id, struct VfsPath path);
-	int (*get_file_mode)(int partition_id, struct VfsPath path);
-	int (*create_directory)(int partition_id, struct VfsPath path);
-	int (*remove_file)(int partition_id, struct VfsPath path);
+	int (*get_file_size)(void* private, struct VfsPath path);
+	int (*get_file_mode)(void* private, struct VfsPath path);
+	int (*create_directory)(void* private, struct VfsPath path);
+	int (*remove_file)(void* private, struct VfsPath path);
 };
 
 extern const struct FilesystemDriver* filesystem_fat32_driver;

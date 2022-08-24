@@ -33,14 +33,14 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(dirpath, &path);
 
-	int fblock = vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].partition_id, path);
+	int fblock = vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].private, path);
 	if (fblock < 0) {
 		kfree(dirpath.pathbuf);
 		return fblock;
 	}
 	fd->block = fblock;
-	fd->offset = vfs_mount_table[fs_id].fs_driver->dir_first_file(
-		vfs_mount_table[fs_id].partition_id, fd->block);
+	fd->offset = vfs_mount_table[fs_id].fs_driver->dir_first_file(vfs_mount_table[fs_id].private,
+																  fd->block);
 
 	fd->fs_id = fs_id;
 	fd->dir = 1;
@@ -62,8 +62,8 @@ int vfs_dir_read(struct FileDesc* fd, char* buffer) {
 	}
 
 	int off;
-	off = vfs_mount_table[fd->fs_id].fs_driver->dir_read(vfs_mount_table[fd->fs_id].partition_id,
-														 buffer, fd->block, fd->offset);
+	off = vfs_mount_table[fd->fs_id].fs_driver->dir_read(vfs_mount_table[fd->fs_id].private, buffer,
+														 fd->block, fd->offset);
 
 	if (off == 0) {
 		return 0; // EOF

@@ -37,9 +37,8 @@ void vfs_init(void) {
 			} else if (fs_id == 1) {
 				cprintf("[vfs] mount fat32 on /fat32\n");
 			}
-			filesystem_fat32_driver->mount(i);
+			filesystem_fat32_driver->mount(i, &vfs_mount_table[fs_id].private);
 			vfs_mount_table[fs_id].fs_driver = filesystem_fat32_driver;
-			vfs_mount_table[fs_id].partition_id = i;
 			fs_id++;
 			break;
 		} else if (hal_partition_map[i].fs_type == HAL_PARTITION_TYPE_DATA) {
@@ -51,9 +50,8 @@ void vfs_init(void) {
 			} else if (fs_id == 1) {
 				cprintf("[vfs] mount fat32 on /fat32\n");
 			}
-			filesystem_fat32_driver->mount(i);
+			filesystem_fat32_driver->mount(i, &vfs_mount_table[fs_id].private);
 			vfs_mount_table[fs_id].fs_driver = filesystem_fat32_driver;
-			vfs_mount_table[fs_id].partition_id = i;
 			fs_id++;
 			break;
 		}
@@ -90,8 +88,7 @@ int vfs_file_get_size(const char* filename) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	int sz = vfs_mount_table[fs_id].fs_driver->get_file_size(vfs_mount_table[fs_id].partition_id,
-															 path);
+	int sz = vfs_mount_table[fs_id].fs_driver->get_file_size(vfs_mount_table[fs_id].private, path);
 	kfree(filepath.pathbuf);
 	return sz;
 }
@@ -106,8 +103,7 @@ int vfs_file_get_mode(const char* filename) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	int sz = vfs_mount_table[fs_id].fs_driver->get_file_mode(vfs_mount_table[fs_id].partition_id,
-															 path);
+	int sz = vfs_mount_table[fs_id].fs_driver->get_file_mode(vfs_mount_table[fs_id].private, path);
 	kfree(filepath.pathbuf);
 	return sz;
 }
@@ -122,8 +118,8 @@ int vfs_mkdir(const char* dirname) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	int ret = vfs_mount_table[fs_id].fs_driver->create_directory(
-		vfs_mount_table[fs_id].partition_id, path);
+	int ret
+		= vfs_mount_table[fs_id].fs_driver->create_directory(vfs_mount_table[fs_id].private, path);
 	kfree(filepath.pathbuf);
 	return ret;
 }
@@ -138,8 +134,7 @@ int vfs_file_remove(const char* file) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	int ret
-		= vfs_mount_table[fs_id].fs_driver->remove_file(vfs_mount_table[fs_id].partition_id, path);
+	int ret = vfs_mount_table[fs_id].fs_driver->remove_file(vfs_mount_table[fs_id].private, path);
 
 	kfree(filepath.pathbuf);
 	return ret;

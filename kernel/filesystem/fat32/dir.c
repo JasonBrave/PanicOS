@@ -60,16 +60,16 @@ static char* fat32_get_full_name(const struct FAT32DirEntry* dir, char* name) {
 	return name;
 }
 
-static int fat32_dir_search(int partition_id, unsigned int cluster, const char* name,
+static int fat32_dir_search(struct FAT32Private* priv, unsigned int cluster, const char* name,
 							struct FAT32DirEntry* dir_dest) {
 	for (int i = 0;; i += 32) {
-		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		unsigned int clus = fat32_offset_cluster(priv, cluster, i);
 		if (clus == 0) {
 			break;
 		}
 		struct FAT32DirEntry dir;
-		int errc = fat32_read_cluster(partition_id, &dir, clus,
-									  i % (fat32_superblock->sector_per_cluster * SECTORSIZE),
+		int errc = fat32_read_cluster(priv, &dir, clus,
+									  i % (priv->boot_sector->sector_per_cluster * SECTORSIZE),
 									  sizeof(dir));
 		if (errc < 0) {
 			return errc;
@@ -93,13 +93,12 @@ static int fat32_dir_search(int partition_id, unsigned int cluster, const char* 
 	return ERROR_NOT_EXIST;
 }
 
-static int fat32_path_search(int partition_id, struct VfsPath path,
+static int fat32_path_search(struct FAT32Private* priv, struct VfsPath path,
 							 struct FAT32DirEntry* dir_dest) {
-	unsigned int cluster = fat32_superblock->root_cluster;
+	unsigned int cluster = priv->boot_sector->root_cluster;
 	for (int i = 0; i < path.parts; i++) {
 		int errc;
-		if ((errc = fat32_dir_search(partition_id, cluster, path.pathbuf + i * 128, dir_dest)) <
-			0) {
+		if ((errc = fat32_dir_search(priv, cluster, path.pathbuf + i * 128, dir_dest)) < 0) {
 			return errc;
 		}
 		cluster = (dir_dest->cluster_hi << 16) | dir_dest->cluster_lo;
@@ -107,28 +106,30 @@ static int fat32_path_search(int partition_id, struct VfsPath path,
 	return 0;
 }
 
-int fat32_open(int partition_id, struct VfsPath path) {
+int fat32_open(void* private, struct VfsPath path) {
+	struct FAT32Private* priv = private;
 	if (path.parts == 0) {
-		return fat32_superblock->root_cluster;
+		return priv->boot_sector->root_cluster;
 	}
 	struct FAT32DirEntry dir;
 	int errc;
 	dir.cluster_hi = dir.cluster_lo = 0;
-	if ((errc = fat32_path_search(partition_id, path, &dir)) < 0) {
+	if ((errc = fat32_path_search(priv, path, &dir)) < 0) {
 		return errc;
 	}
 	return (dir.cluster_hi << 16) | dir.cluster_lo;
 }
 
-int fat32_dir_first_file(int partition_id, unsigned int cluster) {
+int fat32_dir_first_file(void* private, unsigned int cluster) {
+	struct FAT32Private* priv = private;
 	for (int i = 0;; i += 32) {
-		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		unsigned int clus = fat32_offset_cluster(priv, cluster, i);
 		if (clus == 0) {
 			break;
 		}
 		struct FAT32DirEntry dir;
-		int errc = fat32_read_cluster(partition_id, &dir, clus,
-									  i % (fat32_superblock->sector_per_cluster * SECTORSIZE),
+		int errc = fat32_read_cluster(priv, &dir, clus,
+									  i % (priv->boot_sector->sector_per_cluster * SECTORSIZE),
 									  sizeof(dir));
 		if (errc < 0) {
 			return errc;
@@ -147,15 +148,16 @@ int fat32_dir_first_file(int partition_id, unsigned int cluster) {
 	return -1;
 }
 
-int fat32_dir_read(int partition_id, char* buf, unsigned int cluster, unsigned int entry) {
+int fat32_dir_read(void* private, char* buf, unsigned int cluster, unsigned int entry) {
+	struct FAT32Private* priv = private;
 	for (int i = entry * 32;; i += 32) {
-		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		unsigned int clus = fat32_offset_cluster(priv, cluster, i);
 		if (clus == 0) {
 			break;
 		}
 		struct FAT32DirEntry dir;
-		int errc = fat32_read_cluster(partition_id, &dir, clus,
-									  i % (fat32_superblock->sector_per_cluster * SECTORSIZE),
+		int errc = fat32_read_cluster(priv, &dir, clus,
+									  i % (priv->boot_sector->sector_per_cluster * SECTORSIZE),
 									  sizeof(dir));
 		if (errc < 0) {
 			return errc;
@@ -175,22 +177,24 @@ int fat32_dir_read(int partition_id, char* buf, unsigned int cluster, unsigned i
 	return 0;
 }
 
-int fat32_file_size(int partition_id, struct VfsPath path) {
+int fat32_file_size(void* private, struct VfsPath path) {
+	struct FAT32Private* priv = private;
 	struct FAT32DirEntry dir;
-	int errc = fat32_path_search(partition_id, path, &dir);
+	int errc = fat32_path_search(priv, path, &dir);
 	if (errc < 0) {
 		return errc;
 	}
 	return dir.size;
 }
 
-int fat32_file_mode(int partition_id, struct VfsPath path) {
+int fat32_file_mode(void* private, struct VfsPath path) {
+	struct FAT32Private* priv = private;
 	struct FAT32DirEntry dir;
-	int errc = fat32_path_search(partition_id, path, &dir);
+	int errc = fat32_path_search(priv, path, &dir);
 	if (errc < 0) {
 		return errc;
 	}
-	int mode = 0777;
+	int mode = priv->mode;
 	if (dir.attr & ATTR_DIRECTORY) {
 		mode |= 0040000;
 	}
@@ -220,39 +224,42 @@ static char* fat32_file_get_short_name(char* shortname, const char* longname) {
 	return shortname;
 }
 
-static int fat32_dir_insert_entry(int partition_id, unsigned int cluster,
+static int fat32_dir_insert_entry(struct FAT32Private* priv, unsigned int cluster,
 								  struct FAT32DirEntry* dirent) {
 	for (int i = 0;; i += 32) {
 		struct FAT32DirEntry dir;
-		unsigned int clus = fat32_offset_cluster(partition_id, cluster, i);
+		unsigned int clus = fat32_offset_cluster(priv, cluster, i);
 		if (clus == 0) {
 			break;
 		}
-		if (fat32_read_cluster(partition_id, &dir, clus,
-							   i % (fat32_superblock->sector_per_cluster * SECTORSIZE),
-							   sizeof(dir)) < 0) {
+		if (fat32_read_cluster(priv, &dir, clus,
+							   i % (priv->boot_sector->sector_per_cluster * SECTORSIZE),
+							   sizeof(dir))
+			< 0) {
 			return ERROR_READ_FAIL;
 		}
 		if (dir.name[0] == 0xe5 || dir.name[0] == 0x00) {
-			if (fat32_write_cluster(partition_id, dirent, clus,
-									i % (fat32_superblock->sector_per_cluster * SECTORSIZE),
-									sizeof(dir)) < 0) {
+			if (fat32_write_cluster(priv, dirent, clus,
+									i % (priv->boot_sector->sector_per_cluster * SECTORSIZE),
+									sizeof(dir))
+				< 0) {
 				return ERROR_WRITE_FAIL;
 			}
 			return 0;
 		}
 	}
 	// allocate a new cluster and attrach
-	unsigned int alloc = fat32_allocate_cluster(partition_id);
+	unsigned int alloc = fat32_allocate_cluster(priv);
 	if (alloc == 0) {
 		return ERROR_OUT_OF_SPACE;
 	}
-	fat32_write_cluster(partition_id, dirent, alloc, 0, sizeof(struct FAT32DirEntry));
-	fat32_append_cluster(partition_id, cluster, alloc);
+	fat32_write_cluster(priv, dirent, alloc, 0, sizeof(struct FAT32DirEntry));
+	fat32_append_cluster(priv, cluster, alloc);
 	return 0;
 }
 
-int fat32_mkdir(int partition_id, struct VfsPath path) {
+int fat32_mkdir(void* private, struct VfsPath path) {
+	struct FAT32Private* priv = private;
 	// get target directory
 	unsigned int cluster;
 	char* filename;
@@ -261,16 +268,16 @@ int fat32_mkdir(int partition_id, struct VfsPath path) {
 		prevpath.parts = path.parts - 1;
 		prevpath.pathbuf = path.pathbuf;
 		struct FAT32DirEntry dir;
-		fat32_path_search(partition_id, prevpath, &dir);
+		fat32_path_search(priv, prevpath, &dir);
 		cluster = (dir.cluster_hi << 16) | dir.cluster_lo;
 		filename = path.pathbuf + prevpath.parts * 128;
 	} else {
-		cluster = fat32_superblock->root_cluster;
+		cluster = priv->boot_sector->root_cluster;
 		filename = path.pathbuf;
 	}
 	// check exist
 	struct FAT32DirEntry search_dir;
-	if (fat32_dir_search(partition_id, cluster, filename, &search_dir) >= 0) {
+	if (fat32_dir_search(priv, cluster, filename, &search_dir) >= 0) {
 		return ERROR_EXIST;
 	}
 	// create inode
@@ -279,7 +286,7 @@ int fat32_mkdir(int partition_id, struct VfsPath path) {
 	struct FAT32DirEntry dir;
 	memset(&dir, 0, sizeof(dir));
 	memmove(dir.name, shortname, 11);
-	unsigned int alloc = fat32_allocate_cluster(partition_id);
+	unsigned int alloc = fat32_allocate_cluster(priv);
 	if (alloc == 0) {
 		return ERROR_OUT_OF_SPACE;
 	}
@@ -287,7 +294,7 @@ int fat32_mkdir(int partition_id, struct VfsPath path) {
 	dir.cluster_hi = (alloc >> 16) & 0xffff;
 	dir.attr = ATTR_DIRECTORY;
 	int ret;
-	if ((ret = fat32_dir_insert_entry(partition_id, cluster, &dir)) < 0) {
+	if ((ret = fat32_dir_insert_entry(priv, cluster, &dir)) < 0) {
 		return ret;
 	}
 	// dot entry
@@ -296,22 +303,23 @@ int fat32_mkdir(int partition_id, struct VfsPath path) {
 	dir.cluster_lo = alloc & 0xffff;
 	dir.cluster_hi = (alloc >> 16) & 0xffff;
 	dir.attr = ATTR_DIRECTORY;
-	if ((ret = fat32_dir_insert_entry(partition_id, alloc, &dir)) < 0) {
+	if ((ret = fat32_dir_insert_entry(priv, alloc, &dir)) < 0) {
 		return ret;
 	}
 	// dotdot entry
 	memset(&dir, 0, sizeof(dir));
 	memmove(dir.name, "..         ", 11);
-	if (cluster != fat32_superblock->root_cluster) {
+	if (cluster != priv->boot_sector->root_cluster) {
 		// not root cluster
 		dir.cluster_lo = cluster & 0xffff;
 		dir.cluster_hi = (cluster >> 16) & 0xffff;
 	}
 	dir.attr = ATTR_DIRECTORY;
-	return fat32_dir_insert_entry(partition_id, alloc, &dir);
+	return fat32_dir_insert_entry(priv, alloc, &dir);
 }
 
-int fat32_file_remove(int partition_id, struct VfsPath path) {
+int fat32_file_remove(void* private, struct VfsPath path) {
+	struct FAT32Private* priv = private;
 	// get target directory
 	unsigned int cluster;
 	char* filename;
@@ -320,67 +328,68 @@ int fat32_file_remove(int partition_id, struct VfsPath path) {
 		prevpath.parts = path.parts - 1;
 		prevpath.pathbuf = path.pathbuf;
 		struct FAT32DirEntry dir;
-		fat32_path_search(partition_id, prevpath, &dir);
+		fat32_path_search(priv, prevpath, &dir);
 		cluster = (dir.cluster_hi << 16) | dir.cluster_lo;
 		filename = path.pathbuf + prevpath.parts * 128;
 	} else {
-		cluster = fat32_superblock->root_cluster;
+		cluster = priv->boot_sector->root_cluster;
 		filename = path.pathbuf;
 	}
 	// check exist
 	struct FAT32DirEntry search_dir;
 	int ent_idx;
-	if ((ent_idx = fat32_dir_search(partition_id, cluster, filename, &search_dir)) < 0) {
+	if ((ent_idx = fat32_dir_search(priv, cluster, filename, &search_dir)) < 0) {
 		return ent_idx;
 	}
 	if (search_dir.attr & ATTR_DIRECTORY) {
 		return ERROR_NOT_FILE;
 	}
-	if (fat32_free_chain(partition_id, (search_dir.cluster_hi << 16) | search_dir.cluster_lo) < 0) {
+	if (fat32_free_chain(priv, (search_dir.cluster_hi << 16) | search_dir.cluster_lo) < 0) {
 		return ERROR_WRITE_FAIL;
 	}
 	search_dir.name[0] = 0xe5;
-	unsigned int clus = fat32_offset_cluster(partition_id, cluster, ent_idx * 32);
-	if (fat32_write_cluster(partition_id, &search_dir, clus,
-							ent_idx * 32 % (fat32_superblock->sector_per_cluster * SECTORSIZE),
-							sizeof(search_dir)) < 0) {
+	unsigned int clus = fat32_offset_cluster(priv, cluster, ent_idx * 32);
+	if (fat32_write_cluster(priv, &search_dir, clus,
+							ent_idx * 32 % (priv->boot_sector->sector_per_cluster * SECTORSIZE),
+							sizeof(search_dir))
+		< 0) {
 		return ERROR_WRITE_FAIL;
 	}
 	return 0;
 }
 
-static int fat32_write_inode(int partition_id, struct VfsPath path,
+static int fat32_write_inode(struct FAT32Private* priv, struct VfsPath path,
 							 const struct FAT32DirEntry* dir_dest) {
-	unsigned int cluster = fat32_superblock->root_cluster;
+	unsigned int cluster = priv->boot_sector->root_cluster;
 	int ino;
 	struct FAT32DirEntry dir;
 	for (int i = 0; i < path.parts - 1; i++) {
-		if ((ino = fat32_dir_search(partition_id, cluster, path.pathbuf + i * 128, &dir)) < 0) {
+		if ((ino = fat32_dir_search(priv, cluster, path.pathbuf + i * 128, &dir)) < 0) {
 			return ERROR_NOT_EXIST;
 		}
 		cluster = (dir.cluster_hi << 16) | dir.cluster_lo;
 	}
-	if ((ino = fat32_dir_search(partition_id, cluster, path.pathbuf + (path.parts - 1) * 128,
-								&dir)) < 0) {
+	if ((ino = fat32_dir_search(priv, cluster, path.pathbuf + (path.parts - 1) * 128, &dir)) < 0) {
 		return ERROR_NOT_EXIST;
 	}
-	return fat32_write_cluster(partition_id, dir_dest,
-							   fat32_offset_cluster(partition_id, cluster, ino * 32),
-							   ino * 32 % (fat32_superblock->sector_per_cluster * SECTORSIZE),
+	return fat32_write_cluster(priv, dir_dest, fat32_offset_cluster(priv, cluster, ino * 32),
+							   ino * 32 % (priv->boot_sector->sector_per_cluster * SECTORSIZE),
 							   sizeof(struct FAT32DirEntry));
 }
 
-int fat32_update_size(int partition_id, struct VfsPath path, unsigned int size) {
+int fat32_update_size(void* private, struct VfsPath path, unsigned int size) {
+	struct FAT32Private* priv = private;
 	struct FAT32DirEntry dir;
-	if (fat32_path_search(partition_id, path, &dir) < 0) {
+	if (fat32_path_search(priv, path, &dir) < 0) {
 		return ERROR_NOT_EXIST;
 	}
 
 	dir.size = size;
-	return fat32_write_inode(partition_id, path, &dir);
+	return fat32_write_inode(priv, path, &dir);
 }
 
-int fat32_file_create(int partition_id, struct VfsPath path) {
+int fat32_file_create(void* private, struct VfsPath path) {
+	struct FAT32Private* priv = private;
 	unsigned int cluster;
 	char* filename;
 	if (path.parts > 1) {
@@ -388,11 +397,11 @@ int fat32_file_create(int partition_id, struct VfsPath path) {
 		prevpath.parts = path.parts - 1;
 		prevpath.pathbuf = path.pathbuf;
 		struct FAT32DirEntry dir;
-		fat32_path_search(partition_id, prevpath, &dir);
+		fat32_path_search(priv, prevpath, &dir);
 		cluster = (dir.cluster_hi << 16) | dir.cluster_lo;
 		filename = path.pathbuf + prevpath.parts * 128;
 	} else {
-		cluster = fat32_superblock->root_cluster;
+		cluster = priv->boot_sector->root_cluster;
 		filename = path.pathbuf;
 	}
 
@@ -401,11 +410,11 @@ int fat32_file_create(int partition_id, struct VfsPath path) {
 	struct FAT32DirEntry dir;
 	memset(&dir, 0, sizeof(dir));
 	memmove(dir.name, shortname, 11);
-	unsigned int alloc = fat32_allocate_cluster(partition_id);
+	unsigned int alloc = fat32_allocate_cluster(priv);
 	if (alloc == 0) {
 		return ERROR_OUT_OF_SPACE;
 	}
 	dir.cluster_lo = alloc & 0xffff;
 	dir.cluster_hi = (alloc >> 16) & 0xffff;
-	return fat32_dir_insert_entry(partition_id, cluster, &dir);
+	return fat32_dir_insert_entry(priv, cluster, &dir);
 }

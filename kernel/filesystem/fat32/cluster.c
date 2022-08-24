@@ -24,14 +24,14 @@
 #include "fat32-struct.h"
 #include "fat32.h"
 
-int fat32_cluster_to_sector(unsigned int cluster) {
-	return (cluster - 2) * (fat32_superblock->sector_per_cluster) +
-		   (fat32_superblock->reserved_sector) +
-		   (fat32_superblock->fat_number) * (fat32_superblock->fat_size);
+int fat32_cluster_to_sector(struct FAT32Private* priv, unsigned int cluster) {
+	return (cluster - 2) * (priv->boot_sector->sector_per_cluster)
+		   + (priv->boot_sector->reserved_sector)
+		   + (priv->boot_sector->fat_number) * (priv->boot_sector->fat_size);
 }
 
-int fat32_read_cluster(int partition_id, void* dest, unsigned int cluster, unsigned int begin,
-					   unsigned int size) {
+int fat32_read_cluster(struct FAT32Private* priv, void* dest, unsigned int cluster,
+					   unsigned int begin, unsigned int size) {
 	void* sect = kalloc();
 	unsigned int off = 0;
 	while (off < size) {
@@ -41,8 +41,8 @@ int fat32_read_cluster(int partition_id, void* dest, unsigned int cluster, unsig
 		} else {
 			copysize = size - off;
 		}
-		unsigned int sector = fat32_cluster_to_sector(cluster) + (begin + off) / SECTORSIZE;
-		if (hal_partition_read(partition_id, sector, 1, sect) < 0) {
+		unsigned int sector = fat32_cluster_to_sector(priv, cluster) + (begin + off) / SECTORSIZE;
+		if (hal_partition_read(priv->partition_id, sector, 1, sect) < 0) {
 			kfree(sect);
 			return ERROR_READ_FAIL;
 		}
@@ -53,9 +53,10 @@ int fat32_read_cluster(int partition_id, void* dest, unsigned int cluster, unsig
 	return 0;
 }
 
-int fat32_read(int partition_id, unsigned int cluster, void* buf, unsigned int offset,
+int fat32_read(void* private, unsigned int cluster, void* buf, unsigned int offset,
 			   unsigned int size) {
-	int clussize = fat32_superblock->sector_per_cluster * SECTORSIZE;
+	struct FAT32Private* priv = private;
+	int clussize = priv->boot_sector->sector_per_cluster * SECTORSIZE;
 	unsigned int off = 0;
 	while (off < size) {
 		int copysize;
@@ -64,9 +65,8 @@ int fat32_read(int partition_id, unsigned int cluster, void* buf, unsigned int o
 		} else {
 			copysize = size - off;
 		}
-		unsigned int clus = fat32_offset_cluster(partition_id, cluster, offset + off);
-		if (fat32_read_cluster(partition_id, buf + off, clus, (offset + off) % clussize, copysize) <
-			0) {
+		unsigned int clus = fat32_offset_cluster(priv, cluster, offset + off);
+		if (fat32_read_cluster(priv, buf + off, clus, (offset + off) % clussize, copysize) < 0) {
 			return ERROR_READ_FAIL;
 		}
 		off += copysize;
@@ -74,8 +74,8 @@ int fat32_read(int partition_id, unsigned int cluster, void* buf, unsigned int o
 	return size;
 }
 
-int fat32_write_cluster(int partition_id, const void* src, unsigned int cluster, unsigned int begin,
-						unsigned int size) {
+int fat32_write_cluster(struct FAT32Private* priv, const void* src, unsigned int cluster,
+						unsigned int begin, unsigned int size) {
 	void* sect = kalloc();
 	unsigned int off = 0;
 	while (off < size) {
@@ -85,13 +85,13 @@ int fat32_write_cluster(int partition_id, const void* src, unsigned int cluster,
 		} else {
 			copysize = size - off;
 		}
-		unsigned int sector = fat32_cluster_to_sector(cluster) + (begin + off) / SECTORSIZE;
-		if (hal_partition_read(partition_id, sector, 1, sect) < 0) {
+		unsigned int sector = fat32_cluster_to_sector(priv, cluster) + (begin + off) / SECTORSIZE;
+		if (hal_partition_read(priv->partition_id, sector, 1, sect) < 0) {
 			kfree(sect);
 			return ERROR_READ_FAIL;
 		}
 		memmove(sect + (begin + off) % SECTORSIZE, src + off, copysize);
-		if (hal_partition_write(partition_id, sector, 1, sect) < 0) {
+		if (hal_partition_write(priv->partition_id, sector, 1, sect) < 0) {
 			kfree(sect);
 			return ERROR_WRITE_FAIL;
 		}
@@ -101,23 +101,24 @@ int fat32_write_cluster(int partition_id, const void* src, unsigned int cluster,
 	return 0;
 }
 
-unsigned int fat32_allocate_cluster(int partition_id) {
+unsigned int fat32_allocate_cluster(struct FAT32Private* priv) {
 	unsigned int* buf = kalloc();
-	for (unsigned int fat = 0; fat < fat32_superblock->fat_size; fat++) {
-		int sect = fat32_superblock->reserved_sector + fat;
-		if (hal_partition_read(partition_id, sect, 1, buf) < 0) {
+	for (unsigned int fat = 0; fat < priv->boot_sector->fat_size; fat++) {
+		int sect = priv->boot_sector->reserved_sector + fat;
+		if (hal_partition_read(priv->partition_id, sect, 1, buf) < 0) {
 			return ERROR_READ_FAIL;
 		}
 		for (int i = 0; i < 128; i++) {
 			if (buf[i] == 0) {
 				buf[i] = 0x0fffffff;
 				// first FAT
-				if (hal_partition_write(partition_id, sect, 1, buf) < 0) {
+				if (hal_partition_write(priv->partition_id, sect, 1, buf) < 0) {
 					return ERROR_WRITE_FAIL;
 				}
 				// second FAT
-				if (hal_partition_write(partition_id, sect + fat32_superblock->fat_size, 1, buf) <
-					0) {
+				if (hal_partition_write(priv->partition_id, sect + priv->boot_sector->fat_size, 1,
+										buf)
+					< 0) {
 					return ERROR_WRITE_FAIL;
 				}
 				kfree(buf);
@@ -129,9 +130,10 @@ unsigned int fat32_allocate_cluster(int partition_id) {
 	return 0;
 }
 
-int fat32_write(int partition_id, unsigned int cluster, const void* buf, unsigned int offset,
+int fat32_write(void* private, unsigned int cluster, const void* buf, unsigned int offset,
 				unsigned int size) {
-	int clussize = fat32_superblock->sector_per_cluster * SECTORSIZE;
+	struct FAT32Private* priv = private;
+	int clussize = priv->boot_sector->sector_per_cluster * SECTORSIZE;
 	unsigned int off = 0;
 	while (off < size) {
 		int copysize;
@@ -140,17 +142,16 @@ int fat32_write(int partition_id, unsigned int cluster, const void* buf, unsigne
 		} else {
 			copysize = size - off;
 		}
-		unsigned int clus = fat32_offset_cluster(partition_id, cluster, offset + off);
+		unsigned int clus = fat32_offset_cluster(priv, cluster, offset + off);
 		if (clus == 0) { // end of cluster chain
-			if ((clus = fat32_allocate_cluster(partition_id)) < 0) {
+			if ((clus = fat32_allocate_cluster(priv)) < 0) {
 				return ERROR_OUT_OF_SPACE;
 			}
-			if (fat32_append_cluster(partition_id, cluster, clus) < 0) {
+			if (fat32_append_cluster(priv, cluster, clus) < 0) {
 				return ERROR_WRITE_FAIL;
 			}
 		}
-		if (fat32_write_cluster(partition_id, buf + off, clus, (offset + off) % clussize,
-								copysize) < 0) {
+		if (fat32_write_cluster(priv, buf + off, clus, (offset + off) % clussize, copysize) < 0) {
 			return ERROR_WRITE_FAIL;
 		}
 		off += copysize;

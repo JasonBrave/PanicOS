@@ -33,22 +33,20 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	int fblock = vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].partition_id, path);
+	int fblock = vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].private, path);
 	if (fblock < 0) {
 		if (mode & O_CREATE) {
 			// create and retry
-			vfs_mount_table[fs_id].fs_driver->create_file(vfs_mount_table[fs_id].partition_id,
-														  path);
-			fblock
-				= vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].partition_id, path);
+			vfs_mount_table[fs_id].fs_driver->create_file(vfs_mount_table[fs_id].private, path);
+			fblock = vfs_mount_table[fs_id].fs_driver->open(vfs_mount_table[fs_id].private, path);
 		} else {
 			kfree(filepath.pathbuf);
 			return ERROR_NOT_EXIST;
 		}
 	}
 	fd->block = fblock;
-	fd->size = vfs_mount_table[fs_id].fs_driver->get_file_size(vfs_mount_table[fs_id].partition_id,
-															   path);
+	fd->size
+		= vfs_mount_table[fs_id].fs_driver->get_file_size(vfs_mount_table[fs_id].private, path);
 	if (mode & O_READ) {
 		fd->read = 1;
 	}
@@ -91,7 +89,7 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 	} else {
 		status = size;
 	}
-	int ret = vfs_mount_table[fd->fs_id].fs_driver->read(vfs_mount_table[fd->fs_id].partition_id,
+	int ret = vfs_mount_table[fd->fs_id].fs_driver->read(vfs_mount_table[fd->fs_id].private,
 														 fd->block, buf, fd->offset, size);
 	if (ret < 0) {
 		return ret;
@@ -115,7 +113,7 @@ int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
 	if (fd->append) {
 		fd->offset = fd->size;
 	}
-	int ret = vfs_mount_table[fd->fs_id].fs_driver->write(vfs_mount_table[fd->fs_id].partition_id,
+	int ret = vfs_mount_table[fd->fs_id].fs_driver->write(vfs_mount_table[fd->fs_id].private,
 														  fd->block, buf, fd->offset, size);
 	if (ret < 0) {
 		return ret;
@@ -136,7 +134,7 @@ int vfs_fd_close(struct FileDesc* fd) {
 	}
 
 	if (fd->write) {
-		vfs_mount_table[fd->fs_id].fs_driver->update_size(vfs_mount_table[fd->fs_id].partition_id,
+		vfs_mount_table[fd->fs_id].fs_driver->update_size(vfs_mount_table[fd->fs_id].private,
 														  fd->path, fd->size);
 		kfree(fd->path.pathbuf);
 	}

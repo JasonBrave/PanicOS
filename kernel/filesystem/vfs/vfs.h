@@ -36,7 +36,7 @@ enum FileSeekMode {
 
 struct VfsMountTableEntry {
 	const struct FilesystemDriver* fs_driver;
-	unsigned int partition_id;
+	void* private;
 };
 
 #define VFS_MOUNT_TABLE_MAX 8

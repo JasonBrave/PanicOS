@@ -79,6 +79,4 @@ enum FAT32DirAttr {
 	ATTR_LONG_NAME = 0x0f,
 };
 
-extern struct FAT32BootSector* fat32_superblock;
-
 #endif

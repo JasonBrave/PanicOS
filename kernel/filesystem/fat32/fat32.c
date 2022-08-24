@@ -6,6 +6,7 @@ struct FilesystemDriver fat32_driver = {
 	.mount = fat32_mount,
 	.probe = fat32_probe,
 	.unmount = 0,
+	.set_default_attr = 0,
 	.dir_first_file = fat32_dir_first_file,
 	.dir_read = fat32_dir_read,
 	.open = fat32_open,
