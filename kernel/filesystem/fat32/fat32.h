@@ -46,6 +46,7 @@ int fat32_free_chain(struct FAT32Private* priv, unsigned int cluster);
 // mount.c
 int fat32_mount(int partition_id, void** private);
 int fat32_probe(int partition_id);
+void fat32_set_default_attr(void* private, unsigned int uid, unsigned int gid, unsigned int mode);
 
 // fat32.c
 void fat32_init(void);

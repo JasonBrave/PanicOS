@@ -55,3 +55,10 @@ int fat32_probe(int partition_id) {
 	}
 	return strncmp(bootsect->fstype, "FAT32", 5);
 }
+
+void fat32_set_default_attr(void* private, unsigned int uid, unsigned int gid, unsigned int mode) {
+	struct FAT32Private* priv = private;
+	priv->uid = uid;
+	priv->gid = gid;
+	priv->mode = mode;
+}

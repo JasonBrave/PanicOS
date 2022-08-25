@@ -12,7 +12,7 @@ struct FilesystemDriver {
 	int (*mount)(int partition_id, void** private);
 	int (*probe)(int partition_id);
 	int (*unmount)(void* private);
-	int (*set_default_attr)(void* private, unsigned int uid, unsigned int gid, unsigned int mode);
+	void (*set_default_attr)(void* private, unsigned int uid, unsigned int gid, unsigned int mode);
 	// directory
 	int (*dir_first_file)(void* private, unsigned int cluster);
 	int (*dir_read)(void* private, char* buf, unsigned int cluster, unsigned int entry);
