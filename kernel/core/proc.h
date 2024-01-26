@@ -21,7 +21,7 @@
 #define _PROC_H
 
 #include <common/spinlock.h>
-#include <core/mmu.h>
+#include <arch/x86/mmu.h>
 #include <filesystem/vfs/vfs.h>
 #include <param.h>
 

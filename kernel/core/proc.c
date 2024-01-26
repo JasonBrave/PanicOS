@@ -20,7 +20,7 @@
 #include <arch/x86/lapic.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
-#include <core/mmu.h>
+#include <arch/x86/mmu.h>
 #include <core/mp.h>
 #include <core/proc.h>
 #include <core/traps.h>

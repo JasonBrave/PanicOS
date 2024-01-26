@@ -17,11 +17,13 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// Should be x86 arch-specific
+
 #include <arch/x86/lapic.h>
+#include <arch/x86/mmu.h>
 #include <arch/x86/msi.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
-#include <core/mmu.h>
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
@@ -53,7 +55,7 @@ void idtinit(void) {
 }
 
 // PAGEBREAK: 41
-void trap(struct trapframe* tf) {
+void trap(struct trapframe *tf) {
 	if (tf->trapno == T_SYSCALL) {
 		if (myproc()->killed)
 			exit(-1);

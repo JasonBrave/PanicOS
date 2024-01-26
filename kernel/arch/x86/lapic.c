@@ -17,9 +17,9 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/mmu.h>
 #include <common/delay.h>
 #include <common/x86.h>
-#include <core/mmu.h>
 #include <core/traps.h>
 #include <defs.h>
 #include <memlayout.h>
@@ -56,7 +56,7 @@
 #define TCCR (0x0390 / 4) // Timer Current Count
 #define TDCR (0x03E0 / 4) // Timer Divide Configuration
 
-volatile uint32_t* lapic = (volatile uint32_t*)0xfee00000; // Initialized in mp.c
+volatile uint32_t *lapic = (volatile uint32_t *)0xfee00000; // Initialized in mp.c
 
 // PAGEBREAK!
 static void lapicw(int index, int value) {
@@ -129,7 +129,7 @@ void lapicstartap(unsigned char apicid, unsigned int addr) {
 	// the AP startup code prior to the [universal startup algorithm]."
 	outb(CMOS_PORT, 0xF); // offset 0xF is shutdown code
 	outb(CMOS_PORT + 1, 0x0A);
-	unsigned short* wrv = (unsigned short*)P2V((0x40 << 4 | 0x67)); // Warm reset vector
+	unsigned short *wrv = (unsigned short *)P2V((0x40 << 4 | 0x67)); // Warm reset vector
 	wrv[0] = 0;
 	wrv[1] = addr >> 4;
 

@@ -3,7 +3,7 @@
 
 #include <common/sleeplock.h>
 #include <common/types.h>
-#include <core/mmu.h>
+#include <arch/x86/mmu.h>
 #include <core/proc.h>
 #include <memlayout.h>
 

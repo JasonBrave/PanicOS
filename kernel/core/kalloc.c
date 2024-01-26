@@ -18,7 +18,6 @@
  */
 
 #include <common/spinlock.h>
-#include <core/mmu.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>

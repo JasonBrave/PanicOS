@@ -18,7 +18,6 @@
  */
 
 #include <common/x86.h>
-#include <core/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
 #include <filesystem/initramfs/initramfs.h>

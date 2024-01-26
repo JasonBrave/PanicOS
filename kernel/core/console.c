@@ -24,7 +24,6 @@
 #include <common/sleeplock.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
-#include <core/mmu.h>
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>

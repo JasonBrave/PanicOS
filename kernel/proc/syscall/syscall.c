@@ -18,7 +18,7 @@
  */
 
 #include <common/x86.h>
-#include <core/mmu.h>
+#include <arch/x86/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
 #include <memlayout.h>

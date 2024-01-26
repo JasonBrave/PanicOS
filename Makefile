@@ -1,31 +1,48 @@
+export ARCH=x86
+
 PREFIX = i686-elf-
+QEMU = qemu-system-i386
+QEMU_ARCH_FLAG = -M q35
+ifeq ($(ARCH),riscv)
+PREFIX = riscv32-elf-
+QEMU = qemu-system-riscv32
+QEMU_ARCH_FLAG = -M virt
+endif
+
 export CC= $(PREFIX)gcc
 export CFLAGS= -fno-strict-aliasing -O2 -Wall -Wextra -std=c17 -fno-omit-frame-pointer \
 		-fno-stack-protector -gdwarf-5 -Werror-implicit-function-declaration
 export CXX= $(PREFIX)g++
 export CXXFLAGS= -fno-strict-aliasing -O2 -Wall -Wextra -std=c++20 -fno-omit-frame-pointer -fno-stack-protector \
 				-gdwarf-5 -fno-sized-deallocation -fno-exceptions -fno-rtti -fno-use-cxa-atexit -Werror-implicit-function-declaration
+export ASFLAGS = -gdwarf-5
 export AS= $(PREFIX)as
-export ASFLAGS = -gdwarf-5 -Wa,-divide
+ifeq ($(ARCH),x86)
+ASFLAGS += -Wa,-divide
+endif
 export LD= $(PREFIX)ld
 export OBJCOPY= $(PREFIX)objcopy
 export AR = $(PREFIX)ar
 
+ifeq ($(ARCH),x86)
+USERSPACE_MODULE_TARGET = program module
+endif
+
 all: panicos.img
 
 qemu: panicos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 128 -net none -rtc base=localtime
+	$(QEMU) -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 128 -net none -rtc base=localtime $(QEMU_ARCH_FLAG)
 
 qemu-gdb: panicos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 128 -s -S -net none -rtc base=localtime
+	$(QEMU) -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 128 -s -S -net none -rtc base=localtime$(QEMU_ARCH_FLAG)
 
 qemu-kvm: panicos.img
-	qemu-system-i386 -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 128 -accel kvm -cpu host -net none -rtc base=localtime
+	$(QEMU) -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 128 -accel kvm -cpu host -net none -rtc base=localtime $(QEMU_ARCH_FLAG)
 
-panicos.img: boot/mbr.bin kernel/kernel rootfs program share module
+panicos.img: boot/mbr.bin kernel/kernel rootfs share $(USERSPACE_MODULE_TARGET)
 	dd if=/dev/zero of=fs.img bs=1M count=63
 	/sbin/mkfs.vfat -F32 -s1 -nPanicOS fs.img
 	mcopy -i fs.img -s rootfs/* ::
@@ -63,7 +80,7 @@ rootfs:
 	rootfs/share rootfs/boot/module
 
 .PHONY: dist
-dist: kernel/kernel rootfs program share module
+dist: kernel/kernel rootfs share $(USERSPACE_MODULE_TARGET)
 	tar -czf panicos.tar.gz rootfs/*
 
 .PHONY: clean

@@ -17,10 +17,14 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <common/types.h>
+
+#if !defined (__riscv)
+
 #include <arch/x86/lapic.h>
 #include <arch/x86/msi.h>
 #include <common/x86.h>
-#include <core/mmu.h>
+#include <arch/x86/mmu.h>
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
@@ -53,7 +57,8 @@ struct BootGraphicsMode boot_graphics_mode;
 void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	kinit1(end, P2V(4 * 1024 * 1024)); // phys page allocator
 	kvmalloc(); // kernel page table
-	cprintf("PanicOS i686-pae alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
+	cprintf("PanicOS i686 alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
+
 	if (mb_sig == 0x2BADB002 && mb_addr < 0x100000) {
 		cprintf("[multiboot] Multiboot bootloader detected, info at %x\n", mb_addr);
 		struct multiboot_info* mbinfo = P2V(mb_addr);
@@ -208,3 +213,25 @@ static void startothers(void) {
 			;
 	}
 }
+
+// The boot page table used in entry.S and entryother.S.
+// Page directories (and page tables) must start on page boundaries,
+// hence the __aligned__ attribute.
+// PTE_PS in a page directory entry enables 4Mbyte pages.
+
+__attribute__((__aligned__(PGSIZE))) pde_t entrypgdir[NPDENTRIES] = {
+	// Map VA's [0, 4MB) to PA's [0, 4MB)
+	[0] = (0) | PTE_P | PTE_W | PTE_PS,
+	// Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
+	[KERNBASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
+};
+
+#else
+
+void kmain(void){
+	volatile uint8_t* uart = (uint8_t*)0x10000000;
+	*uart = 'B';
+	for(;;){}
+}
+
+#endif

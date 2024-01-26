@@ -9,9 +9,9 @@ OBJS = \
 	core/main.o\
 	core/mp.o\
 	core/proc.o\
-	core/swtch.o\
+	arch/x86/swtch.o\
 	core/trap.o\
-	core/trapasm.o\
+	arch/x86/trapasm.o\
 	core/vm.o\
 	driver/ahci/ahci.o\
 	driver/ata/adapter.o\
@@ -68,14 +68,23 @@ OBJS = \
 	proc/pty.o\
 	vectors.o\
 
+ifeq ($(ARCH),riscv)
+OBJS = core/main.o
+endif
+
+ifeq ($(ARCH),x86)
+X86DEP = entryother initcode
+X86LDEXTRA = -b binary $(X86DEP)
+endif
+
 CFLAGS += -I. -fno-builtin
 ASFLAGS += -I.
 
-kernel : $(OBJS) core/entry.o entryother initcode kernel.ld
-	$(LD) $(LDFLAGS) -T kernel.ld -o kernel core/entry.o $(OBJS) $(shell $(CC) -print-libgcc-file-name) -b binary initcode entryother
+kernel : $(OBJS) arch/$(ARCH)/entry.o arch/$(ARCH)/kernel.ld $(X86DEP)
+	$(LD) $(LDFLAGS) -T arch/$(ARCH)/kernel.ld -o kernel arch/$(ARCH)/entry.o $(OBJS) $(shell $(CC) -print-libgcc-file-name) $(X86LDEXTRA)
 
-entryother: core/entryother.S
-	$(CC) $(CFLAGS) -fno-pic -nostdinc -I. -c core/entryother.S
+entryother: arch/x86/entryother.S
+	$(CC) $(CFLAGS) -fno-pic -nostdinc -I. -c arch/x86/entryother.S
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o bootblockother.o entryother.o
 	$(OBJCOPY) -S -O binary -j .text bootblockother.o entryother
 
@@ -86,4 +95,4 @@ initcode: proc/init/initcode.S
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS) kernel entryother bootblockother.o initcode.out initcode core/entry.o entryother.o initcode.o
+	rm -f $(OBJS) kernel entryother bootblockother.o initcode.out initcode entryother.o initcode.o arch/x86/entry.o arch/riscv/entry.o
