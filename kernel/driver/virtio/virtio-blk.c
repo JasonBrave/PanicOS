@@ -28,8 +28,8 @@
 #include "virtio-regs.h"
 #include "virtio.h"
 
-static void virtio_blk_req(struct VirtioBlockDevice* dev, int type, unsigned int sect,
-						   unsigned int count, phyaddr_t dest, uint8_t* status) {
+static void virtio_blk_req(struct VirtioBlockDevice *dev, int type, unsigned int sect,
+						   unsigned int count, phyaddr_t dest, uint8_t *status) {
 	volatile struct {
 		uint32_t type;
 		uint32_t reserved;
@@ -65,23 +65,27 @@ static void virtio_blk_req(struct VirtioBlockDevice* dev, int type, unsigned int
 
 	virtio_queue_avail_insert(&dev->requestq, desc[0]);
 
-	// do not sleep at boot time
+// do not sleep at boot time
+#ifndef __riscv
 	if (myproc()) {
 		virtio_queue_notify(dev->virtio_dev, &dev->requestq);
 		sleep(P2V(dest), &dev->lock);
 	} else {
+#endif
 		virtio_queue_notify_wait(dev->virtio_dev, &dev->requestq);
+#ifndef __riscv
 	}
+#endif
 }
 
-int virtio_blk_read(void* private, unsigned int begin, int count, void* buf) {
+int virtio_blk_read(void *private, unsigned int begin, int count, void *buf) {
 	// check buf for DMA
 	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP || (phyaddr_t)buf % PGSIZE)
 		panic("virtio dma");
 	if (count == 0 || count > 8)
 		panic("virtio count");
 	phyaddr_t dest = V2P(buf);
-	struct VirtioBlockDevice* dev = private;
+	struct VirtioBlockDevice *dev = private;
 	uint8_t status;
 	// start request
 	acquire(&dev->lock);
@@ -93,14 +97,14 @@ int virtio_blk_read(void* private, unsigned int begin, int count, void* buf) {
 	return 0;
 }
 
-int virtio_blk_write(void* private, unsigned int begin, int count, const void* buf) {
+int virtio_blk_write(void *private, unsigned int begin, int count, const void *buf) {
 	// check buf for DMA
 	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP || (phyaddr_t)buf % PGSIZE)
 		panic("virtio dma");
 	if (count == 0 || count > 8)
 		panic("virtio count");
 	phyaddr_t dest = V2P(buf);
-	struct VirtioBlockDevice* dev = private;
+	struct VirtioBlockDevice *dev = private;
 	uint8_t status;
 	// start request
 	acquire(&dev->lock);
@@ -117,34 +121,36 @@ const struct BlockDeviceDriver virtio_blk_block_driver = {
 	.block_write = virtio_blk_write,
 };
 
-static struct VirtioBlockDevice* virtio_blk_alloc_dev(void) {
-	struct VirtioBlockDevice* dev = kalloc();
+static struct VirtioBlockDevice *virtio_blk_alloc_dev(void) {
+	struct VirtioBlockDevice *dev = kalloc();
 	memset(dev, 0, sizeof(struct VirtioBlockDevice));
 	return dev;
 }
 
-static void virtio_blk_requestq_intr(struct VirtioQueue* queue) {
-	struct VirtioBlockDevice* dev = queue->virtio_dev->private;
+static void virtio_blk_requestq_intr(struct VirtioQueue *queue) {
+	struct VirtioBlockDevice *dev = queue->virtio_dev->private;
 
 	acquire(&dev->lock);
 	static unsigned short last = 0;
 	for (; last != queue->used->idx; last++) {
 		unsigned int id = queue->used->ring[last % queue->size].id;
-		volatile struct VirtqDesc* desc = &queue->desc[id];
+		volatile struct VirtqDesc *desc = &queue->desc[id];
 		if (desc->flags & VIRTQ_DESC_F_NEXT) {
 			desc = &queue->desc[desc->next];
+#ifndef __riscv
 			wakeup(P2V((phyaddr_t)desc->addr));
+#endif
 		}
 		virtio_free_desc(queue, id);
 	}
 	release(&dev->lock);
 }
 
-static void virtio_blk_dev_init(struct VirtioDevice* virtio_dev, unsigned int features) {
-	struct VirtioBlockDevice* dev = virtio_blk_alloc_dev();
+static void virtio_blk_dev_init(struct VirtioDevice *virtio_dev, unsigned int features) {
+	struct VirtioBlockDevice *dev = virtio_blk_alloc_dev();
 	virtio_dev->private = dev;
 	dev->virtio_dev = virtio_dev;
-	volatile struct VirtioBlockConfig* blkcfg = dev->virtio_dev->devcfg;
+	volatile struct VirtioBlockConfig *blkcfg = dev->virtio_dev->devcfg;
 	// initialize lock
 	initlock(&dev->lock, "virtio-blk");
 	acquire(&dev->lock);

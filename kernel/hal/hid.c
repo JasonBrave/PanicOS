@@ -29,7 +29,7 @@ static int mouse_queue_begin = 0, mouse_queue_end = 0;
 static struct spinlock mouse_queue_lock;
 
 static int mouse_kcall_handler(unsigned int p) {
-	unsigned int* m = (void*)p;
+	unsigned int *m = (void *)p;
 	acquire(&mouse_queue_lock);
 	if (mouse_queue_begin == mouse_queue_end) {
 		*m = 0;
@@ -63,7 +63,7 @@ int hal_kbd_send_legacy = 1;
 
 static int keyboard_kcall_handler(unsigned int p) {
 	hal_kbd_send_legacy = 0;
-	unsigned int* m = (void*)p;
+	unsigned int *m = (void *)p;
 	acquire(&keyboard_queue_lock);
 	if (keyboard_queue_begin == keyboard_queue_end) {
 		*m = 0;
@@ -81,12 +81,16 @@ static int keyboard_kcall_handler(unsigned int p) {
 
 void hal_keyboard_update(unsigned int data) {
 	if (data == 144) { // numlock
+#ifndef __riscv
 		procdump();
+#endif
 		print_memory_usage();
 		pci_print_devices();
 		usb_print_devices();
 		virtio_print_devices();
+#ifndef __riscv
 		module_print();
+#endif
 		return;
 	}
 	acquire(&keyboard_queue_lock);

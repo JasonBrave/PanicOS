@@ -18,9 +18,12 @@
  */
 
 #include <common/errorcode.h>
-#include <common/x86.h>
 #include <defs.h>
 #include <proc/kcall.h>
+
+#ifndef __riscv
+#include <common/x86.h>
+#endif
 
 #include "hal.h"
 
@@ -55,13 +58,18 @@ void hal_power_init(void) {
 
 void hal_shutdown(void) {
 	cprintf("[hal] shutting down\n");
+#ifndef __riscv
 	outw(0x604, 0x2000); // QEMU
 	outw(0xB004, 0x2000); // Bochs
 	outw(0x4004, 0x3400); // VirtualBox
+#endif
 	panic("You can safely power off your computer");
 }
 
 void hal_reboot(void) {
 	cprintf("[hal] reboot using port 0xcf9\n");
+#ifndef __riscv
 	outb(0xcf9, 6);
+#endif
+	panic("You can safely reboot your computer");
 }

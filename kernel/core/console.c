@@ -20,14 +20,17 @@
 // Input is from the keyboard or serial port.
 // Output is written to the screen and serial port.
 
+#ifndef __riscv
 #include <arch/x86/lapic.h>
+#include <common/x86.h>
+#include <driver/x86/uart.h>
+#endif
+
 #include <common/sleeplock.h>
 #include <common/spinlock.h>
-#include <common/x86.h>
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
-#include <driver/x86/uart.h>
 #include <memlayout.h>
 #include <param.h>
 
@@ -47,13 +50,16 @@ static int panicked = 0;
 static struct {
 	struct spinlock lock;
 	int locking;
-	uint32_t* fb;
+	uint32_t *fb;
 	uint32_t width, height;
-	enum { CONS_VGA, CONS_FB } mode;
+	enum {
+		CONS_VGA,
+		CONS_FB
+	} mode;
 } cons;
 
 static void printint(unsigned long long xx, int base, int sgn, int cpt) {
-	const char* digits = cpt ? "0123456789ABCDEF" : "0123456789abcdef";
+	const char *digits = cpt ? "0123456789ABCDEF" : "0123456789abcdef";
 	char buf[64];
 	int i, neg;
 	unsigned long long x;
@@ -78,7 +84,7 @@ static void printint(unsigned long long xx, int base, int sgn, int cpt) {
 }
 
 // Print to the console. only understands %d, %x, %p, %s.
-void cprintf(const char* restrict fmt, ...) {
+void cprintf(const char *restrict fmt, ...) {
 	int c, i, state;
 
 	state = 0;
@@ -103,7 +109,7 @@ void cprintf(const char* restrict fmt, ...) {
 			} else if (c == 'c') {
 				consputc(va_arg(args, int));
 			} else if (c == 's') {
-				const char* s = va_arg(args, const char*);
+				const char *s = va_arg(args, const char *);
 				if (s == 0)
 					s = "(null)";
 				while (*s != 0) {
@@ -119,7 +125,7 @@ void cprintf(const char* restrict fmt, ...) {
 			} else if (c == 'u') {
 				printint(va_arg(args, unsigned int), 10, 0, 0);
 			} else if (c == 'p') {
-				printint((unsigned int)va_arg(args, void*), 16, 0, 0);
+				printint((unsigned int)va_arg(args, void *), 16, 0, 0);
 			} else if (c == 'l') {
 				state = 'l';
 			} else {
@@ -157,28 +163,40 @@ void cprintf(const char* restrict fmt, ...) {
 		release(&cons.lock);
 }
 
-void panic(const char* s) {
+void panic(const char *s) {
+#ifndef __riscv
 	int i;
 	unsigned int pcs[10];
-
 	cli();
+#endif
 	cons.locking = 0;
-	// use lapiccpunum so that we can call panic from mycpu()
+// use lapiccpunum so that we can call panic from mycpu()
+#ifndef __riscv
 	cprintf("lapicid %d: panic: ", lapicid());
+#else
+	cprintf("panic: ");
+#endif
 	cprintf(s);
 	cprintf("\n");
+#ifndef __riscv
 	getcallerpcs(&s, pcs);
 	for (i = 0; i < 10; i++)
 		cprintf(" %p", pcs[i]);
+
+#endif
+
 	panicked = 1; // freeze other CPU
 	for (;;)
 		;
 }
 
-// PAGEBREAK: 50
 #define BACKSPACE 0x100
+
+#ifndef __riscv
+
+// PAGEBREAK: 50
 #define CRTPORT 0x3d4
-static unsigned short* crt = (unsigned short*)P2V(0xb8000); // CGA memory
+static unsigned short *crt = (unsigned short *)P2V(0xb8000); // CGA memory
 
 static void cgaputc(int c) {
 	static int pos = 0;
@@ -209,13 +227,18 @@ static void cgaputc(int c) {
 	crt[pos] = ' ' | 0x0700;
 }
 
+#endif
+
 void consputc(int c) {
 	if (panicked) {
+#ifndef __riscv
 		cli();
+#endif
 		for (;;)
 			;
 	}
 
+#ifndef __riscv
 	if (c == BACKSPACE) {
 		uart_putc('\b');
 		uart_putc(' ');
@@ -228,8 +251,15 @@ void consputc(int c) {
 	} else if (cons.mode == CONS_FB) {
 		fb_putc(c);
 	}
+#endif
+
 #ifdef USE_DEBUGCON
+#ifdef __riscv
+	volatile uint8_t *uart_tx = (uint8_t *)0x10000000;
+	*uart_tx = c;
+#else
 	outb(DEBUGCON_ADDR, c);
+#endif
 #endif
 }
 
@@ -269,7 +299,9 @@ void consoleintr(int (*getc)(void)) {
 				consputc(c);
 				if (c == '\n' || c == C('D') || input.e == input.r + INPUT_BUF) {
 					input.w = input.e;
+#ifndef __riscv
 					wakeup(&input.r);
+#endif
 				}
 			}
 			break;
@@ -278,7 +310,7 @@ void consoleintr(int (*getc)(void)) {
 	release(&cons.lock);
 }
 
-int consoleread(char* dst, int n) {
+int consoleread(char *dst, int n) {
 	unsigned int target;
 	int c;
 
@@ -286,11 +318,13 @@ int consoleread(char* dst, int n) {
 	acquire(&cons.lock);
 	while (n > 0) {
 		while (input.r == input.w) {
+#ifndef __riscv
 			if (myproc()->killed) {
 				release(&cons.lock);
 				return -1;
 			}
 			sleep(&input.r, &cons.lock);
+#endif
 		}
 		c = input.buf[input.r++ % INPUT_BUF];
 		if (c == C('D')) { // EOF
@@ -311,7 +345,7 @@ int consoleread(char* dst, int n) {
 	return target - n;
 }
 
-int consolewrite(char* buf, int n) {
+int consolewrite(char *buf, int n) {
 	acquire(&cons.lock);
 	for (int i = 0; i < n; i++)
 		consputc(buf[i] & 0xff);
@@ -319,6 +353,8 @@ int consolewrite(char* buf, int n) {
 
 	return n;
 }
+
+#ifndef __riscv
 
 void vgacon_init(void) {
 	initlock(&cons.lock, "console");
@@ -345,7 +381,7 @@ void fbcon_init(phyaddr_t fb_addr, unsigned int width, unsigned int height) {
 
 static void fbcon_drawchar(int x, int y, char c) {
 	for (int i = 0; i < 16; i++) {
-		uint32_t* p = cons.fb + (y + i) * cons.width + x;
+		uint32_t *p = cons.fb + (y + i) * cons.width + x;
 		if (font16[c * 16 + i] & 1) {
 			p[7] = WHITE;
 		} else {
@@ -389,9 +425,9 @@ static void fbcon_drawchar(int x, int y, char c) {
 	}
 }
 
-static inline void fastmemcpy32(void* dest, const void* src, int cnt) {
-	uint32_t* d = dest;
-	const uint32_t* s = src;
+static inline void fastmemcpy32(void *dest, const void *src, int cnt) {
+	uint32_t *d = dest;
+	const uint32_t *s = src;
 	for (int i = 0; i < cnt; i++) {
 		d[i] = s[i];
 	}
@@ -435,3 +471,5 @@ static void fb_putc(int c) {
 	}
 	fbcon_drawchar(xpos * 8, ypos * 16, '_');
 }
+
+#endif

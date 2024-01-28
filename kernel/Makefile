@@ -1,46 +1,20 @@
-OBJS = \
-	arch/x86/lapic.o\
-	arch/x86/msi.o\
-	common/sleeplock.o\
-	common/spinlock.o\
+OBJS_COMMON = \
 	common/string.o\
 	core/console.o\
 	core/kalloc.o\
 	core/main.o\
-	core/mp.o\
-	core/proc.o\
-	arch/x86/swtch.o\
-	core/trap.o\
-	arch/x86/trapasm.o\
-	core/vm.o\
-	driver/ahci/ahci.o\
-	driver/ata/adapter.o\
-	driver/ata/ata.o\
-	driver/ata/pata.o\
-	driver/ata/sata.o\
-	driver/bochs-display/bochs-display.o\
 	driver/pci/driver.o\
 	driver/pci/intx.o\
 	driver/pci/msi.o\
 	driver/pci/msix.o\
 	driver/pci/pci-kcall.o\
 	driver/pci/pci.o\
-	driver/ps2/keyboard.o\
-	driver/ps2/mouse.o\
-	driver/uhci/uhci.o\
 	driver/usb/hub.o\
 	driver/usb/request.o\
 	driver/usb/transfer.o\
 	driver/usb/usb.o\
 	driver/virtio/virtio-blk.o\
 	driver/virtio/virtio.o\
-	driver/x86/intel-pcie-mmcfg.o\
-	driver/x86/ioapic.o\
-	driver/x86/pci-legacy.o\
-	driver/x86/pic.o\
-	driver/x86/platform.o\
-	driver/x86/rtc.o\
-	driver/x86/uart.o\
 	filesystem/fs-driver.o\
 	filesystem/fat32/cluster.o\
 	filesystem/fat32/dir.o\
@@ -56,20 +30,59 @@ OBJS = \
 	hal/gpt.o\
 	hal/hid.o\
 	hal/mbr.o\
-	hal/module.o\
 	hal/power.o\
+	proc/kcall.o\
+
+OBJS_X86 = \
+	arch/x86/lapic.o\
+	arch/x86/msi.o\
+	common/sleeplock.o\
+	arch/x86/spinlock.o\
+	core/mp.o\
+	core/proc.o\
+	arch/x86/swtch.o\
+	core/trap.o\
+	arch/x86/trapasm.o\
+	core/vm.o\
+	driver/ahci/ahci.o\
+	driver/ata/adapter.o\
+	driver/ata/ata.o\
+	driver/ata/pata.o\
+	driver/ata/sata.o\
+	driver/bochs-display/bochs-display.o\
+	driver/ps2/keyboard.o\
+	driver/ps2/mouse.o\
+	driver/uhci/uhci.o\
+	driver/x86/intel-pcie-mmcfg.o\
+	driver/x86/ioapic.o\
+	driver/x86/pci-legacy.o\
+	driver/x86/pic.o\
+	driver/x86/platform.o\
+	driver/x86/rtc.o\
+	driver/x86/uart.o\
+	hal/module.o\
 	proc/exec/dynamic.o\
 	proc/exec/elf.o\
 	proc/exec/exec.o\
 	proc/syscall/syscall.o\
 	proc/syscall/sysfile.o\
 	proc/syscall/sysproc.o\
-	proc/kcall.o\
 	proc/pty.o\
 	vectors.o\
 
+OBJS_RISCV = \
+	arch/riscv/imsic.o\
+	arch/riscv/spinlock.o\
+	arch/riscv/vm.o\
+	driver/riscv/ecam.o\
+	driver/riscv/platform.o
+
 ifeq ($(ARCH),riscv)
-OBJS = core/main.o
+OBJS = $(OBJS_COMMON) $(OBJS_RISCV)
+endif
+
+ifeq ($(ARCH),x86)
+OBJS = $(OBJS_COMMON) $(OBJS_X86)
 endif
 
 ifeq ($(ARCH),x86)
@@ -95,4 +108,4 @@ initcode: proc/init/initcode.S
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS) kernel entryother bootblockother.o initcode.out initcode entryother.o initcode.o arch/x86/entry.o arch/riscv/entry.o
+	rm -f $(OBJS_COMMON) $(OBJS_X86) $(OBJS_RISCV) kernel entryother bootblockother.o initcode.out initcode entryother.o initcode.o arch/x86/entry.o arch/riscv/entry.o

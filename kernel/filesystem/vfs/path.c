@@ -22,7 +22,7 @@
 
 #include "vfs.h"
 
-int vfs_path_split(const char* path, char* buf) {
+int vfs_path_split(const char *path, char *buf) {
 	int count = 0;
 	int x = 0, y;
 	for (;;) {
@@ -48,7 +48,7 @@ int vfs_path_split(const char* path, char* buf) {
 	return count;
 }
 
-int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts, const char* rhs_buf) {
+int vfs_path_compare(int lhs_parts, const char *lhs_buf, int rhs_parts, const char *rhs_buf) {
 	if (lhs_parts != rhs_parts) {
 		return 0;
 	}
@@ -60,7 +60,7 @@ int vfs_path_compare(int lhs_parts, const char* lhs_buf, int rhs_parts, const ch
 	return 1;
 }
 
-void vfs_path_tostring(struct VfsPath path, char* buf) {
+void vfs_path_tostring(struct VfsPath path, char *buf) {
 	int next = 1;
 	buf[0] = '/';
 	for (int i = 0; i < path.parts; i++) {
@@ -72,11 +72,15 @@ void vfs_path_tostring(struct VfsPath path, char* buf) {
 	buf[next] = '\0';
 }
 
-void vfs_get_absolute_path(struct VfsPath* path) {
-	char* newpath = kalloc();
+void vfs_get_absolute_path(struct VfsPath *path) {
+	char *newpath = kalloc();
+#ifndef __riscv
 	memmove(newpath, myproc()->cwd.pathbuf, myproc()->cwd.parts * 128);
 	memmove(newpath + myproc()->cwd.parts * 128, path->pathbuf, path->parts * 128);
+#endif
 	kfree(path->pathbuf);
 	path->pathbuf = newpath;
+#ifndef __riscv
 	path->parts += myproc()->cwd.parts;
+#endif
 }

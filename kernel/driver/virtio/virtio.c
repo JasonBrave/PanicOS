@@ -30,7 +30,7 @@
 
 struct VirtioDevice virtio_device_table[VIRTIO_DEVICE_TABLE_SIZE];
 
-static void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* dev) {
+static void virtio_read_cap(const struct PciAddress *addr, struct VirtioDevice *dev) {
 	int capptr = pci_read_config_reg8(addr, 0x34);
 	unsigned int cmcfg_off = 0, notify_off = 0, isr_off = 0, devcfg_off = 0;
 	unsigned int mmio_bar = 0;
@@ -54,8 +54,8 @@ static void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* 
 			}
 		}
 	} while ((capptr = pci_read_config_reg8(addr, capptr + 1)) != 0);
-	volatile void* mmio_region =
-		map_mmio_region(pci_read_bar(addr, mmio_bar), pci_read_bar_size(addr, mmio_bar));
+	volatile void *mmio_region
+		= map_mmio_region(pci_read_bar(addr, mmio_bar), pci_read_bar_size(addr, mmio_bar));
 	dev->cmcfg = mmio_region + cmcfg_off;
 	dev->notify_begin = mmio_region + notify_off;
 	dev->isr = mmio_region + isr_off;
@@ -64,7 +64,7 @@ static void virtio_read_cap(const struct PciAddress* addr, struct VirtioDevice* 
 			notify_off, isr_off, devcfg_off);
 }
 
-static unsigned int virtio_set_feature(struct VirtioDevice* dev, unsigned int feature) {
+static unsigned int virtio_set_feature(struct VirtioDevice *dev, unsigned int feature) {
 	dev->cmcfg->device_status |= VIRTIO_STATUS_DRIVER;
 	dev->cmcfg->driver_feature = dev->cmcfg->device_feature & feature;
 	unsigned int ack_feature = dev->cmcfg->driver_feature;
@@ -79,14 +79,14 @@ the device consume num_queues vectors
 vector queue_n is used for queues
 */
 #ifdef VIRTIO_PCI_USE_MSIX
-static void virtio_pci_queue_msix_handler(void* private) {
-	struct VirtioQueue* queue = private;
+static void virtio_pci_queue_msix_handler(void *private) {
+	struct VirtioQueue *queue = private;
 	queue->intr_handler(queue);
 	return;
 }
 #endif
 
-static void virtio_add_virtq_to_dev(struct VirtioDevice* dev, struct VirtioQueue* queue) {
+static void virtio_add_virtq_to_dev(struct VirtioDevice *dev, struct VirtioQueue *queue) {
 	for (int i = 0; i < VIRTIO_MAX_NUM_VIRTQUEUE; i++) {
 		if (!dev->virtqueue[i]) {
 			dev->virtqueue[i] = queue;
@@ -96,17 +96,17 @@ static void virtio_add_virtq_to_dev(struct VirtioDevice* dev, struct VirtioQueue
 	panic("virtio only support max 8 virtqueue");
 }
 
-void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, unsigned int queue_n,
-					   void (*intr_handler)(struct VirtioQueue*)) {
+void virtio_init_queue(struct VirtioDevice *dev, struct VirtioQueue *queue, unsigned int queue_n,
+					   void (*intr_handler)(struct VirtioQueue *)) {
 	queue->virtio_dev = dev;
 	virtio_add_virtq_to_dev(dev, queue);
 	// allocate queue memory
 	queue->desc = kalloc();
 	queue->avail = kalloc();
 	queue->used = kalloc();
-	memset((void*)queue->desc, 0, 4096);
-	memset((void*)queue->avail, 0, 4096);
-	memset((void*)queue->used, 0, 4096);
+	memset((void *)queue->desc, 0, 4096);
+	memset((void *)queue->avail, 0, 4096);
+	memset((void *)queue->used, 0, 4096);
 	// select current queue
 	dev->cmcfg->queue_select = queue_n;
 	if (dev->cmcfg->queue_size > VIRTIO_QUEUE_SIZE_MAX) {
@@ -132,23 +132,23 @@ void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue, unsi
 	dev->cmcfg->queue_enable = 1;
 }
 
-void virtio_queue_notify(struct VirtioDevice* dev, struct VirtioQueue* queue) {
+void virtio_queue_notify(struct VirtioDevice *dev, struct VirtioQueue *queue) {
 	*queue->notify = 0;
 }
 
-void virtio_queue_notify_wait(struct VirtioDevice* dev, struct VirtioQueue* queue) {
+void virtio_queue_notify_wait(struct VirtioDevice *dev, struct VirtioQueue *queue) {
 	int prev = queue->used->idx;
 	*queue->notify = 0;
 	while (prev == queue->used->idx) {
 	}
 }
 
-void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc) {
+void virtio_queue_avail_insert(struct VirtioQueue *queue, int desc) {
 	queue->avail->ring[queue->avail->idx % queue->size] = desc;
 	queue->avail->idx++;
 }
 
-int* virtio_alloc_desc(struct VirtioQueue* queue, int* desc, int num) {
+int *virtio_alloc_desc(struct VirtioQueue *queue, int *desc, int num) {
 	for (int i = 0; i < num; i++) {
 		desc[i] = -1;
 		for (int j = 0; j < queue->size; j++) {
@@ -165,7 +165,7 @@ int* virtio_alloc_desc(struct VirtioQueue* queue, int* desc, int num) {
 	return desc;
 }
 
-void virtio_free_desc(struct VirtioQueue* queue, int desc) {
+void virtio_free_desc(struct VirtioQueue *queue, int desc) {
 	do {
 		queue->desc[desc].addr = 0;
 		if (queue->desc[desc].flags & VIRTQ_DESC_F_NEXT) {
@@ -177,12 +177,12 @@ void virtio_free_desc(struct VirtioQueue* queue, int desc) {
 }
 
 #ifndef VIRTIO_PCI_USE_MSIX
-static int virtio_intr_ack(struct VirtioDevice* dev) {
+static int virtio_intr_ack(struct VirtioDevice *dev) {
 	return *dev->isr;
 }
 
-static void virtio_pci_intr_handler(struct PCIDevice* pcidev) {
-	struct VirtioDevice* dev = pcidev->private;
+static void virtio_pci_intr_handler(struct PCIDevice *pcidev) {
+	struct VirtioDevice *dev = pcidev->private;
 	if (virtio_intr_ack(dev) & 1) { // is queue interrupt?
 		for (int i = 0; i < VIRTIO_MAX_NUM_VIRTQUEUE; i++) {
 			if (dev->virtqueue[i]) {
@@ -194,7 +194,7 @@ static void virtio_pci_intr_handler(struct PCIDevice* pcidev) {
 }
 #endif
 
-static unsigned int virtio_generic_init(struct VirtioDevice* dev, unsigned int features) {
+static unsigned int virtio_generic_init(struct VirtioDevice *dev, unsigned int features) {
 	pci_enable_bus_mastering(&dev->pcidev->addr);
 	// interrupt initialization
 #ifdef VIRTIO_PCI_USE_MSIX
@@ -217,15 +217,15 @@ static unsigned int virtio_generic_init(struct VirtioDevice* dev, unsigned int f
 	return ack_feature;
 }
 
-void virtio_register_driver(const struct VirtioDriver* driver) {
+void virtio_register_driver(const struct VirtioDriver *driver) {
 	for (int i = 0; i < VIRTIO_DEVICE_TABLE_SIZE; i++) {
-		if (!virtio_device_table[i].driver && virtio_device_table[i].is_legacy &&
-			virtio_device_table[i].device_id == driver->legacy_device_id) {
+		if (!virtio_device_table[i].driver && virtio_device_table[i].is_legacy
+			&& virtio_device_table[i].device_id == driver->legacy_device_id) {
 			virtio_device_table[i].driver = driver;
 			unsigned int feature = virtio_generic_init(&virtio_device_table[i], driver->features);
 			driver->init(&virtio_device_table[i], feature);
-		} else if (!virtio_device_table[i].driver && !virtio_device_table[i].is_legacy &&
-				   virtio_device_table[i].device_id == driver->device_id) {
+		} else if (!virtio_device_table[i].driver && !virtio_device_table[i].is_legacy
+				   && virtio_device_table[i].device_id == driver->device_id) {
 			virtio_device_table[i].driver = driver;
 			unsigned int feature = virtio_generic_init(&virtio_device_table[i], driver->features);
 			driver->init(&virtio_device_table[i], feature);
@@ -233,7 +233,7 @@ void virtio_register_driver(const struct VirtioDriver* driver) {
 	}
 }
 
-static struct VirtioDevice* virtio_alloc_device(void) {
+static struct VirtioDevice *virtio_alloc_device(void) {
 	for (int i = 0; i < VIRTIO_DEVICE_TABLE_SIZE; i++) {
 		if (!virtio_device_table[i].device_id) {
 			memset(&virtio_device_table[i], 0, sizeof(struct VirtioDevice));
@@ -243,8 +243,8 @@ static struct VirtioDevice* virtio_alloc_device(void) {
 	panic("too many virtio device");
 }
 
-static void virtio_pci_init(struct PCIDevice* pcidev) {
-	struct VirtioDevice* dev = virtio_alloc_device();
+static void virtio_pci_init(struct PCIDevice *pcidev) {
+	struct VirtioDevice *dev = virtio_alloc_device();
 	dev->transport_is_pci = 1;
 	dev->pcidev = pcidev;
 	pcidev->private = dev;

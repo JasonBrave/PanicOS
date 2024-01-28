@@ -25,7 +25,7 @@
 
 struct USBBus usb_bus[USB_BUS_NUM_MAX];
 
-static unsigned int usb_alloc_address(struct USBBus* bus) {
+static unsigned int usb_alloc_address(struct USBBus *bus) {
 	for (int i = 1; i <= 127; i++) {
 		if (!bus->devices[i]) {
 			return i;
@@ -34,7 +34,7 @@ static unsigned int usb_alloc_address(struct USBBus* bus) {
 	return 0;
 }
 
-struct USBBus* usb_alloc_bus(void) {
+struct USBBus *usb_alloc_bus(void) {
 	for (int i = 0; i < USB_BUS_NUM_MAX; i++) {
 		if (!usb_bus[i].controller.driver) {
 			return &usb_bus[i];
@@ -44,9 +44,9 @@ struct USBBus* usb_alloc_bus(void) {
 }
 
 // device at address 0, already reset by caller
-void usb_register_device(struct USBBus* bus, unsigned int port) {
+void usb_register_device(struct USBBus *bus, unsigned int port) {
 	unsigned int addr = usb_alloc_address(bus);
-	struct USBDevice* usbdev = kalloc();
+	struct USBDevice *usbdev = kalloc();
 	memset(usbdev, 0, sizeof(struct USBDevice));
 	bus->devices[addr] = usbdev;
 
@@ -83,9 +83,9 @@ void usb_register_device(struct USBBus* bus, unsigned int port) {
 	usb_set_configuration(usbdev, configuration_value);
 }
 
-void usb_register_host_controller(void* private, const char* name, unsigned int num_ports,
-								  const struct USBHostControllerDriver* hcdriver) {
-	struct USBBus* bus = usb_alloc_bus();
+void usb_register_host_controller(void *private, const char *name, unsigned int num_ports,
+								  const struct USBHostControllerDriver *hcdriver) {
+	struct USBBus *bus = usb_alloc_bus();
 	bus->controller.name = name;
 	bus->controller.driver = hcdriver;
 	bus->controller.private = private;
@@ -102,7 +102,7 @@ void usb_register_host_controller(void* private, const char* name, unsigned int 
 	}
 }
 
-void usb_register_driver(const struct USBDriver* driver) {
+void usb_register_driver(const struct USBDriver *driver) {
 	for (unsigned int bus = 0; bus < USB_BUS_NUM_MAX; bus++) {
 		if (!usb_bus[bus].controller.driver) {
 			continue;
@@ -112,13 +112,13 @@ void usb_register_driver(const struct USBDriver* driver) {
 				continue;
 			}
 			for (unsigned int j = 0; j < usb_bus[bus].devices[i]->num_interface; j++) {
-				if (!usb_bus[bus].devices[i]->interfaces[j].driver &&
-					usb_bus[bus].devices[i]->interfaces[j].class ==
-						(driver->class_type >> 16 & 0xff) &&
-					usb_bus[bus].devices[i]->interfaces[j].subclass ==
-						(driver->class_type >> 8 & 0xff) &&
-					usb_bus[bus].devices[i]->interfaces[j].protocol ==
-						(driver->class_type & 0xff)) {
+				if (!usb_bus[bus].devices[i]->interfaces[j].driver
+					&& usb_bus[bus].devices[i]->interfaces[j].class
+						   == (driver->class_type >> 16 & 0xff)
+					&& usb_bus[bus].devices[i]->interfaces[j].subclass
+						   == (driver->class_type >> 8 & 0xff)
+					&& usb_bus[bus].devices[i]->interfaces[j].protocol
+						   == (driver->class_type & 0xff)) {
 					usb_bus[bus].devices[i]->interfaces[j].driver = driver;
 					driver->init(&usb_bus[bus].devices[i]->interfaces[j]);
 				}
@@ -129,7 +129,9 @@ void usb_register_driver(const struct USBDriver* driver) {
 
 void usb_init(void) {
 	memset(usb_bus, 0, sizeof(usb_bus));
+#ifndef __riscv
 	uhci_init();
+#endif
 	// usb device types
 	usb_hub_init(); // USB hub
 }

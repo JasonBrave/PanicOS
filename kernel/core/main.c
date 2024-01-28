@@ -19,12 +19,6 @@
 
 #include <common/types.h>
 
-#if !defined (__riscv)
-
-#include <arch/x86/lapic.h>
-#include <arch/x86/msi.h>
-#include <common/x86.h>
-#include <arch/x86/mmu.h>
 #include <core/proc.h>
 #include <core/traps.h>
 #include <defs.h>
@@ -40,11 +34,21 @@
 #include <proc/kcall.h>
 #include <proc/pty.h>
 
-#include "multiboot.h"
+#ifndef __riscv
+#include <arch/x86/lapic.h>
+#include <arch/x86/mmu.h>
+#include <arch/x86/msi.h>
+#include <common/x86.h>
 
+#include "multiboot.h"
+#endif
+
+#ifndef __riscv
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
 extern pdpte_t* kpgdir;
+#endif
+
 extern char end[]; // first address after kernel loaded from ELF file
 
 extern void platform_init(void);
@@ -54,19 +58,27 @@ struct BootGraphicsMode boot_graphics_mode;
 // Bootstrap processor starts running C code here.
 // Allocate a real stack and switch to it, first
 // doing some setup required for memory allocator to work.
+
+#ifndef __riscv
 void kmain(uint32_t mb_sig, uint32_t mb_addr) {
+#else
+void kmain(void *fdt) {
+#endif
+
 	kinit1(end, P2V(4 * 1024 * 1024)); // phys page allocator
+
+#ifndef __riscv
 	kvmalloc(); // kernel page table
 	cprintf("PanicOS i686 alpha built on " __DATE__ " " __TIME__ " gcc " __VERSION__ "\n");
 
 	if (mb_sig == 0x2BADB002 && mb_addr < 0x100000) {
 		cprintf("[multiboot] Multiboot bootloader detected, info at %x\n", mb_addr);
-		struct multiboot_info* mbinfo = P2V(mb_addr);
+		struct multiboot_info *mbinfo = P2V(mb_addr);
 		if ((mbinfo->flags & (1 << 6)) && mbinfo->mmap_addr < 0x100000) { // memory map
 			unsigned long long memory_size = 0;
 			cprintf("[multiboot] Memory map addr %x length %d\n", mbinfo->mmap_addr,
 					mbinfo->mmap_length);
-			struct multiboot_mmap_entry* mmap = P2V(mbinfo->mmap_addr);
+			struct multiboot_mmap_entry *mmap = P2V(mbinfo->mmap_addr);
 			for (unsigned int off = 0; off < mbinfo->mmap_length;
 				 off += (mmap->size + sizeof(mmap->size))) {
 				mmap = P2V(mbinfo->mmap_addr + off);
@@ -119,6 +131,11 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 			boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
 		}
 	}
+#else
+	cprintf("PanicOS risc-v alpha built on " __DATE__ " " __TIME__ "\n");
+#endif
+
+#ifndef __riscv
 	mpinit(); // detect other processors
 	lapicinit(); // interrupt controller
 	seginit(); // segment descriptors
@@ -133,6 +150,7 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	cprintf("[cpu] starting other cpus\n");
 	startothers(); // start other processors
 	kinit2(P2V(4 * 1024 * 1024), P2V(PHYSTOP));
+#endif
 	// greeting
 	cprintf(" ____             _       ___  ____  \n");
 	cprintf("|  _ \\ __ _ _ __ (_) ___ / _ \\/ ___| \n");
@@ -147,21 +165,32 @@ void kmain(uint32_t mb_sig, uint32_t mb_addr) {
 	hal_block_init();
 	hal_hid_init();
 	hal_power_init();
+#ifndef __riscv
 	pty_init();
+#endif
 	// device initialization
 	platform_init(); // platform devices (platform dependent) and PCI
 	virtio_init(); // virtio "bus" and devices
 	usb_init(); // usb bus and devices
-	// kernel built-in drivers
+// kernel built-in drivers
+#ifndef __riscv
 	ata_init(); // parallel ata and ata subsystem
 	ahci_init(); // AHCI driver
 	bochs_display_init(); // qemu virtual display adapter
+#endif
 	// filesystem and user-mode
 	filesystem_init();
+#ifndef __riscv
 	module_init(); // kernel modules
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
+#else
+	for (;;) {
+	}
+#endif
 }
+
+#ifndef __riscv
 
 // Other CPUs jump here from entryother.S.
 static void mpenter(void) {
@@ -184,9 +213,9 @@ extern pdpte_t entry_pdpt[]; // For entry.S
 // Start the non-boot (AP) processors.
 static void startothers(void) {
 	extern unsigned char _binary_entryother_start[], _binary_entryother_size[];
-	unsigned char* code;
-	struct cpu* c;
-	char* stack;
+	unsigned char *code;
+	struct cpu *c;
+	char *stack;
 
 	// Write entry code to unused memory at 0x7000.
 	// The linker has placed the image of entryother.S in
@@ -202,7 +231,7 @@ static void startothers(void) {
 		// pgdir to use. We cannot use kpgdir yet, because the AP processor
 		// is running in low  memory, so we use entrypgdir for the APs too.
 		stack = kalloc();
-		*(void**)(code - 4) = stack + KSTACKSIZE;
+		*(void **)(code - 4) = stack + KSTACKSIZE;
 		*(void (**)(void))(code - 8) = mpenter;
 		*(int**)(code - 12) = (void*)V2P(entry_pdpt);
 
@@ -225,13 +254,5 @@ __attribute__((__aligned__(PGSIZE))) pde_t entrypgdir[NPDENTRIES] = {
 	// Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
 	[KERNBASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
 };
-
-#else
-
-void kmain(void){
-	volatile uint8_t* uart = (uint8_t*)0x10000000;
-	*uart = 'B';
-	for(;;){}
-}
 
 #endif
