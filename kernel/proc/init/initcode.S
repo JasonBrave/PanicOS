@@ -2,7 +2,7 @@
 # This code runs in user space.
 
 #include "../syscall/syscall.h"
-#include "../../core/traps.h"
+#include "../../arch/x86/traps.h"
 
 
 # exec(init, argv)

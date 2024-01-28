@@ -19,8 +19,6 @@
 
 #include <common/types.h>
 
-#include <core/proc.h>
-#include <core/traps.h>
 #include <defs.h>
 #include <driver/ahci/ahci.h>
 #include <driver/ata/ata.h>
@@ -38,9 +36,8 @@
 #include <arch/x86/lapic.h>
 #include <arch/x86/mmu.h>
 #include <arch/x86/msi.h>
+#include <arch/x86/multiboot.h>
 #include <common/x86.h>
-
-#include "multiboot.h"
 #endif
 
 #ifndef __riscv

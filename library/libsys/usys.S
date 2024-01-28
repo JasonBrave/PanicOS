@@ -17,7 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "../../kernel/core/traps.h"
+#include "../../kernel/arch/x86/traps.h"
 #include "include/syscall.h"
 
 #define SYSCALL(name)                                                                  \

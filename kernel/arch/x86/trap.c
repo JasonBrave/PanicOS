@@ -25,7 +25,6 @@
 #include <common/spinlock.h>
 #include <common/x86.h>
 #include <core/proc.h>
-#include <core/traps.h>
 #include <defs.h>
 #include <driver/ata/ata.h>
 #include <driver/pci/pci.h>
@@ -33,6 +32,8 @@
 #include <driver/x86/uart.h>
 #include <memlayout.h>
 #include <param.h>
+
+#include "traps.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];

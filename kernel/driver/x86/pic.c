@@ -18,7 +18,6 @@
  */
 
 #include <common/x86.h>
-#include <core/traps.h>
 
 // I/O Addresses of the two programmable interrupt controllers
 #define IO_PIC1 0x20 // First (IRQs 0-7)

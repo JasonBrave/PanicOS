@@ -20,7 +20,7 @@
 #include <arch/x86/mmu.h>
 #include <common/delay.h>
 #include <common/x86.h>
-#include <core/traps.h>
+#include <arch/x86/traps.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>

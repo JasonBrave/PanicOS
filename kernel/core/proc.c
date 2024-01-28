@@ -21,9 +21,7 @@
 #include <common/spinlock.h>
 #include <common/x86.h>
 #include <arch/x86/mmu.h>
-#include <core/mp.h>
 #include <core/proc.h>
-#include <core/traps.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>

@@ -38,12 +38,12 @@ OBJS_X86 = \
 	arch/x86/msi.o\
 	common/sleeplock.o\
 	arch/x86/spinlock.o\
-	core/mp.o\
+	arch/x86/mp.o\
 	core/proc.o\
 	arch/x86/swtch.o\
-	core/trap.o\
+	arch/x86/trap.o\
 	arch/x86/trapasm.o\
-	core/vm.o\
+	arch/x86/vm.o\
 	driver/ahci/ahci.o\
 	driver/ata/adapter.o\
 	driver/ata/ata.o\

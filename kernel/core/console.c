@@ -29,7 +29,6 @@
 #include <common/sleeplock.h>
 #include <common/spinlock.h>
 #include <core/proc.h>
-#include <core/traps.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>

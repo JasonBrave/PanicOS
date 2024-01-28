@@ -19,12 +19,12 @@
 
 #include <arch/x86/lapic.h>
 #include <common/x86.h>
-#include <core/mp.h>
 #include <core/proc.h>
-#include <core/traps.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>
+
+#include "mp.h"
 
 struct cpu cpus[NCPU];
 unsigned int ncpu = 0;
