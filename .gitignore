@@ -2,6 +2,8 @@
 *.a
 *.so
 *.mod
+.cache
+compile_commands.json
 boot/mbr.bin
 kernel/entryother
 kernel/initcode
