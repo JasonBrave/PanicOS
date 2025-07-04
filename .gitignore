@@ -1,7 +1,9 @@
 *.o
+*.d
 *.a
 *.so
 *.mod
+*.efi
 .cache
 compile_commands.json
 boot/mbr.bin

@@ -30,6 +30,7 @@ multiboot_header:
 # Entering xv6 on boot processor, with paging off.
 .globl _start
 _start:
+	cli
 	# Load the real GDT
 	lgdt gdtdesc - KERNBASE
 	ljmp $(SEG_KCODE << 3), $(entry - KERNBASE)
