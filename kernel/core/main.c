@@ -166,6 +166,7 @@ void kmain(void *fdt) {
 	pty_init();
 #endif
 	// device initialization
+	acpi_init(); // ACPI Initialization
 	platform_init(); // platform devices (platform dependent) and PCI
 	virtio_init(); // virtio "bus" and devices
 	usb_init(); // usb bus and devices

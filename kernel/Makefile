@@ -3,6 +3,7 @@ OBJS_COMMON = \
 	core/console.o\
 	core/kalloc.o\
 	core/main.o\
+	driver/acpi/acpi.o\
 	driver/pci/driver.o\
 	driver/pci/intx.o\
 	driver/pci/msi.o\
