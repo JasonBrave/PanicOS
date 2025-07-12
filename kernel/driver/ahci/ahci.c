@@ -46,7 +46,7 @@ void ahci_init_port(struct AHCIController *ahci, unsigned int port) {
 		return;
 	}
 	cprintf(
-		"[ahci] Port %d SStatus %x SControl %x SError %x SActive %x\n",
+		"[ahci] Port %d SStatus %x SControl %x SError %x SActive %x\r\n",
 		port,
 		ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxSSTS),
 		ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxSCTL),
@@ -60,7 +60,7 @@ void ahci_init_port(struct AHCIController *ahci, unsigned int port) {
 			  AHCI_PxSSTS_IPM_SHIFT) &
 			 AHCI_PxSSTS_IPM_MASK) == AHCI_PxSSTS_IPM_ACTIVE) {
 			cprintf(
-				"[ahci] Port %d connected Gen%d\n",
+				"[ahci] Port %d connected Gen%d\r\n",
 				port,
 				(ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxSSTS) >>
 				 AHCI_PxSSTS_SPD_SHIFT) &
@@ -98,13 +98,13 @@ void ahci_init_port(struct AHCIController *ahci, unsigned int port) {
 	uint32_t atasig = ahci_read_reg32(ahci, AHCI_PORT_CONTROL_OFFSET(port) + AHCI_PxSIG);
 	switch (atasig) {
 		case SATA_SIGNATURE_ATA:
-			cprintf("[ahci] Port %d ATA signature %x Type ATA Disk\n", port, atasig);
+			cprintf("[ahci] Port %d ATA signature %x Type ATA Disk\r\n", port, atasig);
 			break;
 		case SATA_SIGNATURE_ATAPI:
-			cprintf("[ahci] Port %d ATA signature %x Type ATAPI Device\n", port, atasig);
+			cprintf("[ahci] Port %d ATA signature %x Type ATAPI Device\r\n", port, atasig);
 			break;
 		default:
-			cprintf("[ahci] Port %d ATA signature %x Type other\n", port, atasig);
+			cprintf("[ahci] Port %d ATA signature %x Type other\r\n", port, atasig);
 	}
 }
 
@@ -114,7 +114,7 @@ void ahci_controller_init(struct PCIDevice *pci_dev) {
 	pci_dev->private = ahci;
 	ahci->abar = map_mmio_region(pci_read_bar(pci_addr, 5), pci_read_bar_size(pci_addr, 5));
 	cprintf(
-		"[ahci] AHCI Controller at PCI %x:%x.%x ABAR %x\n",
+		"[ahci] AHCI Controller at PCI %x:%x.%x ABAR %x\r\n",
 		pci_addr->bus,
 		pci_addr->device,
 		pci_addr->function,
@@ -130,14 +130,14 @@ void ahci_controller_init(struct PCIDevice *pci_dev) {
 	// print AHCI version
 	uint32_t ahciver = ahci_read_reg32(ahci, AHCI_VERSION);
 	cprintf(
-		"[ahci] AHCI version %x.%x\n",
+		"[ahci] AHCI version %x.%x\r\n",
 		(ahciver >> AHCI_VERSION_MAJOR_SHIFT) & AHCI_VERSION_MAJOR_MASK,
 		(ahciver >> AHCI_VERSION_MINOR_SHIFT) & AHCI_VERSION_MINOR_MASK
 	);
 	// print AHCI capability
 	uint32_t ahcicap = ahci_read_reg32(ahci, AHCI_CAP);
 	cprintf(
-		"[ahci] AHCI 64Addr%s NCQ%s Speed %x AHCIOnly%s NCmdSlot %d NPorts %d\n",
+		"[ahci] AHCI 64Addr%s NCQ%s Speed %x AHCIOnly%s NCmdSlot %d NPorts %d\r\n",
 		BOOL2SIGN(ahcicap & AHCI_CAP_S64A),
 		BOOL2SIGN(ahcicap & AHCI_CAP_SNCQ),
 		(ahcicap >> AHCI_CAP_ISS_SHIFT) & AHCI_CAP_ISS_MASK,

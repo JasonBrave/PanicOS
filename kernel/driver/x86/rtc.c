@@ -90,13 +90,13 @@ static int date_kcall_handler(unsigned int p) {
 
 void rtc_init(void) {
 	if (cmos_read(RTC_REG_STATUS_B) & (1 << 2)) {
-		cprintf("[rtc] WARNING: RTC not in BCD mode\n");
+		cprintf("[rtc] WARNING: RTC not in BCD mode\r\n");
 	}
 	if (!(cmos_read(RTC_REG_STATUS_B) & (1 << 1))) {
-		cprintf("[rtc] WARNING: RTC not in 24-hour mode\n");
+		cprintf("[rtc] WARNING: RTC not in 24-hour mode\r\n");
 	}
 	cprintf(
-		"[rtc] Date %d-%d-%d %d:%d:%d\n",
+		"[rtc] Date %d-%d-%d %d:%d:%d\r\n",
 		rtc_get_year(),
 		rtc_get_month(),
 		rtc_get_day_of_month(),

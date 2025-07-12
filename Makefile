@@ -31,16 +31,16 @@ endif
 all: panicos.img
 
 qemu: panicos.img
-	$(QEMU) -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 128 -net none -rtc base=localtime $(QEMU_ARCH_FLAG)
+	$(QEMU) -debugcon mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 512M -net none -rtc base=localtime $(QEMU_ARCH_FLAG)
 
 qemu-gdb: panicos.img
-	$(QEMU) -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 128 -s -S -net none -rtc base=localtime$(QEMU_ARCH_FLAG)
+	$(QEMU) -debugcon mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 512M -s -S -net none -rtc base=localtime$(QEMU_ARCH_FLAG)
 
 qemu-kvm: panicos.img
-	$(QEMU) -serial mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
-	-smp 2 -m 128 -accel kvm -cpu host -net none -rtc base=localtime $(QEMU_ARCH_FLAG)
+	$(QEMU) -debugcon mon:stdio -kernel kernel/kernel -drive file=panicos.img,format=raw,if=virtio \
+	-smp 2 -m 512M -accel kvm -cpu host -net none -rtc base=localtime $(QEMU_ARCH_FLAG)
 
 panicos.img: boot/mbr.bin kernel/kernel rootfs share $(USERSPACE_MODULE_TARGET)
 	dd if=/dev/zero of=fs.img bs=1M count=63

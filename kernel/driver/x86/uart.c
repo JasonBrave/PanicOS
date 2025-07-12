@@ -50,7 +50,7 @@ static void uart_dev_init(struct UARTDevice *dev, ioport_t iobase, int irq) {
 		return;
 	} else {
 		dev->exist = 1;
-		cprintf("[uart] UART ioport %x irq %d baud 9600\n", iobase, irq);
+		cprintf("[uart] UART ioport %x irq %d baud 9600\r\n", iobase, irq);
 	}
 
 	// Turn off the FIFO

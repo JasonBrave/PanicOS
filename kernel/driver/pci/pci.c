@@ -46,7 +46,7 @@ void pci_init(void) {
 				if (intr_pin == 0) { // No interrupt pin for this device
 					cprintf(
 						"[pci] bus %d device %d func %d %x:%x class %x "
-						"subclass %x progif %x\n",
+						"subclass %x progif %x\r\n",
 						addr.bus,
 						addr.device,
 						addr.function,
@@ -61,7 +61,7 @@ void pci_init(void) {
 					uint8_t intr_line = pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE);
 					cprintf(
 						"[pci] bus %d device %d func %d %x:%x class %x "
-						"subclass %x progif %x %s %d\n",
+						"subclass %x progif %x %s %d\r\n",
 						addr.bus,
 						addr.device,
 						addr.function,

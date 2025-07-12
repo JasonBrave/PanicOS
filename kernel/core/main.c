@@ -142,6 +142,7 @@ void kmain(void *fdt) {
 	}
 #else
 	cprintf("PanicOS risc-v alpha built on " __DATE__ " " __TIME__ "\n");
+	cprintf("[devicetree] FDT %d\n", fdt);
 #endif
 
 #ifndef __riscv
@@ -177,8 +178,10 @@ void kmain(void *fdt) {
 #ifndef __riscv
 	pty_init();
 #endif
-	// device initialization
+// device initialization
+#ifndef __riscv
 	acpi_init(); // ACPI Initialization
+#endif
 	platform_init(); // platform devices (platform dependent) and PCI
 	virtio_init(); // virtio "bus" and devices
 	usb_init(); // usb bus and devices

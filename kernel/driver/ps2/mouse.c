@@ -80,10 +80,10 @@ void ps2_mouse_init(void) {
 	ps2_mouse_enable_scroll();
 	// mouse id
 	if (ps2_mouse_identify() == 3) {
-		cprintf("[ps2] PS/2 Mouse with scroll wheel found\n");
+		cprintf("[ps2] PS/2 Mouse with scroll wheel found\r\n");
 		ps2_mouse_type = PS2_MOUSE_WITH_WHEEL;
 	} else {
-		cprintf("[ps2] PS/2 Mouse without scroll wheel found\n");
+		cprintf("[ps2] PS/2 Mouse without scroll wheel found\r\n");
 		ps2_mouse_type = PS2_MOUSE_WITHOUT_WHEEL;
 	}
 	// enable second PS/2 port interrupt

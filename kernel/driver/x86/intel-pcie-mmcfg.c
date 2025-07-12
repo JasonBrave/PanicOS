@@ -73,7 +73,7 @@ int intel_pcie_mmcfg_init(const struct PciAddress *host_bridge_addr) {
 		return -1;
 	}
 	if (!(pciexbar & 1)) {
-		cprintf("[pci] PCIEXBAR %x disabled\n", pciexbar);
+		cprintf("[pci] PCIEXBAR %x disabled\r\n", pciexbar);
 		return -1;
 	}
 	// number of bus
@@ -105,15 +105,15 @@ int intel_pcie_mmcfg_init(const struct PciAddress *host_bridge_addr) {
 	}
 	// ECAM base address
 	if ((pciexbar & 0x7ffc000000) > 0xe0000000) {
-		cprintf("[pci] PCIEXBAR too high %llx\n", pciexbar);
+		cprintf("[pci] PCIEXBAR too high %llx\r\n", pciexbar);
 		return -1;
 	}
 	if ((pciexbar & 0x7ffc000000) < 0xb0000000) {
-		cprintf("[pci] PCIEXBAR too low %llx\n", pciexbar);
+		cprintf("[pci] PCIEXBAR too low %llx\r\n", pciexbar);
 		return -1;
 	}
 	phyaddr_t ecam_base = pciexbar & 0xfc000000;
-	cprintf("[pci] PCIe ECAM addr %x bus %d\n", ecam_base, num_bus);
+	cprintf("[pci] PCIe ECAM addr %x bus %d\r\n", ecam_base, num_bus);
 	// write to pci_host
 	pci_host.read8 = intel_mmcfg_read_config_reg8;
 	pci_host.read16 = intel_mmcfg_read_config_reg16;
