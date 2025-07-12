@@ -31,12 +31,12 @@ struct MBREntry {
 } PACKED;
 
 void mbr_probe_partition(int block_id) {
-	void* bootsect = kalloc();
+	void *bootsect = kalloc();
 	if (hal_disk_read(block_id, 0, 1, bootsect) < 0) {
 		panic("disk read error");
 	}
 	for (int j = 0; j < 4; j++) {
-		struct MBREntry* entry = bootsect + 0x1be + j * 0x10;
+		struct MBREntry *entry = bootsect + 0x1be + j * 0x10;
 		enum HalPartitionFilesystemType fs;
 		if (entry->type == 0) {
 			continue;
@@ -47,8 +47,9 @@ void mbr_probe_partition(int block_id) {
 			cprintf("[mbr] Linux partition on block device %d MBR %d\n", block_id, j);
 			fs = HAL_PARTITION_TYPE_LINUX;
 		} else {
-			cprintf("[mbr] Partition on block device %d MBR %d type %x\n", block_id, j,
-					entry->type);
+			cprintf(
+				"[mbr] Partition on block device %d MBR %d type %x\n", block_id, j, entry->type
+			);
 			fs = HAL_PARTITION_TYPE_OTHER;
 		}
 		if (!hal_partition_map_insert(fs, block_id, entry->lba, entry->size)) {

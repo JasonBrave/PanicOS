@@ -21,7 +21,7 @@
 #include <panicos.h>
 #include <stdlib.h>
 
-int closedir(DIR* dirp) {
+int closedir(DIR *dirp) {
 	close(dirp->fd);
 	free(dirp);
 	return 0;

@@ -20,6 +20,7 @@
 #include <common/types.h>
 
 #include <defs.h>
+#include <driver/acpi/acpi.h>
 #include <driver/ahci/ahci.h>
 #include <driver/ata/ata.h>
 #include <driver/bochs-display/bochs-display.h>
@@ -43,7 +44,7 @@
 #ifndef __riscv
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
-extern pdpte_t* kpgdir;
+extern pdpte_t *kpgdir;
 #endif
 
 extern char end[]; // first address after kernel loaded from ELF file
@@ -73,14 +74,19 @@ void kmain(void *fdt) {
 		struct multiboot_info *mbinfo = P2V(mb_addr);
 		if ((mbinfo->flags & (1 << 6)) && mbinfo->mmap_addr < 0x100000) { // memory map
 			unsigned long long memory_size = 0;
-			cprintf("[multiboot] Memory map addr %x length %d\n", mbinfo->mmap_addr,
-					mbinfo->mmap_length);
+			cprintf(
+				"[multiboot] Memory map addr %x length %d\n", mbinfo->mmap_addr, mbinfo->mmap_length
+			);
 			struct multiboot_mmap_entry *mmap = P2V(mbinfo->mmap_addr);
 			for (unsigned int off = 0; off < mbinfo->mmap_length;
 				 off += (mmap->size + sizeof(mmap->size))) {
 				mmap = P2V(mbinfo->mmap_addr + off);
-				cprintf("[multiboot] MMAP %llx - %llx type %d\n", mmap->addr,
-						mmap->addr + mmap->len - 1, mmap->type);
+				cprintf(
+					"[multiboot] MMAP %llx - %llx type %d\n",
+					mmap->addr,
+					mmap->addr + mmap->len - 1,
+					mmap->type
+				);
 				if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
 					memory_size += mmap->len;
 				}
@@ -89,38 +95,44 @@ void kmain(void *fdt) {
 		}
 		if (mbinfo->flags & (1 << 12)) { // video mode
 			switch (mbinfo->framebuffer_type) {
-			case MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT:
-				cprintf("[multiboot] VGA text mode\n");
-				boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
-				break;
-			case MULTIBOOT_FRAMEBUFFER_TYPE_RGB:
-				cprintf("[multiboot] framebuffer addr %llx pitch %d width %d "
+				case MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT:
+					cprintf("[multiboot] VGA text mode\n");
+					boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
+					break;
+				case MULTIBOOT_FRAMEBUFFER_TYPE_RGB:
+					cprintf(
+						"[multiboot] framebuffer addr %llx pitch %d width %d "
 						"height %d bpp %d\n",
-						mbinfo->framebuffer_addr, mbinfo->framebuffer_pitch,
-						mbinfo->framebuffer_width, mbinfo->framebuffer_height,
-						mbinfo->framebuffer_bpp);
-				if (mbinfo->framebuffer_addr >= (unsigned long long)4 * 1024 * 1024 * 1024) {
-					cprintf("[multiboot] Warning mbinfo->framebuffer_addr >= 4GB");
-					boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_HEADLESS;
-				} else {
-					boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_FRAMEBUFFER;
-					boot_graphics_mode.width = mbinfo->framebuffer_width;
-					boot_graphics_mode.height = mbinfo->framebuffer_height;
-					boot_graphics_mode.fb_addr = mbinfo->framebuffer_addr;
-				}
-				if (mbinfo->framebuffer_bpp != 32) {
-					cprintf("[multiboot] Warning mbinfo->framebuffer_bpp != 32");
-				}
-				if (mbinfo->framebuffer_pitch != mbinfo->framebuffer_width * 4) {
-					cprintf("[multiboot] Warning mbinfo->framebuffer_pitch != "
-							"mbinfo->framebuffer_width * 4");
-				}
-				break;
-			default:
-				cprintf("[multiboot] unknown multiboot graphics mode %d, assuming VGA "
+						mbinfo->framebuffer_addr,
+						mbinfo->framebuffer_pitch,
+						mbinfo->framebuffer_width,
+						mbinfo->framebuffer_height,
+						mbinfo->framebuffer_bpp
+					);
+					if (mbinfo->framebuffer_addr >= (unsigned long long)4 * 1024 * 1024 * 1024) {
+						cprintf("[multiboot] Warning mbinfo->framebuffer_addr >= 4GB");
+						boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_HEADLESS;
+					} else {
+						boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_FRAMEBUFFER;
+						boot_graphics_mode.width = mbinfo->framebuffer_width;
+						boot_graphics_mode.height = mbinfo->framebuffer_height;
+						boot_graphics_mode.fb_addr = mbinfo->framebuffer_addr;
+					}
+					if (mbinfo->framebuffer_bpp != 32) {
+						cprintf("[multiboot] Warning mbinfo->framebuffer_bpp != 32");
+					}
+					if (mbinfo->framebuffer_pitch != mbinfo->framebuffer_width * 4) {
+						cprintf("[multiboot] Warning mbinfo->framebuffer_pitch != "
+								"mbinfo->framebuffer_width * 4");
+					}
+					break;
+				default:
+					cprintf(
+						"[multiboot] unknown multiboot graphics mode %d, assuming VGA "
 						"mode\n",
-						mbinfo->framebuffer_type);
-				boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
+						mbinfo->framebuffer_type
+					);
+					boot_graphics_mode.mode = BOOT_GRAPHICS_MODE_VGA_TEXT;
 			}
 		} else { // graphics mode not given
 			cprintf("[multiboot] graphics mode not given, assuming VGA "
@@ -183,8 +195,7 @@ void kmain(void *fdt) {
 	userinit(); // first user process
 	mpmain(); // finish this processor's setup
 #else
-	for (;;) {
-	}
+	for (;;) {}
 #endif
 }
 
@@ -222,8 +233,9 @@ static void startothers(void) {
 	memmove(code, _binary_entryother_start, (unsigned int)_binary_entryother_size);
 
 	for (c = cpus; c < cpus + ncpu; c++) {
-		if (c == mycpu()) // We've started already.
+		if (c == mycpu()) { // We've started already.
 			continue;
+		}
 
 		// Tell entryother.S what stack to use, where to enter, and what
 		// pgdir to use. We cannot use kpgdir yet, because the AP processor
@@ -231,7 +243,7 @@ static void startothers(void) {
 		stack = kalloc();
 		*(void **)(code - 4) = stack + KSTACKSIZE;
 		*(void (**)(void))(code - 8) = mpenter;
-		*(int**)(code - 12) = (void*)V2P(entry_pdpt);
+		*(int **)(code - 12) = (void *)V2P(entry_pdpt);
 
 		lapicstartap(c->apicid, V2P(code));
 

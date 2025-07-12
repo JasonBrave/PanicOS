@@ -29,8 +29,7 @@ int vfs_path_split(const char *path, char *buf) {
 		if (path[x] == '\0') {
 			break;
 		}
-		for (y = x; ((path[y] != '/') && (path[y] != '\0')); y++) {
-		}
+		for (y = x; ((path[y] != '/') && (path[y] != '\0')); y++) {}
 		if (y - x == 0) {
 			// empty directory name
 			x = y + 1;

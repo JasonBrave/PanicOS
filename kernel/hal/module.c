@@ -34,14 +34,15 @@ struct ModuleInfo {
 	unsigned int base;
 } module_info[MAX_MODULES];
 
-static int module_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, unsigned int* entry) {
+static int
+module_elf_load(pdpte_t *pgdir, unsigned int base, const char *name, unsigned int *entry) {
 	struct FileDesc fd;
 	if (vfs_fd_open(&fd, name, O_READ) < 0) {
 		return -1;
 	}
 
 	struct elfhdr elf;
-	if (vfs_fd_read(&fd, (char*)&elf, sizeof(elf)) != sizeof(elf)) {
+	if (vfs_fd_read(&fd, (char *)&elf, sizeof(elf)) != sizeof(elf)) {
 		vfs_fd_close(&fd);
 		return -1;
 	}
@@ -59,23 +60,32 @@ static int module_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, 
 			vfs_fd_close(&fd);
 			return -1;
 		}
-		if (vfs_fd_read(&fd, (char*)&ph, sizeof(ph)) != sizeof(ph)) {
+		if (vfs_fd_read(&fd, (char *)&ph, sizeof(ph)) != sizeof(ph)) {
 			vfs_fd_close(&fd);
 			return -1;
 		}
 		if (ph.type != ELF_PROG_LOAD) {
 			continue;
 		}
-		if (allocuvm(pgdir, base + ph.vaddr - ph.vaddr % PGSIZE, base + ph.vaddr + ph.memsz,
-					 (ph.flags & ELF_PROG_FLAG_WRITE) ? PTE_W : 0) == 0) {
+		if (allocuvm(
+				pgdir,
+				base + ph.vaddr - ph.vaddr % PGSIZE,
+				base + ph.vaddr + ph.memsz,
+				(ph.flags & ELF_PROG_FLAG_WRITE) ? PTE_W : 0
+			) == 0) {
 			vfs_fd_close(&fd);
 			return -1;
 		}
 		if (ph.vaddr + ph.memsz > sz) {
 			sz = ph.vaddr + ph.memsz;
 		}
-		if (loaduvm(pgdir, (char*)base + ph.vaddr - ph.vaddr % PGSIZE, &fd,
-					ph.off - ph.vaddr % PGSIZE, ph.vaddr % PGSIZE + ph.filesz) < 0) {
+		if (loaduvm(
+				pgdir,
+				(char *)base + ph.vaddr - ph.vaddr % PGSIZE,
+				&fd,
+				ph.off - ph.vaddr % PGSIZE,
+				ph.vaddr % PGSIZE + ph.filesz
+			) < 0) {
 			vfs_fd_close(&fd);
 			return -1;
 		}
@@ -87,9 +97,9 @@ static int module_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, 
 }
 
 static unsigned int module_base = PROC_MODULE_BOTTOM;
-extern pdpte_t* kpgdir;
+extern pdpte_t *kpgdir;
 
-void module_info_add(const char* name, unsigned int base) {
+void module_info_add(const char *name, unsigned int base) {
 	for (int i = 0; i < MAX_MODULES; i++) {
 		if (!module_info[i].base) {
 			strncpy(module_info[i].name, name, 64);
@@ -99,7 +109,7 @@ void module_info_add(const char* name, unsigned int base) {
 	}
 }
 
-int module_load(const char* name) {
+int module_load(const char *name) {
 	unsigned int entry;
 	unsigned int load_base = module_base;
 	int ret = module_elf_load(kpgdir, load_base, name, &entry);
@@ -122,7 +132,7 @@ int module_load(const char* name) {
 	return 0;
 }
 
-void module_set_pgdir(pdpte_t* pgdir) {
+void module_set_pgdir(pdpte_t *pgdir) {
 	if (copypgdir(pgdir, kpgdir, PROC_MODULE_BOTTOM, module_base) == 0) {
 		panic("module_set_pgdir failed");
 	}
@@ -139,72 +149,74 @@ void module_print(void) {
 
 static struct KernerServiceTable {
 	// basic functions
-	void (*cprintf)(const char*, ...);
-	void (*panic)(const char*);
-	void* (*pgalloc)(unsigned int);
-	void (*pgfree)(void*, unsigned int);
-	void* (*map_mmio_region)(phyaddr_t, size_t);
-	void* (*map_ram_region)(phyaddr_t, size_t);
-	void* (*map_rom_region)(phyaddr_t, size_t);
+	void (*cprintf)(const char *, ...);
+	void (*panic)(const char *);
+	void *(*pgalloc)(unsigned int);
+	void (*pgfree)(void *, unsigned int);
+	void *(*map_mmio_region)(phyaddr_t, size_t);
+	void *(*map_ram_region)(phyaddr_t, size_t);
+	void *(*map_rom_region)(phyaddr_t, size_t);
 	// arch specific
-	int (*msi_alloc_vector)(struct MSIMessage* msg, void (*handler)(void*), void* private);
-	void (*msi_free_vector)(const struct MSIMessage* msg);
+	int (*msi_alloc_vector)(struct MSIMessage *msg, void (*handler)(void *), void *private);
+	void (*msi_free_vector)(const struct MSIMessage *msg);
 	// process control
-	void (*sleep)(void*, struct spinlock*);
-	void (*wakeup)(void*);
+	void (*sleep)(void *, struct spinlock *);
+	void (*wakeup)(void *);
 	// common/spinlock.h
-	void (*initlock)(struct spinlock*, const char*);
-	void (*acquire)(struct spinlock*);
-	void (*release)(struct spinlock*);
+	void (*initlock)(struct spinlock *, const char *);
+	void (*acquire)(struct spinlock *);
+	void (*release)(struct spinlock *);
 	// driver/pci/pci.h
-	uint8_t (*pci_read_config_reg8)(const struct PciAddress*, int);
-	uint16_t (*pci_read_config_reg16)(const struct PciAddress*, int);
-	uint32_t (*pci_read_config_reg32)(const struct PciAddress*, int);
-	void (*pci_write_config_reg8)(const struct PciAddress*, int, uint8_t);
-	void (*pci_write_config_reg16)(const struct PciAddress*, int, uint16_t);
-	void (*pci_write_config_reg32)(const struct PciAddress*, int, uint32_t);
-	phyaddr_t (*pci_read_bar)(const struct PciAddress*, int);
-	size_t (*pci_read_bar_size)(const struct PciAddress*, int);
-	phyaddr_t (*pci_read_rom_bar)(const struct PciAddress*);
-	size_t (*pci_read_rom_bar_size)(const struct PciAddress*);
-	void (*pci_enable_bus_mastering)(const struct PciAddress*);
-	int (*pci_find_capability)(const struct PciAddress*, uint8_t);
-	void (*pci_register_intr_handler)(struct PCIDevice*, void (*)(struct PCIDevice*));
-	void (*pci_enable_intx_intr)(const struct PciAddress*);
-	void (*pci_disable_intx_intr)(const struct PciAddress*);
-	int (*pci_msi_enable)(const struct PciAddress*, const struct MSIMessage*);
-	void (*pci_msi_disable)(const struct PciAddress*);
-	int (*pci_msix_enable)(struct PCIDevice*);
-	unsigned int (*pci_msix_get_num_vectors)(struct PCIDevice*);
-	void (*pci_msix_set_message)(struct PCIDevice*, unsigned int, const struct MSIMessage*);
-	void (*pci_msix_mask)(struct PCIDevice*, unsigned int);
-	void (*pci_msix_unmask)(struct PCIDevice*, unsigned int);
-	void (*pci_register_driver)(const struct PCIDriver*);
+	uint8_t (*pci_read_config_reg8)(const struct PciAddress *, int);
+	uint16_t (*pci_read_config_reg16)(const struct PciAddress *, int);
+	uint32_t (*pci_read_config_reg32)(const struct PciAddress *, int);
+	void (*pci_write_config_reg8)(const struct PciAddress *, int, uint8_t);
+	void (*pci_write_config_reg16)(const struct PciAddress *, int, uint16_t);
+	void (*pci_write_config_reg32)(const struct PciAddress *, int, uint32_t);
+	phyaddr_t (*pci_read_bar)(const struct PciAddress *, int);
+	size_t (*pci_read_bar_size)(const struct PciAddress *, int);
+	phyaddr_t (*pci_read_rom_bar)(const struct PciAddress *);
+	size_t (*pci_read_rom_bar_size)(const struct PciAddress *);
+	void (*pci_enable_bus_mastering)(const struct PciAddress *);
+	int (*pci_find_capability)(const struct PciAddress *, uint8_t);
+	void (*pci_register_intr_handler)(struct PCIDevice *, void (*)(struct PCIDevice *));
+	void (*pci_enable_intx_intr)(const struct PciAddress *);
+	void (*pci_disable_intx_intr)(const struct PciAddress *);
+	int (*pci_msi_enable)(const struct PciAddress *, const struct MSIMessage *);
+	void (*pci_msi_disable)(const struct PciAddress *);
+	int (*pci_msix_enable)(struct PCIDevice *);
+	unsigned int (*pci_msix_get_num_vectors)(struct PCIDevice *);
+	void (*pci_msix_set_message)(struct PCIDevice *, unsigned int, const struct MSIMessage *);
+	void (*pci_msix_mask)(struct PCIDevice *, unsigned int);
+	void (*pci_msix_unmask)(struct PCIDevice *, unsigned int);
+	void (*pci_register_driver)(const struct PCIDriver *);
 	// driver/virtio/virtio.h
-	void (*virtio_register_driver)(const struct VirtioDriver*);
-	void (*virtio_init_queue)(struct VirtioDevice*, struct VirtioQueue*, unsigned int,
-							  void (*)(struct VirtioQueue*));
+	void (*virtio_register_driver)(const struct VirtioDriver *);
+	void (*virtio_init_queue)(
+		struct VirtioDevice *, struct VirtioQueue *, unsigned int, void (*)(struct VirtioQueue *)
+	);
 	// driver/usb/usb.h
-	void (*usb_register_host_controller)(void*, const char*, unsigned int,
-										 const struct USBHostControllerDriver*);
-	void (*usb_register_driver)(const struct USBDriver*);
-	enum USBTransferStatus (*usb_control_transfer_in)(struct USBBus*, unsigned int, unsigned int,
-													  void*, void*, int);
-	enum USBTransferStatus (*usb_control_transfer_nodata)(struct USBBus*, unsigned int,
-														  unsigned int, void*);
-	int (*usb_get_standard_descriptor)(struct USBDevice*, unsigned int, unsigned int, void*,
-									   unsigned int);
-	int (*usb_get_class_descriptor)(struct USBDevice*, unsigned int, unsigned int, void*,
-									unsigned int);
-	int (*usb_get_device_descriptor)(struct USBDevice*);
-	int (*usb_get_configuration_descriptor)(struct USBDevice*, unsigned int, uint8_t*);
-	int (*usb_set_configuration)(struct USBDevice*, uint8_t);
+	void (*usb_register_host_controller)(void *, const char *, unsigned int, const struct USBHostControllerDriver *);
+	void (*usb_register_driver)(const struct USBDriver *);
+	enum USBTransferStatus (*usb_control_transfer_in)(
+		struct USBBus *, unsigned int, unsigned int, void *, void *, int
+	);
+	enum USBTransferStatus (*usb_control_transfer_nodata)(struct USBBus *, unsigned int, unsigned int, void *);
+	int (*usb_get_standard_descriptor)(
+		struct USBDevice *, unsigned int, unsigned int, void *, unsigned int
+	);
+	int (*usb_get_class_descriptor)(
+		struct USBDevice *, unsigned int, unsigned int, void *, unsigned int
+	);
+	int (*usb_get_device_descriptor)(struct USBDevice *);
+	int (*usb_get_configuration_descriptor)(struct USBDevice *, unsigned int, uint8_t *);
+	int (*usb_set_configuration)(struct USBDevice *, uint8_t);
 	// hal/hal.h
-	void (*hal_block_register_device)(const char*, void*, const struct BlockDeviceDriver*);
-	void (*hal_display_register_device)(const char*, void*, const struct FramebufferDriver*);
+	void (*hal_block_register_device)(const char *, void *, const struct BlockDeviceDriver *);
+	void (*hal_display_register_device)(const char *, void *, const struct FramebufferDriver *);
 	void (*hal_mouse_update)(unsigned int);
 	void (*hal_keyboard_update)(unsigned int);
-}* kernsrv = (void*)0x80010000;
+} *kernsrv = (void *)0x80010000;
 
 void module_init(void) {
 	memset(module_info, 0, sizeof(module_info));

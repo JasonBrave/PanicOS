@@ -30,12 +30,12 @@ namespace std {
 	extern "C" {
 
 	// numeric conversion functions
-	int atoi(const char* nptr);
+	int atoi(const char *nptr);
 
 	// memory management functions
-	void* calloc(std::size_t nmemb, std::size_t size);
-	void free(void* ptr);
-	void* malloc(std::size_t size);
+	void *calloc(std::size_t nmemb, std::size_t size);
+	void free(void *ptr);
+	void *malloc(std::size_t size);
 
 	// communication with the environment
 	[[noreturn]] void abort(void) noexcept;

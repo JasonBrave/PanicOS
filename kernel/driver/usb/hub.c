@@ -24,12 +24,12 @@
 #include "usb.h"
 
 struct USBHub {
-	struct USBInterface* usbif;
+	struct USBInterface *usbif;
 	unsigned int num_ports;
 };
 
-static void usb_hub_reset_port(struct USBHub* hub, unsigned int port) {
-	struct USBSetupData* setup = kalloc();
+static void usb_hub_reset_port(struct USBHub *hub, unsigned int port) {
+	struct USBSetupData *setup = kalloc();
 	setup->bm_request_type =
 		USB_REQUEST_DIR_HOST_TO_DEVICE | USB_REQUEST_TYPE_CLASS | USB_REQUEST_RECP_OTHER;
 	setup->b_request = USB_HUB_REQUEST_SET_FEATURE;
@@ -40,14 +40,15 @@ static void usb_hub_reset_port(struct USBHub* hub, unsigned int port) {
 	kfree(setup);
 }
 
-static void usb_hub_dev_init(struct USBInterface* usbif) {
-	volatile struct USBHubDescriptor* hub_desc = kalloc();
-	if (usb_get_class_descriptor(usbif->usbdev, 0x29, 0, (void*)hub_desc,
-								 sizeof(struct USBHubDescriptor))) {
+static void usb_hub_dev_init(struct USBInterface *usbif) {
+	volatile struct USBHubDescriptor *hub_desc = kalloc();
+	if (usb_get_class_descriptor(
+			usbif->usbdev, 0x29, 0, (void *)hub_desc, sizeof(struct USBHubDescriptor)
+		)) {
 		cprintf("[usb-hub] Hub GetHubDescriptor failed\n");
 		return;
 	}
-	struct USBHub* hub = kalloc();
+	struct USBHub *hub = kalloc();
 	memset(hub, 0, sizeof(struct USBHub));
 	hub->usbif = usbif;
 	usbif->private = hub;
@@ -55,16 +56,17 @@ static void usb_hub_dev_init(struct USBInterface* usbif) {
 	cprintf("[usb-hub] USB Hub num_ports %d\n", hub->num_ports);
 
 	for (unsigned int port = 0; port < hub->num_ports; port++) {
-		struct USBSetupData* setup = kalloc();
-		volatile uint16_t* port_status_word = kalloc();
+		struct USBSetupData *setup = kalloc();
+		volatile uint16_t *port_status_word = kalloc();
 		setup->bm_request_type =
 			USB_REQUEST_DIR_DEVICE_TO_HOST | USB_REQUEST_TYPE_CLASS | USB_REQUEST_RECP_OTHER;
 		setup->b_request = USB_HUB_REQUEST_GET_STATUS;
 		setup->w_value = 0;
 		setup->w_index = port + 1;
 		setup->w_length = 4;
-		usb_control_transfer_in(usbif->usbdev->bus, usbif->usbdev->addr, 0, setup,
-								(void*)port_status_word, 4);
+		usb_control_transfer_in(
+			usbif->usbdev->bus, usbif->usbdev->addr, 0, setup, (void *)port_status_word, 4
+		);
 		kfree(setup);
 		if (port_status_word[0] & USB_HUB_PORT_STATUS_CONNECTION) {
 			if (port_status_word[0] & USB_HUB_PORT_STATUS_LOW_SPEED) {
@@ -75,11 +77,11 @@ static void usb_hub_dev_init(struct USBInterface* usbif) {
 			usb_hub_reset_port(hub, port);
 			usb_register_device(usbif->usbdev->bus, port);
 		}
-		kfree((void*)port_status_word);
+		kfree((void *)port_status_word);
 	}
 }
 
-static void usb_hub_dev_uninit(struct USBInterface* usbif) {}
+static void usb_hub_dev_uninit(struct USBInterface *usbif) {}
 
 const static struct USBDriver usb_hub_driver = {
 	.name = "usb-hub",

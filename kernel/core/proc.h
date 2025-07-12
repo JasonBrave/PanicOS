@@ -20,21 +20,21 @@
 #ifndef _PROC_H
 #define _PROC_H
 
-#include <common/spinlock.h>
 #include <arch/x86/mmu.h>
+#include <common/spinlock.h>
 #include <filesystem/vfs/vfs.h>
 #include <param.h>
 
 // Per-CPU state
 struct cpu {
 	unsigned char apicid; // Local APIC ID
-	struct context* scheduler; // swtch() here to enter scheduler
+	struct context *scheduler; // swtch() here to enter scheduler
 	struct taskstate ts; // Used by x86 to find stack for interrupt
 	struct segdesc gdt[NSEGS]; // x86 global descriptor table
 	volatile unsigned int started; // Has the CPU started?
 	int ncli; // Depth of pushcli nesting.
 	int intena; // Were interrupts enabled before pushcli?
-	struct proc* proc; // The process running on this cpu or null
+	struct proc *proc; // The process running on this cpu or null
 };
 
 extern struct cpu cpus[NCPU];
@@ -59,13 +59,20 @@ struct context {
 	unsigned int eip;
 };
 
-enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+enum procstate {
+	UNUSED,
+	EMBRYO,
+	SLEEPING,
+	RUNNABLE,
+	RUNNING,
+	ZOMBIE
+};
 
 #define MESSAGE_MAX 64
 
 struct Message {
 	int pid, size;
-	void* addr;
+	void *addr;
 };
 
 struct MessageQueue {
@@ -79,14 +86,14 @@ struct proc {
 	unsigned int sz; // size of executable image (bytes)
 	unsigned int stack_size; // size of process stack (bytes)
 	unsigned int heap_size; // size of process heap (bytes)
-	pdpte_t* pgdir; // Page table
-	char* kstack; // Bottom of kernel stack for this process
+	pdpte_t *pgdir; // Page table
+	char *kstack; // Bottom of kernel stack for this process
 	enum procstate state; // Process state
 	int pid; // Process ID
-	struct proc* parent; // Parent process
-	struct trapframe* tf; // Trap frame for current syscall
-	struct context* context; // swtch() here to run process
-	void* chan; // If non-zero, sleeping on chan
+	struct proc *parent; // Parent process
+	struct trapframe *tf; // Trap frame for current syscall
+	struct context *context; // swtch() here to run process
+	void *chan; // If non-zero, sleeping on chan
 	int killed; // If non-zero, have been killed
 	char name[16]; // Process name (debugging)
 	struct FileDesc files[PROC_FILE_MAX]; // open files

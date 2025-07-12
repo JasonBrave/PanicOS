@@ -17,22 +17,23 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <common/x86.h>
 #include <arch/x86/mmu.h>
+#include <common/x86.h>
 #include <core/proc.h>
 #include <defs.h>
 
-int exec(char* path, char** argv) {
+int exec(char *path, char **argv) {
 	char *s, *last;
 	unsigned int argc, sp, ustack[3 + MAXARG + 1];
 	int sz;
 	pdpte_t *pgdir = 0, *oldpgdir;
-	struct proc* curproc = myproc();
+	struct proc *curproc = myproc();
 	unsigned int entry, dynamic, interp = 0;
 
 	// get a new page directory
-	if ((pgdir = setupkvm()) == 0)
+	if ((pgdir = setupkvm()) == 0) {
 		goto bad;
+	}
 
 	// Load program into memory.
 	if ((sz = proc_elf_load(pgdir, 0, path, &entry, &dynamic, &interp)) < 0) {
@@ -47,11 +48,13 @@ int exec(char* path, char** argv) {
 
 	// Push argument strings, prepare rest of stack in ustack.
 	for (argc = 0; argv[argc]; argc++) {
-		if (argc >= MAXARG)
+		if (argc >= MAXARG) {
 			goto bad;
+		}
 		sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
-		if (copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
+		if (copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0) {
 			goto bad;
+		}
 		ustack[5 + argc] = sp;
 	}
 	ustack[5 + argc] = 0;
@@ -63,13 +66,16 @@ int exec(char* path, char** argv) {
 	ustack[4] = interp; // const char* interp
 
 	sp -= (5 + argc + 1) * 4;
-	if (copyout(pgdir, sp, ustack, (5 + argc + 1) * 4) < 0)
+	if (copyout(pgdir, sp, ustack, (5 + argc + 1) * 4) < 0) {
 		goto bad;
+	}
 
 	// Save program name for debugging.
-	for (last = s = path; *s; s++)
-		if (*s == '/')
+	for (last = s = path; *s; s++) {
+		if (*s == '/') {
 			last = s + 1;
+		}
+	}
 	safestrcpy(curproc->name, last, sizeof(curproc->name));
 
 	// Commit to the user image.
@@ -86,7 +92,8 @@ int exec(char* path, char** argv) {
 	return 0;
 
 bad:
-	if (pgdir)
+	if (pgdir) {
 		freevm(pgdir);
+	}
 	return -1;
 }

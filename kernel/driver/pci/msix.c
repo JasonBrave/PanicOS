@@ -21,9 +21,10 @@
 
 #include "pci.h"
 
-static unsigned int pci_msix_probe(const struct PciAddress* addr, unsigned int* table_bar,
-								   unsigned int* table_offset, unsigned int* pba_bar,
-								   unsigned int* pba_offset) {
+static unsigned int pci_msix_probe(
+	const struct PciAddress *addr, unsigned int *table_bar, unsigned int *table_offset,
+	unsigned int *pba_bar, unsigned int *pba_offset
+) {
 	int capoff = pci_find_capability(addr, 0x11);
 	if (!capoff) {
 		return 0;
@@ -36,14 +37,22 @@ static unsigned int pci_msix_probe(const struct PciAddress* addr, unsigned int* 
 	*table_offset = tablereg & 0xfffffff8;
 	*pba_bar = pbareg & 0x7;
 	*pba_offset = pbareg & 0xfffffff8;
-	cprintf("[pci] MSI-X %d:%d.%d %d vectors Table BAR %d off %x PBA BAR %d PBA %x\n", addr->bus,
-			addr->device, addr->function, (msixctl & 0x7ff) + 1, *table_bar, *table_offset,
-			*pba_bar, *pba_offset);
+	cprintf(
+		"[pci] MSI-X %d:%d.%d %d vectors Table BAR %d off %x PBA BAR %d PBA %x\n",
+		addr->bus,
+		addr->device,
+		addr->function,
+		(msixctl & 0x7ff) + 1,
+		*table_bar,
+		*table_offset,
+		*pba_bar,
+		*pba_offset
+	);
 
 	return capoff;
 }
 
-int pci_msix_enable(struct PCIDevice* pci_dev) {
+int pci_msix_enable(struct PCIDevice *pci_dev) {
 	unsigned int capoff;
 	unsigned int table_bar, table_offset, pba_bar, pba_offset;
 	if (!(capoff =
@@ -51,10 +60,12 @@ int pci_msix_enable(struct PCIDevice* pci_dev) {
 		return 0;
 	}
 	// map MSI-X table and PBA
-	void* table_va = map_mmio_region(pci_read_bar(&pci_dev->addr, table_bar),
-									 pci_read_bar_size(&pci_dev->addr, table_bar));
-	void* pba_va = map_mmio_region(pci_read_bar(&pci_dev->addr, pba_bar),
-								   pci_read_bar_size(&pci_dev->addr, pba_bar));
+	void *table_va = map_mmio_region(
+		pci_read_bar(&pci_dev->addr, table_bar), pci_read_bar_size(&pci_dev->addr, table_bar)
+	);
+	void *pba_va = map_mmio_region(
+		pci_read_bar(&pci_dev->addr, pba_bar), pci_read_bar_size(&pci_dev->addr, pba_bar)
+	);
 	pci_dev->msix_table = table_va + table_offset;
 	pci_dev->msix_pba = pba_va + pba_offset;
 	// mask all interrupt vectors
@@ -69,7 +80,7 @@ int pci_msix_enable(struct PCIDevice* pci_dev) {
 	return capoff;
 }
 
-unsigned int pci_msix_get_num_vectors(struct PCIDevice* pci_dev) {
+unsigned int pci_msix_get_num_vectors(struct PCIDevice *pci_dev) {
 	int capoff = pci_find_capability(&pci_dev->addr, 0x11);
 	if (!capoff) {
 		return 0;
@@ -78,17 +89,18 @@ unsigned int pci_msix_get_num_vectors(struct PCIDevice* pci_dev) {
 	return (msixctl & 0x7ff) + 1;
 }
 
-void pci_msix_set_message(struct PCIDevice* pci_dev, unsigned int vec,
-						  const struct MSIMessage* msg) {
+void pci_msix_set_message(
+	struct PCIDevice *pci_dev, unsigned int vec, const struct MSIMessage *msg
+) {
 	pci_dev->msix_table[vec * 4 + 0] = msg->addr & 0xffffffff;
 	pci_dev->msix_table[vec * 4 + 1] = (msg->addr >> 32) & 0xffffffff;
 	pci_dev->msix_table[vec * 4 + 2] = msg->data;
 }
 
-void pci_msix_mask(struct PCIDevice* pci_dev, unsigned int vec) {
+void pci_msix_mask(struct PCIDevice *pci_dev, unsigned int vec) {
 	pci_dev->msix_table[vec * 4 + 3] = 1;
 }
 
-void pci_msix_unmask(struct PCIDevice* pci_dev, unsigned int vec) {
+void pci_msix_unmask(struct PCIDevice *pci_dev, unsigned int vec) {
 	pci_dev->msix_table[vec * 4 + 3] = 0;
 }

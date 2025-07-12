@@ -77,7 +77,7 @@ struct KernelTime {
 };
 
 static int date_kcall_handler(unsigned int p) {
-	struct KernelTime* t = (void*)p;
+	struct KernelTime *t = (void *)p;
 	t->year = rtc_get_year();
 	t->month = rtc_get_month();
 	t->day_of_week = rtc_get_day_of_week();
@@ -95,7 +95,14 @@ void rtc_init(void) {
 	if (!(cmos_read(RTC_REG_STATUS_B) & (1 << 1))) {
 		cprintf("[rtc] WARNING: RTC not in 24-hour mode\n");
 	}
-	cprintf("[rtc] Date %d-%d-%d %d:%d:%d\n", rtc_get_year(), rtc_get_month(),
-			rtc_get_day_of_month(), rtc_get_hour(), rtc_get_minute(), rtc_get_second());
+	cprintf(
+		"[rtc] Date %d-%d-%d %d:%d:%d\n",
+		rtc_get_year(),
+		rtc_get_month(),
+		rtc_get_day_of_month(),
+		rtc_get_hour(),
+		rtc_get_minute(),
+		rtc_get_second()
+	);
 	kcall_set("date", date_kcall_handler);
 }

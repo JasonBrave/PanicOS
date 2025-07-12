@@ -82,96 +82,103 @@ static int hal_display_kcall_handler(unsigned int display_struct) {
 	} *dc = (void *)display_struct;
 
 	switch (dc->op) {
-	case DISPLAY_KCALL_OP_ENABLE:
-		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER
-			&& boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+		case DISPLAY_KCALL_OP_ENABLE:
+			if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+				boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
 #ifndef __riscv
-			mappages(myproc()->pgdir, (void *)PROC_MMAP_BOTTOM, 16 * 1024 * 1024,
-					 boot_graphics_mode.fb_addr, PTE_U | PTE_W);
+				mappages(
+					myproc()->pgdir,
+					(void *)PROC_MMAP_BOTTOM,
+					16 * 1024 * 1024,
+					boot_graphics_mode.fb_addr,
+					PTE_U | PTE_W
+				);
 #endif
-			dc->framebuffer = (void *)PROC_MMAP_BOTTOM;
-			dc->flag = 0;
-			return 0;
-		} else if (framebuffer_device[dc->display_id].driver) {
-			if (dc->xres > framebuffer_device[dc->display_id].maximum_xres
-				|| dc->yres > framebuffer_device[dc->display_id].maximum_yres) {
+				dc->framebuffer = (void *)PROC_MMAP_BOTTOM;
+				dc->flag = 0;
+				return 0;
+			} else if (framebuffer_device[dc->display_id].driver) {
+				if (dc->xres > framebuffer_device[dc->display_id].maximum_xres ||
+					dc->yres > framebuffer_device[dc->display_id].maximum_yres) {
+					return ERROR_INVAILD;
+				}
+				dc->framebuffer =
+					hal_display_modeswitch(&framebuffer_device[dc->display_id], dc->xres, dc->yres);
+				dc->flag = 0;
+				if (framebuffer_device[dc->display_id].driver->update) {
+					dc->flag |= DISPLAY_KCALL_FLAG_NEED_UPDATE;
+				}
+				return 0;
+			} else {
+				return ERROR_NOT_EXIST;
+			}
+			break;
+		case DISPLAY_KCALL_OP_DISABLE:
+			if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+				boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+				cprintf("[display] boot-framebuffer disable unsupported");
 				return ERROR_INVAILD;
-			}
-			dc->framebuffer
-				= hal_display_modeswitch(&framebuffer_device[dc->display_id], dc->xres, dc->yres);
-			dc->flag = 0;
-			if (framebuffer_device[dc->display_id].driver->update) {
-				dc->flag |= DISPLAY_KCALL_FLAG_NEED_UPDATE;
-			}
-			return 0;
-		} else {
-			return ERROR_NOT_EXIST;
-		}
-		break;
-	case DISPLAY_KCALL_OP_DISABLE:
-		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER
-			&& boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
-			cprintf("[display] boot-framebuffer disable unsupported");
-			return ERROR_INVAILD;
-		} else if (framebuffer_device[dc->display_id].driver) {
-			framebuffer_device[dc->display_id].driver->disable(
-				framebuffer_device[dc->display_id].private);
-			return 0;
-		}
-		break;
-	case DISPLAY_KCALL_OP_FIND:
-		for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
-			if (framebuffer_device[i].driver) {
-				dc->display_id = i;
+			} else if (framebuffer_device[dc->display_id].driver) {
+				framebuffer_device[dc->display_id].driver->disable(
+					framebuffer_device[dc->display_id].private
+				);
 				return 0;
 			}
-		}
-		if (boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
-			dc->display_id = DISPLAY_ID_BOOT_FRAMEBUFFER;
-			return 0;
-		}
-		return ERROR_NOT_EXIST;
-		break;
-	case DISPLAY_KCALL_OP_GET_PREFERRED:
-		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER
-			&& boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
-			dc->xres = boot_graphics_mode.width;
-			dc->yres = boot_graphics_mode.height;
-			return 0;
-		} else if (framebuffer_device[dc->display_id].driver) {
-			dc->xres = framebuffer_device[dc->display_id].preferred_xres;
-			dc->yres = framebuffer_device[dc->display_id].preferred_yres;
-			return 0;
-		} else {
+			break;
+		case DISPLAY_KCALL_OP_FIND:
+			for (int i = 0; i < HAL_DISPLAY_MAX; i++) {
+				if (framebuffer_device[i].driver) {
+					dc->display_id = i;
+					return 0;
+				}
+			}
+			if (boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+				dc->display_id = DISPLAY_ID_BOOT_FRAMEBUFFER;
+				return 0;
+			}
 			return ERROR_NOT_EXIST;
-		}
-		break;
-	case DISPLAY_KCALL_OP_UPDATE:
-		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER
-			&& boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
-			cprintf("[display] boot-framebuffer update unsupported");
-			return ERROR_INVAILD;
-		} else if (framebuffer_device[dc->display_id].driver
-				   && framebuffer_device[dc->display_id].driver->update) {
-			framebuffer_device[dc->display_id].driver->update(
-				framebuffer_device[dc->display_id].private);
-			return 0;
-		} else {
-			return ERROR_NOT_EXIST;
-		}
-		break;
-	case DISPLAY_KCALL_OP_GET_NAME:
-		if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER
-			&& boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
-			strncpy(dc->str, "boot-framebuffer", 64);
-			return 0;
-		} else if (framebuffer_device[dc->display_id].driver
-				   && framebuffer_device[dc->display_id].name) {
-			strncpy(dc->str, framebuffer_device[dc->display_id].name, 64);
-			return 0;
-		} else {
-			return ERROR_NOT_EXIST;
-		}
+			break;
+		case DISPLAY_KCALL_OP_GET_PREFERRED:
+			if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+				boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+				dc->xres = boot_graphics_mode.width;
+				dc->yres = boot_graphics_mode.height;
+				return 0;
+			} else if (framebuffer_device[dc->display_id].driver) {
+				dc->xres = framebuffer_device[dc->display_id].preferred_xres;
+				dc->yres = framebuffer_device[dc->display_id].preferred_yres;
+				return 0;
+			} else {
+				return ERROR_NOT_EXIST;
+			}
+			break;
+		case DISPLAY_KCALL_OP_UPDATE:
+			if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+				boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+				cprintf("[display] boot-framebuffer update unsupported");
+				return ERROR_INVAILD;
+			} else if (framebuffer_device[dc->display_id].driver &&
+					   framebuffer_device[dc->display_id].driver->update) {
+				framebuffer_device[dc->display_id].driver->update(
+					framebuffer_device[dc->display_id].private
+				);
+				return 0;
+			} else {
+				return ERROR_NOT_EXIST;
+			}
+			break;
+		case DISPLAY_KCALL_OP_GET_NAME:
+			if (dc->display_id == DISPLAY_ID_BOOT_FRAMEBUFFER &&
+				boot_graphics_mode.mode == BOOT_GRAPHICS_MODE_FRAMEBUFFER) {
+				strncpy(dc->str, "boot-framebuffer", 64);
+				return 0;
+			} else if (framebuffer_device[dc->display_id].driver &&
+					   framebuffer_device[dc->display_id].name) {
+				strncpy(dc->str, framebuffer_device[dc->display_id].name, 64);
+				return 0;
+			} else {
+				return ERROR_NOT_EXIST;
+			}
 	}
 	return ERROR_INVAILD;
 }
@@ -186,15 +193,21 @@ static struct FramebufferDevice *hal_display_alloc_dev(unsigned int *n) {
 	return 0;
 }
 
-void hal_display_register_device(const char *name, void *private,
-								 const struct FramebufferDriver *driver) {
+void hal_display_register_device(
+	const char *name, void *private, const struct FramebufferDriver *driver
+) {
 	unsigned int devid;
 	struct FramebufferDevice *dev = hal_display_alloc_dev(&devid);
 	if (!dev) {
 		panic("too many display device");
 	}
-	cprintf("[hal] Display device %d %s update%s edid%s\n", devid, name,
-			BOOL2SIGN((int)driver->update), BOOL2SIGN((int)driver->read_edid));
+	cprintf(
+		"[hal] Display device %d %s update%s edid%s\n",
+		devid,
+		name,
+		BOOL2SIGN((int)driver->update),
+		BOOL2SIGN((int)driver->read_edid)
+	);
 	dev->driver = driver;
 	dev->name = name;
 	dev->private = private;
@@ -221,11 +234,19 @@ void hal_display_register_device(const char *name, void *private,
 	vendor[3] = '\0';
 	if (edid[20] & (1 << 7)) {
 		const char *edid_video_inf[] = {
-			[0x0] = "undefined", [0x2] = "HDMIa",		[0x3] = "HDMIb",
-			[0x4] = "MDDI",		 [0x5] = "DisplayPort",
+			[0x0] = "undefined",
+			[0x2] = "HDMIa",
+			[0x3] = "HDMIb",
+			[0x4] = "MDDI",
+			[0x5] = "DisplayPort",
 		};
-		cprintf("[hal] Monitor %s digital %s edid ver %d.%d\n", vendor,
-				edid_video_inf[edid[20] & 0xf], edid[18], edid[19]);
+		cprintf(
+			"[hal] Monitor %s digital %s edid ver %d.%d\n",
+			vendor,
+			edid_video_inf[edid[20] & 0xf],
+			edid[18],
+			edid[19]
+		);
 	} else {
 		cprintf("[hal] Monitor %s analog edid ver %d.%d\n", vendor, edid[18], edid[19]);
 	}
@@ -242,9 +263,9 @@ void hal_display_register_device(const char *name, void *private,
 			int x, y;
 		} edid_std_aspect[4] = {[0] = {16, 10}, [1] = {4, 3}, [2] = {5, 4}, [3] = {16, 9}};
 		unsigned int x = (stdtiming->x_resolution + 31) * 8;
-		unsigned int y = (stdtiming->x_resolution + 31) * 8
-						 / edid_std_aspect[(stdtiming->aspect >> 6) & 3].x
-						 * edid_std_aspect[(stdtiming->aspect >> 6) & 3].y;
+		unsigned int y = (stdtiming->x_resolution + 31) * 8 /
+						 edid_std_aspect[(stdtiming->aspect >> 6) & 3].x *
+						 edid_std_aspect[(stdtiming->aspect >> 6) & 3].y;
 		if (x >= dev->maximum_xres && y >= dev->maximum_yres) {
 			dev->maximum_xres = x;
 			dev->maximum_yres = y;
@@ -254,10 +275,10 @@ void hal_display_register_device(const char *name, void *private,
 	for (int i = 0; i < 4; i++) {
 		struct EDIDDetailTiming *detailtiming = (void *)edid + 54 + i * 18;
 		if (detailtiming->pixel_clock) {
-			unsigned int x
-				= detailtiming->horizontal_active | (detailtiming->horizontal_misc >> 4 << 8);
-			unsigned int y
-				= detailtiming->vertical_active | (detailtiming->vertical_misc >> 4 << 8);
+			unsigned int x =
+				detailtiming->horizontal_active | (detailtiming->horizontal_misc >> 4 << 8);
+			unsigned int y =
+				detailtiming->vertical_active | (detailtiming->vertical_misc >> 4 << 8);
 			if (x >= dev->preferred_xres && y >= dev->preferred_yres) {
 				dev->preferred_xres = x;
 				dev->preferred_yres = y;
@@ -268,8 +289,13 @@ void hal_display_register_device(const char *name, void *private,
 		dev->maximum_xres = dev->preferred_xres;
 		dev->maximum_yres = dev->preferred_yres;
 	}
-	cprintf("[hal] Monitor display xres %d yres %d max xres %d yres %d\n", dev->preferred_xres,
-			dev->preferred_yres, dev->maximum_xres, dev->maximum_yres);
+	cprintf(
+		"[hal] Monitor display xres %d yres %d max xres %d yres %d\n",
+		dev->preferred_xres,
+		dev->preferred_yres,
+		dev->maximum_xres,
+		dev->maximum_yres
+	);
 }
 
 void hal_display_init(void) {

@@ -24,8 +24,8 @@ namespace {
 	std::new_handler new_handler_func = nullptr;
 }
 
-[[nodiscard]] void* operator new(std::size_t count) {
-	void* ptr;
+[[nodiscard]] void *operator new(std::size_t count) {
+	void *ptr;
 	while (!(ptr = std::malloc(count))) {
 		if (new_handler_func) {
 			new_handler_func();
@@ -36,7 +36,7 @@ namespace {
 	return ptr;
 }
 
-[[nodiscard]] void* operator new[](std::size_t count) {
+[[nodiscard]] void *operator new[](std::size_t count) {
 	return ::operator new(count);
 }
 

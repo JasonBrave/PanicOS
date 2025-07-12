@@ -17,8 +17,8 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <common/x86.h>
 #include <arch/x86/mmu.h>
+#include <common/x86.h>
 #include <core/proc.h>
 #include <defs.h>
 #include <memlayout.h>
@@ -33,39 +33,41 @@
 // to a saved program counter, and then the first argument.
 
 // Fetch the int at addr from the current process.
-int fetchint(unsigned int addr, int* ip) {
-	*ip = *(int*)(addr);
+int fetchint(unsigned int addr, int *ip) {
+	*ip = *(int *)(addr);
 	return 0;
 }
 
 // Fetch the nul-terminated string at addr from the current process.
 // Doesn't actually copy the string - just sets *pp to point at it.
 // Returns length of string, not including nul.
-int fetchstr(unsigned int addr, char** pp) {
-	char* s;
+int fetchstr(unsigned int addr, char **pp) {
+	char *s;
 
-	*pp = (char*)addr;
+	*pp = (char *)addr;
 	for (s = *pp;; s++) {
-		if (*s == 0)
+		if (*s == 0) {
 			return s - *pp;
+		}
 	}
 	return -1;
 }
 
 // Fetch the nth 32-bit system call argument.
-int argint(int n, int* ip) {
+int argint(int n, int *ip) {
 	return fetchint((myproc()->tf->esp) + 4 + 4 * n, ip);
 }
 
 // Fetch the nth word-sized system call argument as a pointer
 // to a block of memory of size bytes.  Check that the pointer
 // lies within the process address space.
-int argptr(int n, char** pp, int size) {
+int argptr(int n, char **pp, int size) {
 	int i;
 
-	if (argint(n, &i) < 0)
+	if (argint(n, &i) < 0) {
 		return -1;
-	*pp = (char*)i;
+	}
+	*pp = (char *)i;
 	return 0;
 }
 
@@ -73,10 +75,11 @@ int argptr(int n, char** pp, int size) {
 // Check that the pointer is valid and the string is nul-terminated.
 // (There is no shared writable memory, so the string can't change
 // between this check and being used by the kernel.)
-int argstr(int n, char** pp) {
+int argstr(int n, char **pp) {
 	int addr;
-	if (argint(n, &addr) < 0)
+	if (argint(n, &addr) < 0) {
 		return -1;
+	}
 	return fetchstr(addr, pp);
 }
 
@@ -168,7 +171,7 @@ static int (*syscalls[])(void) = {
 
 void syscall(void) {
 	unsigned int num;
-	struct proc* curproc = myproc();
+	struct proc *curproc = myproc();
 
 	num = curproc->tf->eax;
 	if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {

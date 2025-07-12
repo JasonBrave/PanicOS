@@ -22,7 +22,7 @@
 
 #include "vfs.h"
 
-int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
+int vfs_fd_open(struct FileDesc *fd, const char *filename, int mode) {
 	memset(fd, 0, sizeof(struct FileDesc));
 	struct VfsPath filepath;
 	filepath.pathbuf = kalloc();
@@ -45,8 +45,8 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 		}
 	}
 	fd->block = fblock;
-	fd->size
-		= vfs_mount_table[fs_id].fs_driver->get_file_size(vfs_mount_table[fs_id].private, path);
+	fd->size =
+		vfs_mount_table[fs_id].fs_driver->get_file_size(vfs_mount_table[fs_id].private, path);
 	if (mode & O_READ) {
 		fd->read = 1;
 	}
@@ -70,7 +70,7 @@ int vfs_fd_open(struct FileDesc* fd, const char* filename, int mode) {
 	return 0;
 }
 
-int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
+int vfs_fd_read(struct FileDesc *fd, void *buf, unsigned int size) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}
@@ -89,8 +89,9 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 	} else {
 		status = size;
 	}
-	int ret = vfs_mount_table[fd->fs_id].fs_driver->read(vfs_mount_table[fd->fs_id].private,
-														 fd->block, buf, fd->offset, size);
+	int ret = vfs_mount_table[fd->fs_id].fs_driver->read(
+		vfs_mount_table[fd->fs_id].private, fd->block, buf, fd->offset, size
+	);
 	if (ret < 0) {
 		return ret;
 	}
@@ -99,7 +100,7 @@ int vfs_fd_read(struct FileDesc* fd, void* buf, unsigned int size) {
 	return status;
 }
 
-int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
+int vfs_fd_write(struct FileDesc *fd, const char *buf, unsigned int size) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}
@@ -113,8 +114,9 @@ int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
 	if (fd->append) {
 		fd->offset = fd->size;
 	}
-	int ret = vfs_mount_table[fd->fs_id].fs_driver->write(vfs_mount_table[fd->fs_id].private,
-														  fd->block, buf, fd->offset, size);
+	int ret = vfs_mount_table[fd->fs_id].fs_driver->write(
+		vfs_mount_table[fd->fs_id].private, fd->block, buf, fd->offset, size
+	);
 	if (ret < 0) {
 		return ret;
 	}
@@ -125,7 +127,7 @@ int vfs_fd_write(struct FileDesc* fd, const char* buf, unsigned int size) {
 	return ret;
 }
 
-int vfs_fd_close(struct FileDesc* fd) {
+int vfs_fd_close(struct FileDesc *fd) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}
@@ -134,8 +136,9 @@ int vfs_fd_close(struct FileDesc* fd) {
 	}
 
 	if (fd->write) {
-		vfs_mount_table[fd->fs_id].fs_driver->update_size(vfs_mount_table[fd->fs_id].private,
-														  fd->path, fd->size);
+		vfs_mount_table[fd->fs_id].fs_driver->update_size(
+			vfs_mount_table[fd->fs_id].private, fd->path, fd->size
+		);
 		kfree(fd->path.pathbuf);
 	}
 
@@ -143,7 +146,7 @@ int vfs_fd_close(struct FileDesc* fd) {
 	return 0;
 }
 
-int vfs_fd_seek(struct FileDesc* fd, unsigned int off, enum FileSeekMode mode) {
+int vfs_fd_seek(struct FileDesc *fd, unsigned int off, enum FileSeekMode mode) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}
@@ -154,15 +157,15 @@ int vfs_fd_seek(struct FileDesc* fd, unsigned int off, enum FileSeekMode mode) {
 		return ERROR_INVAILD;
 	}
 	switch (mode) {
-	case SEEK_SET:
-		fd->offset = off;
-		break;
-	case SEEK_CUR:
-		fd->offset += off;
-		break;
-	case SEEK_END:
-		fd->offset = fd->size + off;
-		break;
+		case SEEK_SET:
+			fd->offset = off;
+			break;
+		case SEEK_CUR:
+			fd->offset += off;
+			break;
+		case SEEK_END:
+			fd->offset = fd->size + off;
+			break;
 	}
 	return fd->offset;
 }

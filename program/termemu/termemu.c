@@ -28,7 +28,7 @@ static COLOUR term_back_colour = {0, 0, 0};
 static COLOUR term_font_colour = {255, 255, 255};
 
 int x_chars = 80, y_chars = 25;
-char* term_buffer; // terminal buffer
+char *term_buffer; // terminal buffer
 int cur_x = 0, cur_y = 0; // cursor
 char inputbuf[80]; // input buffer
 int inputptr = 0;
@@ -38,8 +38,8 @@ static void print_help_message(void) {
 	exit(1);
 }
 
-int main(int argc, char* argv[]) {
-	const char* prog = "/bin/sh";
+int main(int argc, char *argv[]) {
+	const char *prog = "/bin/sh";
 	if (argc == 2) {
 		if ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0)) {
 			print_help_message();
@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 	int sh_pid = fork();
 	if (sh_pid == 0) {
 		pty_switch(pty);
-		const char* args[] = {"sh", 0};
+		const char *args[] = {"sh", 0};
 		exec(prog, args);
 		abort();
 	}
@@ -99,8 +99,9 @@ int main(int argc, char* argv[]) {
 					cur_y++;
 					if (cur_y == y_chars) {
 						for (int j = 0; j < y_chars - 1; j++) {
-							memcpy(term_buffer + j * x_chars, term_buffer + (j + 1) * x_chars,
-								   x_chars);
+							memcpy(
+								term_buffer + j * x_chars, term_buffer + (j + 1) * x_chars, x_chars
+							);
 						}
 						memset(term_buffer + (y_chars - 1) * x_chars, ' ', x_chars);
 						cur_y--;
@@ -113,8 +114,11 @@ int main(int argc, char* argv[]) {
 						cur_y++;
 						if (cur_y == y_chars) {
 							for (int j = 0; j < y_chars - 1; j++) {
-								memcpy(term_buffer + j * x_chars, term_buffer + (j + 1) * x_chars,
-									   x_chars);
+								memcpy(
+									term_buffer + j * x_chars,
+									term_buffer + (j + 1) * x_chars,
+									x_chars
+								);
 							}
 							memset(term_buffer + (y_chars - 1) * x_chars, ' ', x_chars);
 							cur_y--;
@@ -186,8 +190,9 @@ int main(int argc, char* argv[]) {
 		if (need_update) {
 			wm_fill_sheet(term_handle, term_back_colour);
 			for (int i = 0; i < y_chars; i++) {
-				wm_print_text_n(term_handle, 0, i * 16, term_font_colour, term_buffer + i * x_chars,
-								x_chars);
+				wm_print_text_n(
+					term_handle, 0, i * 16, term_font_colour, term_buffer + i * x_chars, x_chars
+				);
 			}
 		}
 	}

@@ -43,28 +43,28 @@ struct EduDeviceMMIO {
 } PACKED;
 
 struct EduDevice {
-	volatile struct EduDeviceMMIO* mmio;
+	volatile struct EduDeviceMMIO *mmio;
 };
 
-void edu_intx_intr(struct PCIDevice* pcidev) {
-	struct EduDevice* dev = pcidev->private;
+void edu_intx_intr(struct PCIDevice *pcidev) {
+	struct EduDevice *dev = pcidev->private;
 	cprintf("[edu] INTx intr %d\n", dev->mmio->intr_status);
 	dev->mmio->intr_ack = dev->mmio->intr_status;
 }
 
 #ifdef EDU_USE_MSI
 
-void edu_msi_intr(void* private) {
-	struct EduDevice* dev = private;
+void edu_msi_intr(void *private) {
+	struct EduDevice *dev = private;
 	cprintf("[edu] MSI intr %d\n", dev->mmio->intr_status);
 	dev->mmio->intr_ack = dev->mmio->intr_status;
 }
 
 #endif
 
-void edu_init_dev(struct PCIDevice* pcidev) {
-	const struct PciAddress* addr = &pcidev->addr;
-	struct EduDevice* dev = kalloc();
+void edu_init_dev(struct PCIDevice *pcidev) {
+	const struct PciAddress *addr = &pcidev->addr;
+	struct EduDevice *dev = kalloc();
 	dev->mmio = map_mmio_region(pci_read_bar(addr, 0), 0x100000);
 	cprintf("[edu] Version %x\n", dev->mmio->id);
 	// legacy interrupt handler
@@ -82,8 +82,7 @@ void edu_init_dev(struct PCIDevice* pcidev) {
 #endif
 	// try factorial
 	dev->mmio->factorial = 10;
-	while (dev->mmio->status & 1) {
-	}
+	while (dev->mmio->status & 1) {}
 	cprintf("[edu] Factorial of 10 is %d\n", dev->mmio->factorial);
 	// try to raise an interrupt
 	dev->mmio->intr_raise = 123;

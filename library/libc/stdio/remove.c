@@ -20,6 +20,6 @@
 #include <errno.h>
 #include <panicos.h>
 
-int remove(const char* filename) {
+int remove(const char *filename) {
 	return errno = unlink(filename);
 }

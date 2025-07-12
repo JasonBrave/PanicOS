@@ -7,7 +7,7 @@ extern struct KCallTable {
 } kcall_table[256];
 
 void kcall_init(void);
-void kcall_set(const char* name, int (*handler)(unsigned int));
-int kcall(const char* name, unsigned int arg);
+void kcall_set(const char *name, int (*handler)(unsigned int));
+int kcall(const char *name, unsigned int arg);
 
 #endif

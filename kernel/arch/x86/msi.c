@@ -28,8 +28,8 @@ static struct MSIVector {
 	struct {
 		unsigned char used : 1;
 	};
-	void (*handler)(void*);
-	void* private;
+	void (*handler)(void *);
+	void *private;
 } msi_vector[MSI_VECTOR_MAX];
 
 void msi_init(void) {
@@ -45,12 +45,12 @@ void msi_intr(int vector) {
 	}
 }
 
-static void msi_compose_msg(struct MSIMessage* msg, unsigned int vector, unsigned int lapicid) {
+static void msi_compose_msg(struct MSIMessage *msg, unsigned int vector, unsigned int lapicid) {
 	msg->addr = 0xfee00000 | lapicid << 12;
 	msg->data = vector;
 }
 
-int msi_alloc_vector(struct MSIMessage* msg, void (*handler)(void*), void* private) {
+int msi_alloc_vector(struct MSIMessage *msg, void (*handler)(void *), void *private) {
 	for (int i = 0; i < MSI_VECTOR_MAX; i++) {
 		if (!msi_vector[i].used) {
 			msi_vector[i].used = 1;
@@ -63,7 +63,7 @@ int msi_alloc_vector(struct MSIMessage* msg, void (*handler)(void*), void* priva
 	return 0;
 }
 
-void msi_free_vector(const struct MSIMessage* msg) {
+void msi_free_vector(const struct MSIMessage *msg) {
 	unsigned int vector = msg->data & 0xff;
 	msi_vector[vector - MSI_VECTOR_BASE].used = 0;
 }

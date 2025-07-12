@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-const char* pci_class_to_str(uint8_t class, uint8_t subclass, uint8_t progif) {
+const char *pci_class_to_str(uint8_t class, uint8_t subclass, uint8_t progif) {
 	// storage controllers
 	if ((class == 1) && (subclass == 0)) {
 		return "SCSI Controller";
@@ -81,7 +81,7 @@ const char* pci_class_to_str(uint8_t class, uint8_t subclass, uint8_t progif) {
 	}
 }
 
-static const char* pci_cap_db[] = {
+static const char *pci_cap_db[] = {
 	[0x0] = "Null",
 	[0x1] = "PCI Power Management",
 	[0x2] = "AGP",
@@ -106,14 +106,14 @@ static const char* pci_cap_db[] = {
 	[0x15] = "FLattening Portal Bridge",
 };
 
-const char* pci_cap_to_str(unsigned int cap_id) {
+const char *pci_cap_to_str(unsigned int cap_id) {
 	if (cap_id > 0x15) {
 		return "Unknown";
 	}
 	return pci_cap_db[cap_id];
 }
 
-static const char* pcie_ecap_db[] = {
+static const char *pcie_ecap_db[] = {
 	[0x0] = "Null",
 	[0x1] = "Advanced Error Reporting",
 	[0x2] = "Virtual Channel",
@@ -149,7 +149,7 @@ static const char* pcie_ecap_db[] = {
 	[0x20] = "PCI Express over M-PHY",
 };
 
-const char* pcie_ecap_to_str(unsigned int ecap_id) {
+const char *pcie_ecap_to_str(unsigned int ecap_id) {
 	if (ecap_id > 0x13) {
 		return "Unknown";
 	}
@@ -158,7 +158,7 @@ const char* pcie_ecap_to_str(unsigned int ecap_id) {
 
 static struct PCIDeviceIDTable {
 	uint16_t vendor, device;
-	const char* name;
+	const char *name;
 } pci_device_id_table[] = {
 	// QEMU devices
 	{0x1af4, 0x1000, "Virtio Network device (legacy)"},
@@ -195,7 +195,7 @@ static struct PCIDeviceIDTable {
 	{0x1b36, 0x0100, "QEMU QXL Display Adapter"},
 };
 
-const char* pci_device_id_to_str(uint16_t vendor, uint16_t device) {
+const char *pci_device_id_to_str(uint16_t vendor, uint16_t device) {
 	for (unsigned int i = 0; i < (sizeof(pci_device_id_table) / sizeof(struct PCIDeviceIDTable));
 		 i++) {
 		if (pci_device_id_table[i].vendor == vendor && pci_device_id_table[i].device == device) {

@@ -61,7 +61,7 @@ void vfs_init(void) {
 	}
 }
 
-int vfs_path_to_fs(struct VfsPath orig_path, struct VfsPath* path) {
+int vfs_path_to_fs(struct VfsPath orig_path, struct VfsPath *path) {
 	if (orig_path.parts == 0) {
 		path->parts = 0;
 		return 0;
@@ -78,7 +78,7 @@ int vfs_path_to_fs(struct VfsPath orig_path, struct VfsPath* path) {
 	}
 }
 
-int vfs_file_get_size(const char* filename) {
+int vfs_file_get_size(const char *filename) {
 	struct VfsPath filepath;
 	filepath.pathbuf = kalloc();
 	filepath.parts = vfs_path_split(filename, filepath.pathbuf);
@@ -93,7 +93,7 @@ int vfs_file_get_size(const char* filename) {
 	return sz;
 }
 
-int vfs_file_get_mode(const char* filename) {
+int vfs_file_get_mode(const char *filename) {
 	struct VfsPath filepath;
 	filepath.pathbuf = kalloc();
 	filepath.parts = vfs_path_split(filename, filepath.pathbuf);
@@ -108,7 +108,7 @@ int vfs_file_get_mode(const char* filename) {
 	return sz;
 }
 
-int vfs_mkdir(const char* dirname) {
+int vfs_mkdir(const char *dirname) {
 	struct VfsPath filepath;
 	filepath.pathbuf = kalloc();
 	filepath.parts = vfs_path_split(dirname, filepath.pathbuf);
@@ -118,13 +118,13 @@ int vfs_mkdir(const char* dirname) {
 	struct VfsPath path;
 	int fs_id = vfs_path_to_fs(filepath, &path);
 
-	int ret
-		= vfs_mount_table[fs_id].fs_driver->create_directory(vfs_mount_table[fs_id].private, path);
+	int ret =
+		vfs_mount_table[fs_id].fs_driver->create_directory(vfs_mount_table[fs_id].private, path);
 	kfree(filepath.pathbuf);
 	return ret;
 }
 
-int vfs_file_remove(const char* file) {
+int vfs_file_remove(const char *file) {
 	struct VfsPath filepath;
 	filepath.pathbuf = kalloc();
 	filepath.parts = vfs_path_split(file, filepath.pathbuf);

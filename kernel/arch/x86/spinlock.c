@@ -17,15 +17,15 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/mmu.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
-#include <arch/x86/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>
 
-void initlock(struct spinlock* lk, const char* name) {
+void initlock(struct spinlock *lk, const char *name) {
 	lk->name = name;
 	lk->locked = 0;
 	lk->cpu = 0;
@@ -35,10 +35,11 @@ void initlock(struct spinlock* lk, const char* name) {
 // Loops (spins) until the lock is acquired.
 // Holding a lock for a long time may cause
 // other CPUs to waste time spinning to acquire it.
-void acquire(struct spinlock* lk) {
+void acquire(struct spinlock *lk) {
 	pushcli(); // disable interrupts to avoid deadlock.
-	if (holding(lk))
+	if (holding(lk)) {
 		panic("acquire");
+	}
 
 	// The xchg is atomic.
 	while (xchg(&lk->locked, 1) != 0)
@@ -55,9 +56,10 @@ void acquire(struct spinlock* lk) {
 }
 
 // Release the lock.
-void release(struct spinlock* lk) {
-	if (!holding(lk))
+void release(struct spinlock *lk) {
+	if (!holding(lk)) {
 		panic("release");
+	}
 
 	lk->pcs[0] = 0;
 	lk->cpu = 0;
@@ -78,23 +80,25 @@ void release(struct spinlock* lk) {
 }
 
 // Record the current call stack in pcs[] by following the %ebp chain.
-void getcallerpcs(void* v, unsigned int pcs[]) {
-	unsigned int* ebp;
+void getcallerpcs(void *v, unsigned int pcs[]) {
+	unsigned int *ebp;
 	int i;
 
-	ebp = (unsigned int*)v - 2;
+	ebp = (unsigned int *)v - 2;
 	for (i = 0; i < 10; i++) {
-		if (ebp == 0 || ebp < (unsigned int*)KERNBASE || ebp == (unsigned int*)0xffffffff)
+		if (ebp == 0 || ebp < (unsigned int *)KERNBASE || ebp == (unsigned int *)0xffffffff) {
 			break;
+		}
 		pcs[i] = ebp[1]; // saved %eip
-		ebp = (unsigned int*)ebp[0]; // saved %ebp
+		ebp = (unsigned int *)ebp[0]; // saved %ebp
 	}
-	for (; i < 10; i++)
+	for (; i < 10; i++) {
 		pcs[i] = 0;
+	}
 }
 
 // Check whether this cpu is holding the lock.
-int holding(struct spinlock* lock) {
+int holding(struct spinlock *lock) {
 	int r;
 	pushcli();
 	r = lock->locked && lock->cpu == mycpu();
@@ -111,16 +115,20 @@ void pushcli(void) {
 
 	eflags = readeflags();
 	cli();
-	if (mycpu()->ncli == 0)
+	if (mycpu()->ncli == 0) {
 		mycpu()->intena = eflags & FL_IF;
+	}
 	mycpu()->ncli += 1;
 }
 
 void popcli(void) {
-	if (readeflags() & FL_IF)
+	if (readeflags() & FL_IF) {
 		panic("popcli - interruptible");
-	if (--mycpu()->ncli < 0)
+	}
+	if (--mycpu()->ncli < 0) {
 		panic("popcli");
-	if (mycpu()->ncli == 0 && mycpu()->intena)
+	}
+	if (mycpu()->ncli == 0 && mycpu()->intena) {
 		sti();
+	}
 }

@@ -20,8 +20,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
-char* fgets(char* restrict s, int n, FILE* restrict stream) {
-	char* str = s;
+char *fgets(char *restrict s, int n, FILE *restrict stream) {
+	char *str = s;
 	while (--n) {
 		int c = fgetc(stream);
 		if (c == '\n') {

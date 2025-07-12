@@ -24,15 +24,14 @@
 #include <iosfwd>
 
 namespace std {
-	template <class CharT>
-	struct char_traits {
+	template <class CharT> struct char_traits {
 		typedef CharT char_type;
 		typedef int int_type;
 		typedef std::streamoff off_type;
 		typedef std::streampos pos_type;
 		typedef void state_type;
 
-		static constexpr std::size_t length(const char_type* s) {
+		static constexpr std::size_t length(const char_type *s) {
 			std::size_t i = 0;
 			while (*s) {
 				i++;
@@ -46,20 +45,18 @@ namespace std {
 		}
 	};
 
-	template <>
-	struct char_traits<char> {
+	template <> struct char_traits<char> {
 		typedef char char_type;
 		typedef int int_type;
 		typedef std::streamoff off_type;
 		typedef std::streampos pos_type;
 		typedef void state_type;
 
-		static constexpr void assign(char_type& r, const char_type& a) noexcept {
+		static constexpr void assign(char_type &r, const char_type &a) noexcept {
 			r = a;
 		}
 
-		static constexpr char_type* assign(char_type* p, std::size_t count,
-										   char_type a) {
+		static constexpr char_type *assign(char_type *p, std::size_t count, char_type a) {
 			while (count--) {
 				p[count] = a;
 			}
@@ -74,24 +71,21 @@ namespace std {
 			return (a < b);
 		}
 
-		static constexpr char_type* move(char_type* dest, const char_type* src,
-										 std::size_t count) {
+		static constexpr char_type *move(char_type *dest, const char_type *src, std::size_t count) {
 			while (count--) {
 				dest[count] = src[count];
 			}
 			return dest;
 		}
 
-		static constexpr char_type* copy(char_type* dest, const char_type* src,
-										 std::size_t count) {
+		static constexpr char_type *copy(char_type *dest, const char_type *src, std::size_t count) {
 			while (count--) {
 				dest[count] = src[count];
 			}
 			return dest;
 		}
 
-		static constexpr int compare(const char_type* s1, const char_type* s2,
-									 std::size_t count) {
+		static constexpr int compare(const char_type *s1, const char_type *s2, std::size_t count) {
 			for (std::size_t i = 0; i < count; i++) {
 				if (lt(s1[i], s2[i])) {
 					return -1;
@@ -102,7 +96,7 @@ namespace std {
 			return 0;
 		}
 
-		static constexpr std::size_t length(const char_type* s) {
+		static constexpr std::size_t length(const char_type *s) {
 			std::size_t i = 0;
 			while (*s) {
 				i++;
@@ -111,8 +105,8 @@ namespace std {
 			return i;
 		}
 
-		static constexpr const char_type* find(const char_type* p, std::size_t count,
-											   const char_type& ch) {
+		static constexpr const char_type *
+		find(const char_type *p, std::size_t count, const char_type &ch) {
 			for (std::size_t i = 0; i < count; i++) {
 				if (eq(p[i], ch)) {
 					return p + i;

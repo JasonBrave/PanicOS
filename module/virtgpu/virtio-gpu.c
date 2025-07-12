@@ -25,33 +25,32 @@
 #include "virtio-gpu-regs.h"
 #include "virtio-gpu.h"
 
-static void virtio_gpu_controlq_intr(struct VirtioQueue* queue) {
-	struct VirtioGPUDevice* dev = queue->virtio_dev->private;
+static void virtio_gpu_controlq_intr(struct VirtioQueue *queue) {
+	struct VirtioGPUDevice *dev = queue->virtio_dev->private;
 	acquire(&dev->lock);
-	volatile struct virtio_gpu_config* gpucfg = dev->virtio_dev->devcfg;
+	volatile struct virtio_gpu_config *gpucfg = dev->virtio_dev->devcfg;
 	if (gpucfg->events_read) {
 		cprintf("[virtio-gpu] event %x\n", gpucfg->events_read);
 		gpucfg->events_clear = gpucfg->events_read;
 	}
 	static unsigned short last = 0;
-	for (; last != queue->used->idx; last++) {
-	}
+	for (; last != queue->used->idx; last++) {}
 	release(&dev->lock);
 }
 
-static void virtio_gpu_cursorq_intr(struct VirtioQueue* queue) {
+static void virtio_gpu_cursorq_intr(struct VirtioQueue *queue) {
 	return;
 }
 
-unsigned int virtio_gpu_alloc_resource_id(struct VirtioGPUDevice* dev) {
+unsigned int virtio_gpu_alloc_resource_id(struct VirtioGPUDevice *dev) {
 	unsigned int id = dev->res_id;
 	dev->res_id++;
 	return id;
 }
 
-void virtio_gpu_init(struct VirtioDevice* virtio_dev, unsigned int features) {
+void virtio_gpu_init(struct VirtioDevice *virtio_dev, unsigned int features) {
 	// alloc dev
-	struct VirtioGPUDevice* dev = kalloc();
+	struct VirtioGPUDevice *dev = kalloc();
 	memset(dev, 0, sizeof(struct VirtioGPUDevice));
 	virtio_dev->private = dev;
 	dev->virtio_dev = virtio_dev;
@@ -63,9 +62,12 @@ void virtio_gpu_init(struct VirtioDevice* virtio_dev, unsigned int features) {
 	virtio_init_queue(dev->virtio_dev, &dev->controlq, 0, virtio_gpu_controlq_intr);
 	virtio_init_queue(dev->virtio_dev, &dev->cursorq, 1, virtio_gpu_cursorq_intr);
 
-	cprintf("[virtio-gpu] Feature 3D%s EDID%s UUID%s\n", BOOL2SIGN(features & VIRTIO_GPU_F_VIRGL),
-			BOOL2SIGN(features & VIRTIO_GPU_F_EDID),
-			BOOL2SIGN(features & VIRTIO_GPU_F_RESOURCE_UUID));
+	cprintf(
+		"[virtio-gpu] Feature 3D%s EDID%s UUID%s\n",
+		BOOL2SIGN(features & VIRTIO_GPU_F_VIRGL),
+		BOOL2SIGN(features & VIRTIO_GPU_F_EDID),
+		BOOL2SIGN(features & VIRTIO_GPU_F_RESOURCE_UUID)
+	);
 	if (features & VIRTIO_GPU_F_EDID) {
 		dev->features.edid = 1;
 	}

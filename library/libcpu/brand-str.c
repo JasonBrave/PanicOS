@@ -21,8 +21,7 @@
 
 #include "cpuinfo.h"
 
-char* cpu_get_brand_string(char* brand_str) {
-
+char *cpu_get_brand_string(char *brand_str) {
 	if (cpu_get_max_ext_cpuid() < 0x80000004) {
 		brand_str[0] = '\0';
 		return brand_str;
@@ -99,7 +98,7 @@ char* cpu_get_brand_string(char* brand_str) {
 	return brand_str;
 }
 
-char* cpu_get_vendor_string(char* vendor_str) {
+char *cpu_get_vendor_string(char *vendor_str) {
 	unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
 	__get_cpuid(0, &eax, &ebx, &ecx, &edx);
 

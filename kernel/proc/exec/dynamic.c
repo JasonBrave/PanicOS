@@ -21,8 +21,9 @@
 #include <core/proc.h>
 #include <defs.h>
 
-int proc_load_dynamic(struct proc* proc, const char* name, unsigned int* dynamic,
-					  unsigned int* entry) {
+int proc_load_dynamic(
+	struct proc *proc, const char *name, unsigned int *dynamic, unsigned int *entry
+) {
 	int sz;
 	unsigned int interp;
 	unsigned int load_base = myproc()->dyn_base;

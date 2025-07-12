@@ -10,7 +10,7 @@ struct MSIMessage {
 
 void msi_init(void);
 void msi_intr(int vector);
-int msi_alloc_vector(struct MSIMessage* msg, void (*handler)(void*), void* private);
-void msi_free_vector(const struct MSIMessage* msg);
+int msi_alloc_vector(struct MSIMessage *msg, void (*handler)(void *), void *private);
+void msi_free_vector(const struct MSIMessage *msg);
 
 #endif

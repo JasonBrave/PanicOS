@@ -57,19 +57,21 @@ enum PATADeviceSignature {
 	PATA_SIGNATURE_PACKET = 0x010114eb,
 };
 
-uint32_t pata_read_signature(const struct PATAAdapter* adapter, int channel, int drive) {
-	outb(adapter->cmdblock_base[channel] + PATA_IO_DRIVE,
-		 PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT));
+uint32_t pata_read_signature(const struct PATAAdapter *adapter, int channel, int drive) {
+	outb(
+		adapter->cmdblock_base[channel] + PATA_IO_DRIVE,
+		PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT)
+	);
 
 	udelay(5);
 
-	return (inb(adapter->cmdblock_base[channel] + PATA_IO_COUNT) << 24)
-		   | (inb(adapter->cmdblock_base[channel] + PATA_IO_LBALO) << 16)
-		   | (inb(adapter->cmdblock_base[channel] + PATA_IO_LBAMID) << 8)
-		   | inb(adapter->cmdblock_base[channel] + PATA_IO_LBAHI);
+	return (inb(adapter->cmdblock_base[channel] + PATA_IO_COUNT) << 24) |
+		   (inb(adapter->cmdblock_base[channel] + PATA_IO_LBALO) << 16) |
+		   (inb(adapter->cmdblock_base[channel] + PATA_IO_LBAMID) << 8) |
+		   inb(adapter->cmdblock_base[channel] + PATA_IO_LBAHI);
 }
 
-void pata_bus_reset(const struct PATAAdapter* adapter, int channel) {
+void pata_bus_reset(const struct PATAAdapter *adapter, int channel) {
 	outb(adapter->control_base[channel], 1 << 2);
 	udelay(5);
 	outb(adapter->control_base[channel], 0);
@@ -77,12 +79,16 @@ void pata_bus_reset(const struct PATAAdapter* adapter, int channel) {
 	mdelay(2);
 }
 
-int pata_exec_pio_in(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					 unsigned int lba, unsigned int count, void* buf, int blocks) {
+int pata_exec_pio_in(
+	struct PATAAdapter *adapter, int channel, int drive, uint8_t cmd, unsigned int lba,
+	unsigned int count, void *buf, int blocks
+) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
-	outb(iobase + PATA_IO_DRIVE,
-		 PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	outb(
+		iobase + PATA_IO_DRIVE,
+		PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf)
+	);
 	udelay(1);
 	outb(iobase + PATA_IO_COUNT, count);
 	outb(iobase + PATA_IO_LBALO, lba & 0xff);
@@ -91,8 +97,7 @@ int pata_exec_pio_in(struct PATAAdapter* adapter, int channel, int drive, uint8_
 	outb(iobase + PATA_IO_COMMAND, cmd);
 	// check status
 	for (int i = 0; i < blocks; i++) {
-		while (inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) {
-		}
+		while (inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) {}
 		uint8_t status = inb(iobase + PATA_IO_STATUS);
 		if (status == 0 || status & PATA_STATUS_ERR) {
 			release(&adapter->lock[channel]);
@@ -104,13 +109,17 @@ int pata_exec_pio_in(struct PATAAdapter* adapter, int channel, int drive, uint8_
 	return 0;
 }
 
-int pata_exec_dma_in(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					 unsigned int lba, unsigned int count, void* buf, int blocks) {
+int pata_exec_dma_in(
+	struct PATAAdapter *adapter, int channel, int drive, uint8_t cmd, unsigned int lba,
+	unsigned int count, void *buf, int blocks
+) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
 	pata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
-	outb(iobase + PATA_IO_DRIVE,
-		 PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	outb(
+		iobase + PATA_IO_DRIVE,
+		PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf)
+	);
 	udelay(1);
 	outb(iobase + PATA_IO_COUNT, count);
 	outb(iobase + PATA_IO_LBALO, lba & 0xff);
@@ -119,9 +128,8 @@ int pata_exec_dma_in(struct PATAAdapter* adapter, int channel, int drive, uint8_
 	outb(iobase + PATA_IO_COMMAND, cmd);
 	pata_adapter_bmdma_start_write(adapter, channel);
 	// check status
-	while ((inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY)
-		   || pata_adapter_bmdma_busy(adapter, channel)) {
-	}
+	while ((inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) ||
+		   pata_adapter_bmdma_busy(adapter, channel)) {}
 	pata_adapter_bmdma_stop(adapter, channel);
 	uint8_t status = inb(iobase + PATA_IO_STATUS);
 	if (status == 0 || status & PATA_STATUS_ERR) {
@@ -132,12 +140,16 @@ int pata_exec_dma_in(struct PATAAdapter* adapter, int channel, int drive, uint8_
 	return 0;
 }
 
-int pata_exec_pio_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					  unsigned int lba, unsigned int count, const void* buf, int blocks) {
+int pata_exec_pio_out(
+	struct PATAAdapter *adapter, int channel, int drive, uint8_t cmd, unsigned int lba,
+	unsigned int count, const void *buf, int blocks
+) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
-	outb(iobase + PATA_IO_DRIVE,
-		 PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	outb(
+		iobase + PATA_IO_DRIVE,
+		PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf)
+	);
 	udelay(1);
 	outb(iobase + PATA_IO_COUNT, count);
 	outb(iobase + PATA_IO_LBALO, lba & 0xff);
@@ -146,8 +158,7 @@ int pata_exec_pio_out(struct PATAAdapter* adapter, int channel, int drive, uint8
 	outb(iobase + PATA_IO_COMMAND, cmd);
 	// check status
 	for (int i = 0; i < blocks; i++) {
-		while (inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) {
-		}
+		while (inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) {}
 		uint8_t status = inb(iobase + PATA_IO_STATUS);
 		if (status == 0 || status & PATA_STATUS_ERR) {
 			release(&adapter->lock[channel]);
@@ -155,19 +166,22 @@ int pata_exec_pio_out(struct PATAAdapter* adapter, int channel, int drive, uint8
 		}
 		outsw(iobase + PATA_IO_DATA, buf + 512 * i, 512 / 2);
 	}
-	while (inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) {
-	}
+	while (inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) {}
 	release(&adapter->lock[channel]);
 	return 0;
 }
 
-int pata_exec_dma_out(struct PATAAdapter* adapter, int channel, int drive, uint8_t cmd,
-					  unsigned int lba, unsigned int count, const void* buf, int blocks) {
+int pata_exec_dma_out(
+	struct PATAAdapter *adapter, int channel, int drive, uint8_t cmd, unsigned int lba,
+	unsigned int count, const void *buf, int blocks
+) {
 	ioport_t iobase = adapter->cmdblock_base[channel];
 	acquire(&adapter->lock[channel]);
 	pata_adapter_bmdma_prepare(adapter, channel, V2P(buf), blocks * 512);
-	outb(iobase + PATA_IO_DRIVE,
-		 PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf));
+	outb(
+		iobase + PATA_IO_DRIVE,
+		PATA_DRIVE_DEFAULT | (drive << PATA_DRIVE_DRV_BIT) | ((lba >> 24) & 0xf)
+	);
 	udelay(1);
 	outb(iobase + PATA_IO_COUNT, count);
 	outb(iobase + PATA_IO_LBALO, lba & 0xff);
@@ -176,9 +190,8 @@ int pata_exec_dma_out(struct PATAAdapter* adapter, int channel, int drive, uint8
 	outb(iobase + PATA_IO_COMMAND, cmd);
 	pata_adapter_bmdma_start_read(adapter, channel);
 	// check status
-	while ((inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY)
-		   || pata_adapter_bmdma_busy(adapter, channel)) {
-	}
+	while ((inb(iobase + PATA_IO_STATUS) & PATA_STATUS_BSY) ||
+		   pata_adapter_bmdma_busy(adapter, channel)) {}
 	pata_adapter_bmdma_stop(adapter, channel);
 	uint8_t status = inb(iobase + PATA_IO_STATUS);
 	if (status == 0 || status & PATA_STATUS_ERR) {
@@ -189,7 +202,7 @@ int pata_exec_dma_out(struct PATAAdapter* adapter, int channel, int drive, uint8
 	return 0;
 }
 
-void pata_register_adapter(struct PATAAdapter* adapter) {
+void pata_register_adapter(struct PATAAdapter *adapter) {
 	for (int channel = 0; channel < 2; channel++) {
 		pata_bus_reset(adapter, channel);
 		uint32_t devtype[2];
@@ -198,9 +211,10 @@ void pata_register_adapter(struct PATAAdapter* adapter) {
 		}
 		for (int drive = 0; drive < 2; drive++) {
 			if (devtype[drive] == PATA_SIGNATURE_DISK) {
-				cprintf("[ata] ATA device on PATA controller channel %d drive %d\n", channel,
-						drive);
-				struct ATADevice* ata_dev = ata_device_alloc();
+				cprintf(
+					"[ata] ATA device on PATA controller channel %d drive %d\n", channel, drive
+				);
+				struct ATADevice *ata_dev = ata_device_alloc();
 				ata_dev->transport = ATA_TRANSPORT_PARALLEL_ATA;
 				ata_dev->pata.adapter = adapter;
 				ata_dev->pata.channel = channel;
@@ -208,8 +222,9 @@ void pata_register_adapter(struct PATAAdapter* adapter) {
 
 				ata_register_ata_device(ata_dev);
 			} else if (devtype[drive] == PATA_SIGNATURE_PACKET) {
-				cprintf("[ata] ATAPI device on PATA controller channel %d drive %d\n", channel,
-						drive);
+				cprintf(
+					"[ata] ATAPI device on PATA controller channel %d drive %d\n", channel, drive
+				);
 			}
 		}
 	}

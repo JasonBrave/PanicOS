@@ -54,8 +54,10 @@ namespace {
 
 std::vector<DevmgrDevice> devmgr_devices;
 
-void devices_pci_add_device(struct PCIAddr pciaddr, const struct PCIType0ConfigHeader* cfg_space,
-							const struct PciKcallResource* pcires, const char* drvname) {
+void devices_pci_add_device(
+	struct PCIAddr pciaddr, const struct PCIType0ConfigHeader *cfg_space,
+	const struct PciKcallResource *pcires, const char *drvname
+) {
 	DevmgrDevice pcidevice;
 	pcidevice.name = "Vendor ";
 	pcidevice.name += ull2hexstr(cfg_space->vendor);
@@ -95,18 +97,18 @@ void devices_pci_add_device(struct PCIAddr pciaddr, const struct PCIType0ConfigH
 	}
 	// add interrupts
 	bool device_use_intx = true;
-	const void* cfg = cfg_space;
+	const void *cfg = cfg_space;
 	unsigned int cap_off = cfg_space->capptr;
 	while (cap_off) {
-		if (*((uint8_t*)cfg + cap_off) == 0x5) {
-			uint16_t msgctl = *(uint16_t*)((uint8_t*)cfg + cap_off + 2);
+		if (*((uint8_t *)cfg + cap_off) == 0x5) {
+			uint16_t msgctl = *(uint16_t *)((uint8_t *)cfg + cap_off + 2);
 			unsigned int num = powof2((msgctl >> 1) & 7);
 			if (msgctl & 1) {
 				uint8_t vec;
 				if (msgctl & (1 << 7)) {
-					vec = *(uint16_t*)((uint8_t*)cfg + cap_off + 12) & 0xff;
+					vec = *(uint16_t *)((uint8_t *)cfg + cap_off + 12) & 0xff;
 				} else {
-					vec = *(uint16_t*)((uint8_t*)cfg + cap_off + 8) & 0xff;
+					vec = *(uint16_t *)((uint8_t *)cfg + cap_off + 8) & 0xff;
 				}
 				DevmgrResource msires;
 				msires.type = DevmgrResourceType::msi;
@@ -115,8 +117,8 @@ void devices_pci_add_device(struct PCIAddr pciaddr, const struct PCIType0ConfigH
 				pcidevice.resource.push_back(msires);
 				device_use_intx = false;
 			}
-		} else if (*((uint8_t*)cfg + cap_off) == 0x11) {
-			uint16_t msgctl = *(uint16_t*)((uint8_t*)cfg + cap_off + 2);
+		} else if (*((uint8_t *)cfg + cap_off) == 0x11) {
+			uint16_t msgctl = *(uint16_t *)((uint8_t *)cfg + cap_off + 2);
 			if (msgctl & (1 << 15)) {
 				unsigned int num = (msgctl & 0x7ff) + 1;
 				DevmgrResource msixres;
@@ -126,7 +128,7 @@ void devices_pci_add_device(struct PCIAddr pciaddr, const struct PCIType0ConfigH
 				device_use_intx = false;
 			}
 		}
-		cap_off = *((uint8_t*)cfg + cap_off + 1);
+		cap_off = *((uint8_t *)cfg + cap_off + 1);
 	}
 
 	if (cfg_space->intr_line && device_use_intx) {
@@ -140,8 +142,8 @@ void devices_pci_add_device(struct PCIAddr pciaddr, const struct PCIType0ConfigH
 }
 
 void devices_pci_init() {
-	struct PCIType0ConfigHeader* cfg_space =
-		reinterpret_cast<struct PCIType0ConfigHeader*>(std::malloc(4096));
+	struct PCIType0ConfigHeader *cfg_space =
+		reinterpret_cast<struct PCIType0ConfigHeader *>(std::malloc(4096));
 	struct PCIAddr pciaddr;
 	unsigned int pciid = pci_get_first_addr(&pciaddr);
 	if (pciid == 0xffffffff) {

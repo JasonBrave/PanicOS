@@ -35,8 +35,8 @@ enum ATACommands {
 	ATA_COMMAND_IDENTIFY = 0xec,
 };
 
-struct ATADevice* ata_device_alloc(void) {
-	struct ATADevice* dev = kalloc();
+struct ATADevice *ata_device_alloc(void) {
+	struct ATADevice *dev = kalloc();
 	memset(dev, 0, sizeof(struct ATADevice));
 	return dev;
 }
@@ -45,12 +45,20 @@ void ata_init(void) {
 	pata_adapter_init();
 }
 
-int ata_identify(struct ATADevice* dev, char* model) {
-	uint16_t* identify = kalloc();
+int ata_identify(struct ATADevice *dev, char *model) {
+	uint16_t *identify = kalloc();
 
 	if (dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
-		if (pata_exec_pio_in(dev->pata.adapter, dev->pata.channel, dev->pata.drive,
-							 ATA_COMMAND_IDENTIFY, 0, 0, identify, 1)) {
+		if (pata_exec_pio_in(
+				dev->pata.adapter,
+				dev->pata.channel,
+				dev->pata.drive,
+				ATA_COMMAND_IDENTIFY,
+				0,
+				0,
+				identify,
+				1
+			)) {
 			kfree(identify);
 			return -1;
 		}
@@ -126,22 +134,40 @@ int ata_identify(struct ATADevice* dev, char* model) {
 	return 0;
 }
 
-int ata_read(void* private, unsigned int begin, int count, void* buf) {
-	struct ATADevice* dev = private;
+int ata_read(void *private, unsigned int begin, int count, void *buf) {
+	struct ATADevice *dev = private;
 	if (dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
 		if (dev->pata.use_dma) {
-			if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP
-				|| (phyaddr_t)buf % PGSIZE)
+			if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+				(phyaddr_t)buf % PGSIZE) {
 				panic("ata dma");
-			if (count == 0 || count > 8)
+			}
+			if (count == 0 || count > 8) {
 				panic("ata count");
-			if (pata_exec_dma_in(dev->pata.adapter, dev->pata.channel, dev->pata.drive,
-								 ATA_COMMAND_READ_DMA, begin, count, buf, count)) {
+			}
+			if (pata_exec_dma_in(
+					dev->pata.adapter,
+					dev->pata.channel,
+					dev->pata.drive,
+					ATA_COMMAND_READ_DMA,
+					begin,
+					count,
+					buf,
+					count
+				)) {
 				return ERROR_READ_FAIL;
 			}
 		} else {
-			if (pata_exec_pio_in(dev->pata.adapter, dev->pata.channel, dev->pata.drive,
-								 ATA_COMMAND_READ_SECTOR, begin, count, buf, count)) {
+			if (pata_exec_pio_in(
+					dev->pata.adapter,
+					dev->pata.channel,
+					dev->pata.drive,
+					ATA_COMMAND_READ_SECTOR,
+					begin,
+					count,
+					buf,
+					count
+				)) {
 				return ERROR_READ_FAIL;
 			}
 		}
@@ -153,22 +179,40 @@ int ata_read(void* private, unsigned int begin, int count, void* buf) {
 	return 0;
 }
 
-int ata_write(void* private, unsigned int begin, int count, const void* buf) {
-	struct ATADevice* dev = private;
+int ata_write(void *private, unsigned int begin, int count, const void *buf) {
+	struct ATADevice *dev = private;
 	if (dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
 		if (dev->pata.use_dma) {
-			if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP
-				|| (phyaddr_t)buf % PGSIZE)
+			if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+				(phyaddr_t)buf % PGSIZE) {
 				panic("ata dma");
-			if (count == 0 || count > 8)
+			}
+			if (count == 0 || count > 8) {
 				panic("ata count");
-			if (pata_exec_dma_out(dev->pata.adapter, dev->pata.channel, dev->pata.drive,
-								  ATA_COMMAND_WRITE_DMA, begin, count, buf, count)) {
+			}
+			if (pata_exec_dma_out(
+					dev->pata.adapter,
+					dev->pata.channel,
+					dev->pata.drive,
+					ATA_COMMAND_WRITE_DMA,
+					begin,
+					count,
+					buf,
+					count
+				)) {
 				return ERROR_WRITE_FAIL;
 			}
 		} else {
-			if (pata_exec_pio_out(dev->pata.adapter, dev->pata.channel, dev->pata.drive,
-								  ATA_COMMAND_WRITE_SECTOR, begin, count, buf, count)) {
+			if (pata_exec_pio_out(
+					dev->pata.adapter,
+					dev->pata.channel,
+					dev->pata.drive,
+					ATA_COMMAND_WRITE_SECTOR,
+					begin,
+					count,
+					buf,
+					count
+				)) {
 				return ERROR_WRITE_FAIL;
 			}
 		}
@@ -185,25 +229,42 @@ const struct BlockDeviceDriver ata_block_driver = {
 	.block_write = ata_write,
 };
 
-void ata_register_ata_device(struct ATADevice* ata_dev) {
+void ata_register_ata_device(struct ATADevice *ata_dev) {
 	char model[50];
 	if (ata_identify(ata_dev, model) == 0) {
-		cprintf("[ata] Disk model %s %d sectors ata_rev %d LBA48%s\n", model, ata_dev->sectors,
-				ata_dev->ata_rev, BOOL2SIGN(ata_dev->support_lba48));
+		cprintf(
+			"[ata] Disk model %s %d sectors ata_rev %d LBA48%s\n",
+			model,
+			ata_dev->sectors,
+			ata_dev->ata_rev,
+			BOOL2SIGN(ata_dev->support_lba48)
+		);
 
 		if (ata_dev->transport == ATA_TRANSPORT_PARALLEL_ATA) {
-			cprintf("[ata] PATA dma %d pio %d mdma %d udma %d\n", ata_dev->pata.dma,
-					ata_dev->pata.pio, ata_dev->pata.mdma, ata_dev->pata.udma);
+			cprintf(
+				"[ata] PATA dma %d pio %d mdma %d udma %d\n",
+				ata_dev->pata.dma,
+				ata_dev->pata.pio,
+				ata_dev->pata.mdma,
+				ata_dev->pata.udma
+			);
 			if (ata_dev->pata.dma && ata_dev->pata.adapter->bus_master) {
 				ata_dev->pata.use_dma = 1;
-				cprintf("[ata] Use DMA for channel %d drive %d\n", ata_dev->pata.channel,
-						ata_dev->pata.drive);
-				pata_adapter_bmdma_init(ata_dev->pata.adapter, ata_dev->pata.channel,
-										ata_dev->pata.drive);
+				cprintf(
+					"[ata] Use DMA for channel %d drive %d\n",
+					ata_dev->pata.channel,
+					ata_dev->pata.drive
+				);
+				pata_adapter_bmdma_init(
+					ata_dev->pata.adapter, ata_dev->pata.channel, ata_dev->pata.drive
+				);
 			} else {
 				ata_dev->pata.use_dma = 0;
-				cprintf("[ata] Use PIO for channel %d drive %d\n", ata_dev->pata.channel,
-						ata_dev->pata.drive);
+				cprintf(
+					"[ata] Use PIO for channel %d drive %d\n",
+					ata_dev->pata.channel,
+					ata_dev->pata.drive
+				);
 			}
 		} else if (ata_dev->transport == ATA_TRANSPORT_SERIAL_ATA) {
 			if (ata_dev->sata.support_ncq) {
@@ -214,7 +275,8 @@ void ata_register_ata_device(struct ATADevice* ata_dev) {
 					BOOL2SIGN(ata_dev->sata.support_ncq_streaming),
 					BOOL2SIGN(ata_dev->sata.support_ncq_queue_mgmt_cmd),
 					BOOL2SIGN(ata_dev->sata.support_receive_send_fpdma_queued),
-					ata_dev->sata.ncq_queue_depth);
+					ata_dev->sata.ncq_queue_depth
+				);
 			} else {
 				cprintf("[ata] SATA NCQ not supported\n");
 			}
@@ -224,6 +286,6 @@ void ata_register_ata_device(struct ATADevice* ata_dev) {
 	}
 }
 
-void ata_register_atapi_device(struct ATADevice* ata_dev) {
+void ata_register_atapi_device(struct ATADevice *ata_dev) {
 	panic("register ATAPI device not supported");
 }

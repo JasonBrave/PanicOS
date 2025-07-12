@@ -27,8 +27,8 @@
 
 unsigned int xres, yres;
 
-int main(int argc, char* argv[]) {
-	const char* wm_args[] = {"wm", 0, 0, 0, 0};
+int main(int argc, char *argv[]) {
+	const char *wm_args[] = {"wm", 0, 0, 0, 0};
 	if (argc == 1) { // desktop
 		int display_id = display_find();
 		if (display_id < 0) {
@@ -78,8 +78,7 @@ int main(int argc, char* argv[]) {
 			abort();
 		}
 		// wait for window manager to finish initialization
-		while (!wm_init()) {
-		}
+		while (!wm_init()) {}
 	}
 
 	int toolbar = wm_create_sheet(0, yres - 32, xres, 32);
@@ -88,8 +87,8 @@ int main(int argc, char* argv[]) {
 	int window = wm_create_window(200, 500);
 	wm_window_set_title(window, "Files");
 
-	DIR* dir = opendir("/bin");
-	struct dirent* diren;
+	DIR *dir = opendir("/bin");
+	struct dirent *diren;
 	int filename_y = 2;
 	while ((diren = readdir(dir)) != NULL) {
 		char fullname[32] = "/bin/";
@@ -110,8 +109,8 @@ int main(int argc, char* argv[]) {
 
 		if (event_catched && event.handle == window &&
 			event.event_type == WM_EVENT_MOUSE_BUTTON_DOWN) {
-			DIR* fmdir = opendir("/bin");
-			struct dirent* file;
+			DIR *fmdir = opendir("/bin");
+			struct dirent *file;
 			int cnt = 0;
 			while ((file = readdir(fmdir)) != NULL) {
 				char fullname[32] = "/bin/";
@@ -122,7 +121,7 @@ int main(int argc, char* argv[]) {
 				if (event.y / 20 == cnt) {
 					int childpid = fork();
 					if (childpid == 0) {
-						const char* args[] = {file->d_name, 0};
+						const char *args[] = {file->d_name, 0};
 						exec(fullname, args);
 						abort();
 					}

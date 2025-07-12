@@ -33,10 +33,10 @@ namespace GUI {
 
 	public:
 		constexpr Label() = default;
-		constexpr Label(const char* text) : label_str(text) {}
+		constexpr Label(const char *text) : label_str(text) {}
 		constexpr Label(std::string text) : label_str(text) {}
-		void set_text(const char* text);
-		void set_text(const std::string& text);
+		void set_text(const char *text);
+		void set_text(const std::string &text);
 	};
 
 } // namespace GUI

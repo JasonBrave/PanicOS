@@ -22,7 +22,7 @@
 
 #include "vfs.h"
 
-int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
+int vfs_dir_open(struct FileDesc *fd, const char *dirname) {
 	memset(fd, 0, sizeof(struct FileDesc));
 	struct VfsPath dirpath;
 	dirpath.pathbuf = kalloc();
@@ -39,8 +39,8 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 		return fblock;
 	}
 	fd->block = fblock;
-	fd->offset = vfs_mount_table[fs_id].fs_driver->dir_first_file(vfs_mount_table[fs_id].private,
-																  fd->block);
+	fd->offset =
+		vfs_mount_table[fs_id].fs_driver->dir_first_file(vfs_mount_table[fs_id].private, fd->block);
 
 	fd->fs_id = fs_id;
 	fd->dir = 1;
@@ -50,7 +50,7 @@ int vfs_dir_open(struct FileDesc* fd, const char* dirname) {
 	return 0;
 }
 
-int vfs_dir_read(struct FileDesc* fd, char* buffer) {
+int vfs_dir_read(struct FileDesc *fd, char *buffer) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}
@@ -62,8 +62,9 @@ int vfs_dir_read(struct FileDesc* fd, char* buffer) {
 	}
 
 	int off;
-	off = vfs_mount_table[fd->fs_id].fs_driver->dir_read(vfs_mount_table[fd->fs_id].private, buffer,
-														 fd->block, fd->offset);
+	off = vfs_mount_table[fd->fs_id].fs_driver->dir_read(
+		vfs_mount_table[fd->fs_id].private, buffer, fd->block, fd->offset
+	);
 
 	if (off == 0) {
 		return 0; // EOF
@@ -74,7 +75,7 @@ int vfs_dir_read(struct FileDesc* fd, char* buffer) {
 	return 1;
 }
 
-int vfs_dir_close(struct FileDesc* fd) {
+int vfs_dir_close(struct FileDesc *fd) {
 	if (!fd->used) {
 		return ERROR_INVAILD;
 	}

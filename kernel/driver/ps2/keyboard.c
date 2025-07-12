@@ -55,7 +55,7 @@ void ps2_keyboard_init(void) {
 
 static int kbd_getc(void) {
 	static unsigned int shift;
-	static unsigned char* charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
+	static unsigned char *charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
 	unsigned int data, c;
 
 	if (rawkbddata == 0) {
@@ -83,10 +83,11 @@ static int kbd_getc(void) {
 	shift ^= togglecode[data];
 	c = charcode[shift & (CTL | SHIFT)][data];
 	if (shift & CAPSLOCK) {
-		if ('a' <= c && c <= 'z')
+		if ('a' <= c && c <= 'z') {
 			c += 'A' - 'a';
-		else if ('A' <= c && c <= 'Z')
+		} else if ('A' <= c && c <= 'Z') {
 			c += 'a' - 'A';
+		}
 	}
 	return c;
 }

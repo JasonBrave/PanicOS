@@ -32,25 +32,27 @@ void print_brand_string() {
 }
 
 struct CPUIDFlag {
-	const char* flag_abbrev;
-	const char* flag_name;
+	const char *flag_abbrev;
+	const char *flag_name;
 	unsigned int eax, reg, bitoff; // reg eax=0,ebx=1,ecx=2,edx=3
-} cpuid_flags[] = {{"PSE", "Page Size Extension", 1, 3, 3},
-				   {"TSC", "Time Stamp Counter", 1, 3, 4},
-				   {"MSR", "Model-specific Registers", 1, 3, 5},
-				   {"PAE", "Physical Address Extension", 1, 3, 6},
-				   {"MCE", "Machine Check Exception", 1, 3, 7},
-				   {"APIC", "Advanced Programmable Interrupt Controller", 1, 3, 9},
-				   {"SEP", "SYSENTER and SYSEXIT", 1, 3, 11},
-				   {"MTRR", "Memory Type Range Registers", 1, 3, 12},
-				   {"PGE", "Page Global Enable", 1, 3, 13},
-				   {"MCA", "Machine Check Architecture", 1, 3, 14},
-				   {"PAT", "Page Attribute Table", 1, 3, 16},
-				   {"x2APIC", "x2APIC", 1, 2, 21},
-				   {"SYSCALL", "SYSCALL and SYSRET", 0x80000001, 3, 11},
-				   {"NX", "No-execute Bit", 0x80000001, 3, 20},
-				   {"PDPE1GB", "1GiB Page", 0x80000001, 3, 26},
-				   {"LM", "Long mode", 0x80000001, 3, 29}};
+} cpuid_flags[] = {
+	{"PSE", "Page Size Extension", 1, 3, 3},
+	{"TSC", "Time Stamp Counter", 1, 3, 4},
+	{"MSR", "Model-specific Registers", 1, 3, 5},
+	{"PAE", "Physical Address Extension", 1, 3, 6},
+	{"MCE", "Machine Check Exception", 1, 3, 7},
+	{"APIC", "Advanced Programmable Interrupt Controller", 1, 3, 9},
+	{"SEP", "SYSENTER and SYSEXIT", 1, 3, 11},
+	{"MTRR", "Memory Type Range Registers", 1, 3, 12},
+	{"PGE", "Page Global Enable", 1, 3, 13},
+	{"MCA", "Machine Check Architecture", 1, 3, 14},
+	{"PAT", "Page Attribute Table", 1, 3, 16},
+	{"x2APIC", "x2APIC", 1, 2, 21},
+	{"SYSCALL", "SYSCALL and SYSRET", 0x80000001, 3, 11},
+	{"NX", "No-execute Bit", 0x80000001, 3, 20},
+	{"PDPE1GB", "1GiB Page", 0x80000001, 3, 26},
+	{"LM", "Long mode", 0x80000001, 3, 29}
+};
 
 int main() {
 	print_vendor_string();
@@ -61,8 +63,11 @@ int main() {
 	print_brand_string();
 
 	if (cpu_get_max_ext_cpuid() >= 0x80000008) {
-		printf("Address Sizes: Physical %d bits, Virtual %d bits\n",
-			   cpu_get_physical_address_size(), cpu_get_virtual_address_size());
+		printf(
+			"Address Sizes: Physical %d bits, Virtual %d bits\n",
+			cpu_get_physical_address_size(),
+			cpu_get_virtual_address_size()
+		);
 	}
 
 	for (unsigned int i = 0; i < (sizeof(cpuid_flags) / sizeof(struct CPUIDFlag)); i++) {
@@ -75,18 +80,18 @@ int main() {
 		__get_cpuid(cpuid_flags[i].eax, &eax, &ebx, &ecx, &edx);
 		unsigned int thereg = 0;
 		switch (cpuid_flags[i].reg) {
-		case 0:
-			thereg = eax;
-			break;
-		case 1:
-			thereg = ebx;
-			break;
-		case 2:
-			thereg = ecx;
-			break;
-		case 3:
-			thereg = edx;
-			break;
+			case 0:
+				thereg = eax;
+				break;
+			case 1:
+				thereg = ebx;
+				break;
+			case 2:
+				thereg = ecx;
+				break;
+			case 3:
+				thereg = edx;
+				break;
 		}
 		if (thereg & (1 << cpuid_flags[i].bitoff)) {
 			printf("%s (%s): yes\n", cpuid_flags[i].flag_abbrev, cpuid_flags[i].flag_name);

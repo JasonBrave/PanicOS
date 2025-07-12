@@ -22,7 +22,7 @@
 #include <stdio.h>
 
 static void printint(unsigned long long xx, int base, int sgn, int cpt) {
-	const char* digits = cpt ? "0123456789ABCDEF" : "0123456789abcdef";
+	const char *digits = cpt ? "0123456789ABCDEF" : "0123456789abcdef";
 	char buf[64];
 	int i, neg;
 	unsigned long long x;
@@ -39,14 +39,16 @@ static void printint(unsigned long long xx, int base, int sgn, int cpt) {
 	do {
 		buf[i++] = digits[x % base];
 	} while ((x /= base) != 0);
-	if (neg)
+	if (neg) {
 		buf[i++] = '-';
+	}
 
-	while (--i >= 0)
+	while (--i >= 0) {
 		putchar(buf[i]);
+	}
 }
 
-int printf(const char* restrict fmt, ...) {
+int printf(const char *restrict fmt, ...) {
 	int c, i, state;
 
 	state = 0;
@@ -68,9 +70,10 @@ int printf(const char* restrict fmt, ...) {
 			} else if (c == 'c') {
 				putchar(va_arg(args, int));
 			} else if (c == 's') {
-				const char* s = va_arg(args, const char*);
-				if (s == 0)
+				const char *s = va_arg(args, const char *);
+				if (s == 0) {
 					s = "(null)";
+				}
 				while (*s != 0) {
 					putchar(*s);
 					s++;
@@ -84,7 +87,7 @@ int printf(const char* restrict fmt, ...) {
 			} else if (c == 'u') {
 				printint(va_arg(args, unsigned int), 10, 0, 0);
 			} else if (c == 'p') {
-				printint((unsigned int)va_arg(args, void*), 16, 0, 0);
+				printint((unsigned int)va_arg(args, void *), 16, 0, 0);
 			} else if (c == 'l') {
 				state = 'l';
 			} else {

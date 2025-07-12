@@ -27,8 +27,9 @@
 
 namespace std {
 
-	template <class CharT, class Traits = std::char_traits<CharT>,
-			  class Allocator = std::allocator<CharT>>
+	template <
+		class CharT, class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>>
 	class basic_string {
 	public:
 		typedef Traits traits_type;
@@ -36,12 +37,12 @@ namespace std {
 		typedef Allocator allocator_type;
 		typedef std::size_t size_type;
 		typedef std::ptrdiff_t difference_type;
-		typedef value_type& reference;
-		typedef const value_type& const_reference;
-		typedef value_type* pointer;
-		typedef const value_type* const_pointer;
-		typedef value_type* iterator;
-		typedef const value_type* const_iterator;
+		typedef value_type &reference;
+		typedef const value_type &const_reference;
+		typedef value_type *pointer;
+		typedef const value_type *const_pointer;
+		typedef value_type *iterator;
+		typedef const value_type *const_iterator;
 
 		constexpr explicit basic_string() : ptr(nullptr), len(0), cap(0) {}
 
@@ -53,14 +54,13 @@ namespace std {
 			ptr[len] = '\0';
 		}
 
-		constexpr basic_string(const CharT* s, size_type count)
-			: len(count), cap(len + 1) {
+		constexpr basic_string(const CharT *s, size_type count) : len(count), cap(len + 1) {
 			ptr = alloc.allocate(cap);
 			Traits::move(ptr, s, len);
 			ptr[len] = '\0';
 		}
 
-		constexpr basic_string(const CharT* s) {
+		constexpr basic_string(const CharT *s) {
 			len = Traits::length(s);
 			cap = len + 1;
 			ptr = alloc.allocate(cap);
@@ -76,14 +76,13 @@ namespace std {
 			}
 		}
 
-		constexpr basic_string(const basic_string& other)
-			: len(other.len), cap(len + 1) {
+		constexpr basic_string(const basic_string &other) : len(other.len), cap(len + 1) {
 			ptr = alloc.allocate(cap);
 			Traits::move(ptr, other.ptr, len);
 			ptr[len] = '\0';
 		}
 
-		constexpr basic_string(basic_string&& other)
+		constexpr basic_string(basic_string &&other)
 			: ptr(other.ptr), len(other.len), cap(other.cap) {
 			other.ptr = nullptr;
 			other.len = 0;
@@ -94,19 +93,19 @@ namespace std {
 			alloc.deallocate(ptr, cap);
 		}
 
-		constexpr basic_string& operator=(const basic_string& str) {
+		constexpr basic_string &operator=(const basic_string &str) {
 			return assign(str);
 		}
 
-		constexpr basic_string& operator=(basic_string&& str) noexcept {
+		constexpr basic_string &operator=(basic_string &&str) noexcept {
 			return assign(str);
 		}
 
-		constexpr basic_string& operator=(const CharT* s) {
+		constexpr basic_string &operator=(const CharT *s) {
 			return assign(s);
 		}
 
-		constexpr basic_string& operator=(CharT ch) {
+		constexpr basic_string &operator=(CharT ch) {
 			if (2 > cap) {
 				reserve(2);
 			}
@@ -115,7 +114,7 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& assign(size_type count, CharT ch) {
+		constexpr basic_string &assign(size_type count, CharT ch) {
 			if (count + 1 > cap) {
 				reserve(count + 1);
 			}
@@ -127,7 +126,7 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& assign(const basic_string& other) {
+		constexpr basic_string &assign(const basic_string &other) {
 			if (other.len + 1 > cap) {
 				reserve(other.len + 1);
 			}
@@ -137,7 +136,7 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& assign(basic_string&& str) noexcept {
+		constexpr basic_string &assign(basic_string &&str) noexcept {
 			alloc.deallocate(ptr, cap);
 			ptr = str.ptr;
 			len = str.len;
@@ -148,7 +147,7 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& assign(const CharT* s, size_type count) {
+		constexpr basic_string &assign(const CharT *s, size_type count) {
 			if (count + 1 > cap) {
 				reserve(count + 1);
 			}
@@ -158,7 +157,7 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& assign(const CharT* s) {
+		constexpr basic_string &assign(const CharT *s) {
 			size_type newlen = Traits::length(s);
 			if (newlen + 1 > cap) {
 				reserve(newlen + 1);
@@ -169,8 +168,7 @@ namespace std {
 			return *this;
 		}
 
-		template <class InputIt>
-		constexpr basic_string& assign(InputIt first, InputIt last) {
+		template <class InputIt> constexpr basic_string &assign(InputIt first, InputIt last) {
 			clear();
 			while (first != last) {
 				push_back(*first);
@@ -199,31 +197,31 @@ namespace std {
 			return ptr[pos];
 		}
 
-		constexpr CharT& front() {
+		constexpr CharT &front() {
 			return ptr[0];
 		}
 
-		constexpr const CharT& front() const {
+		constexpr const CharT &front() const {
 			return ptr[0];
 		}
 
-		constexpr CharT& back() {
+		constexpr CharT &back() {
 			return ptr[len - 1];
 		}
 
-		constexpr const CharT& back() const {
+		constexpr const CharT &back() const {
 			return ptr[len - 1];
 		}
 
-		constexpr const CharT* data() const noexcept {
+		constexpr const CharT *data() const noexcept {
 			return ptr;
 		}
 
-		constexpr CharT* data() noexcept {
+		constexpr CharT *data() noexcept {
 			return ptr;
 		}
 
-		constexpr const CharT* c_str() const noexcept {
+		constexpr const CharT *c_str() const noexcept {
 			return ptr;
 		}
 
@@ -267,7 +265,7 @@ namespace std {
 
 		constexpr void reserve(size_type new_cap) {
 			if (new_cap > cap) {
-				CharT* newptr = alloc.allocate(new_cap);
+				CharT *newptr = alloc.allocate(new_cap);
 				for (size_type i = 0; i < len; i++) {
 					newptr[i] = ptr[i];
 				}
@@ -283,7 +281,7 @@ namespace std {
 		}
 
 		constexpr void shrink_to_fit() {
-			CharT* newptr = alloc.allocate(len + 1);
+			CharT *newptr = alloc.allocate(len + 1);
 			for (size_type i = 0; i < len; i++) {
 				newptr[i] = ptr[i];
 			}
@@ -316,14 +314,14 @@ namespace std {
 			ptr[len] = '\0';
 		}
 
-		constexpr basic_string& append(size_type count, CharT ch) {
+		constexpr basic_string &append(size_type count, CharT ch) {
 			while (count--) {
 				push_back(ch);
 			}
 			return *this;
 		}
 
-		constexpr basic_string& append(const basic_string& str) {
+		constexpr basic_string &append(const basic_string &str) {
 			if (len + str.len + 1 > cap) {
 				reserve(len + str.len + 1);
 			}
@@ -333,7 +331,7 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& append(const CharT* s, size_type count) {
+		constexpr basic_string &append(const CharT *s, size_type count) {
 			if (len + count + 1 > cap) {
 				reserve(len + count + 1);
 			}
@@ -343,7 +341,7 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& append(const CharT* s) {
+		constexpr basic_string &append(const CharT *s) {
 			size_type slen = Traits::length(s);
 			if (len + slen + 1 > cap) {
 				reserve(len + slen + 1);
@@ -354,8 +352,7 @@ namespace std {
 			return *this;
 		}
 
-		template <class InputIt>
-		constexpr basic_string& append(InputIt first, InputIt last) {
+		template <class InputIt> constexpr basic_string &append(InputIt first, InputIt last) {
 			while (first != last) {
 				push_back(*first);
 				first++;
@@ -363,20 +360,20 @@ namespace std {
 			return *this;
 		}
 
-		constexpr basic_string& operator+=(const basic_string& str) {
+		constexpr basic_string &operator+=(const basic_string &str) {
 			return append(str);
 		}
 
-		constexpr basic_string& operator+=(CharT ch) {
+		constexpr basic_string &operator+=(CharT ch) {
 			push_back(ch);
 			return *this;
 		}
 
-		constexpr basic_string& operator+=(const CharT* s) {
+		constexpr basic_string &operator+=(const CharT *s) {
 			return append(s);
 		}
 
-		constexpr int compare(const basic_string& str) const noexcept {
+		constexpr int compare(const basic_string &str) const noexcept {
 			if (len < str.len) {
 				return -1;
 			} else if (len > str.len) {
@@ -386,7 +383,7 @@ namespace std {
 			}
 		}
 
-		constexpr int compare(const CharT* s) {
+		constexpr int compare(const CharT *s) {
 			size_type slen = Traits::length(s);
 			if (len < slen) {
 				return -1;
@@ -401,7 +398,7 @@ namespace std {
 			return (front() == c);
 		}
 
-		constexpr bool starts_with(const CharT* s) {
+		constexpr bool starts_with(const CharT *s) {
 			for (size_type i = 0; s[i]; i++) {
 				if (ptr[i] != s[i]) {
 					return false;
@@ -414,7 +411,7 @@ namespace std {
 			return (back() == c);
 		}
 
-		constexpr bool ends_with(const CharT* s) const {
+		constexpr bool ends_with(const CharT *s) const {
 			size_type beg = len - Traits::length(s);
 			for (size_type i = 0; s[i]; i++) {
 				if (ptr[beg + i] != s[i]) {
@@ -428,8 +425,7 @@ namespace std {
 			return basic_string(data() + pos, count);
 		}
 
-		constexpr size_type copy(CharT* dest, size_type count,
-								 size_type pos = 0) const {
+		constexpr size_type copy(CharT *dest, size_type count, size_type pos = 0) const {
 			for (size_type i = 0; i < count; i++) {
 				dest[i] = ptr[pos + i];
 			}
@@ -463,7 +459,7 @@ namespace std {
 			ptr[len] = '\0';
 		}
 
-		constexpr void swap(basic_string& other) noexcept {
+		constexpr void swap(basic_string &other) noexcept {
 			std::swap(ptr, other.ptr);
 			std::swap(len, other.len);
 			std::swap(cap, other.cap);
@@ -471,7 +467,7 @@ namespace std {
 		}
 
 	protected:
-		CharT* ptr;
+		CharT *ptr;
 		size_type len;
 		size_type cap;
 		Allocator alloc;
@@ -481,21 +477,22 @@ namespace std {
 
 	// concatenates
 	template <class CharT, class Traits, class Alloc>
-	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(const std::basic_string<CharT, Traits, Alloc>& lhs,
-			  const std::basic_string<CharT, Traits, Alloc>& rhs) {
+	constexpr std::basic_string<CharT, Traits, Alloc> operator+(
+		const std::basic_string<CharT, Traits, Alloc> &lhs,
+		const std::basic_string<CharT, Traits, Alloc> &rhs
+	) {
 		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(const std::basic_string<CharT, Traits, Alloc>& lhs, const CharT* rhs) {
+	operator+(const std::basic_string<CharT, Traits, Alloc> &lhs, const CharT *rhs) {
 		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(const std::basic_string<CharT, Traits, Alloc>& lhs, CharT rhs) {
+	operator+(const std::basic_string<CharT, Traits, Alloc> &lhs, CharT rhs) {
 		basic_string<CharT, Traits, Alloc> s(lhs);
 		s.push_back(rhs);
 		return s;
@@ -503,96 +500,101 @@ namespace std {
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(const CharT* lhs, const std::basic_string<CharT, Traits, Alloc>& rhs) {
+	operator+(const CharT *lhs, const std::basic_string<CharT, Traits, Alloc> &rhs) {
 		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(CharT lhs, const std::basic_string<CharT, Traits, Alloc>& rhs) {
+	operator+(CharT lhs, const std::basic_string<CharT, Traits, Alloc> &rhs) {
 		return basic_string<CharT, Traits, Alloc>(1, lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
-	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(std::basic_string<CharT, Traits, Alloc>&& lhs,
-			  std::basic_string<CharT, Traits, Alloc>&& rhs) {
+	constexpr std::basic_string<CharT, Traits, Alloc> operator+(
+		std::basic_string<CharT, Traits, Alloc> &&lhs, std::basic_string<CharT, Traits, Alloc> &&rhs
+	) {
+		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
+	}
+
+	template <class CharT, class Traits, class Alloc>
+	constexpr std::basic_string<CharT, Traits, Alloc> operator+(
+		std::basic_string<CharT, Traits, Alloc> &&lhs,
+		const std::basic_string<CharT, Traits, Alloc> &rhs
+	) {
 		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(std::basic_string<CharT, Traits, Alloc>&& lhs,
-			  const std::basic_string<CharT, Traits, Alloc>& rhs) {
+	operator+(std::basic_string<CharT, Traits, Alloc> &&lhs, const CharT *rhs) {
 		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(std::basic_string<CharT, Traits, Alloc>&& lhs, const CharT* rhs) {
-		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
-	}
-
-	template <class CharT, class Traits, class Alloc>
-	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(std::basic_string<CharT, Traits, Alloc>&& lhs, CharT rhs) {
+	operator+(std::basic_string<CharT, Traits, Alloc> &&lhs, CharT rhs) {
 		basic_string<CharT, Traits, Alloc> s(lhs);
 		s.push_back(rhs);
 		return s;
 	}
 
 	template <class CharT, class Traits, class Alloc>
-	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(const std::basic_string<CharT, Traits, Alloc>& lhs,
-			  std::basic_string<CharT, Traits, Alloc>&& rhs) {
+	constexpr std::basic_string<CharT, Traits, Alloc> operator+(
+		const std::basic_string<CharT, Traits, Alloc> &lhs,
+		std::basic_string<CharT, Traits, Alloc> &&rhs
+	) {
 		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(const CharT* lhs, std::basic_string<CharT, Traits, Alloc>&& rhs) {
+	operator+(const CharT *lhs, std::basic_string<CharT, Traits, Alloc> &&rhs) {
 		return basic_string<CharT, Traits, Alloc>(lhs).append(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr std::basic_string<CharT, Traits, Alloc>
-	operator+(CharT lhs, std::basic_string<CharT, Traits, Alloc>&& rhs) {
+	operator+(CharT lhs, std::basic_string<CharT, Traits, Alloc> &&rhs) {
 		return basic_string<CharT, Traits, Alloc>(1, lhs).append(rhs);
 	}
 
 	// compare
 	template <class CharT, class Traits, class Alloc>
-	constexpr bool
-	operator==(const std::basic_string<CharT, Traits, Alloc>& lhs,
-			   const std::basic_string<CharT, Traits, Alloc>& rhs) noexcept {
-		return lhs.compare(rhs);
-	}
-
-	template <class CharT, class Traits, class Alloc>
-	constexpr bool operator==(const std::basic_string<CharT, Traits, Alloc>& lhs,
-							  const CharT* rhs) noexcept {
+	constexpr bool operator==(
+		const std::basic_string<CharT, Traits, Alloc> &lhs,
+		const std::basic_string<CharT, Traits, Alloc> &rhs
+	) noexcept {
 		return lhs.compare(rhs);
 	}
 
 	template <class CharT, class Traits, class Alloc>
 	constexpr bool
-	operator==(const CharT* lhs,
-			   const std::basic_string<CharT, Traits, Alloc>& rhs) noexcept {
+	operator==(const std::basic_string<CharT, Traits, Alloc> &lhs, const CharT *rhs) noexcept {
+		return lhs.compare(rhs);
+	}
+
+	template <class CharT, class Traits, class Alloc>
+	constexpr bool
+	operator==(const CharT *lhs, const std::basic_string<CharT, Traits, Alloc> &rhs) noexcept {
 		return rhs.compare(lhs);
 	}
 
 	// swap
 	template <class CharT, class Traits, class Alloc>
-	constexpr void swap(const std::basic_string<CharT, Traits, Alloc>& lhs,
-						const std::basic_string<CharT, Traits, Alloc>& rhs) noexcept {
+	constexpr void swap(
+		const std::basic_string<CharT, Traits, Alloc> &lhs,
+		const std::basic_string<CharT, Traits, Alloc> &rhs
+	) noexcept {
 		lhs.swap(rhs);
 	}
 
 	// input/output
 	template <class CharT, class Traits, class Allocator>
-	std::basic_ostream<CharT, Traits>&
-	operator<<(std::basic_ostream<CharT, Traits>& os,
-			   const std::basic_string<CharT, Traits, Allocator>& str) {
+	std::basic_ostream<CharT, Traits> &operator<<(
+		std::basic_ostream<CharT, Traits> &os,
+		const std::basic_string<CharT, Traits, Allocator> &str
+	) {
 		os << str.c_str();
 		return os;
 	}

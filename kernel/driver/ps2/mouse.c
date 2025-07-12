@@ -30,8 +30,7 @@ static uint8_t mouse_buffer[4];
 static int mouse_phase = 0;
 
 static void ps2_wait(void) {
-	while (inb(PS2_STATUS_PORT) & 2) {
-	}
+	while (inb(PS2_STATUS_PORT) & 2) {}
 }
 
 static int ps2_mouse_write(int data) {
@@ -102,8 +101,10 @@ void ps2_mouse_intr(void) {
 	mouse_phase++;
 	if (ps2_mouse_type == PS2_MOUSE_WITH_WHEEL) {
 		if (mouse_phase == 4) {
-			hal_mouse_update(mouse_buffer[0] << 24 | mouse_buffer[1] << 16 | mouse_buffer[2] << 8 |
-							 mouse_buffer[3]);
+			hal_mouse_update(
+				mouse_buffer[0] << 24 | mouse_buffer[1] << 16 | mouse_buffer[2] << 8 |
+				mouse_buffer[3]
+			);
 			mouse_phase = 0;
 		}
 	} else if (ps2_mouse_type == PS2_MOUSE_WITHOUT_WHEEL) {

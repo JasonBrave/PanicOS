@@ -21,8 +21,8 @@
 #include <panicos.h>
 #include <stdlib.h>
 
-DIR* opendir(const char* dirname) {
-	DIR* dir = malloc(sizeof(DIR));
+DIR *opendir(const char *dirname) {
+	DIR *dir = malloc(sizeof(DIR));
 	if (!dir) {
 		return NULL;
 	}

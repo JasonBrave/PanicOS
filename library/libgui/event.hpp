@@ -24,17 +24,16 @@ namespace GUI {
 
 	class Window;
 
-	template <typename... Args>
-	struct Event {
+	template <typename... Args> struct Event {
 		typedef void (GUI::Window::*handler_class_t)(Args...);
 		typedef void (*handler_func_t)(Args...);
 
 		handler_class_t hand_class = nullptr;
 		handler_func_t hand_func = nullptr;
-		GUI::Window* wnd = nullptr;
+		GUI::Window *wnd = nullptr;
 
 		template <typename T>
-		constexpr void connect(GUI::Window* win, void (T::*handler)(Args...)) {
+		constexpr void connect(GUI::Window *win, void (T::*handler)(Args...)) {
 			wnd = win;
 			hand_class = reinterpret_cast<handler_class_t>(handler);
 		}

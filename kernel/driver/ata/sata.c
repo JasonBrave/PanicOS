@@ -24,27 +24,33 @@
 
 #include "ata.h"
 
-int sata_exec_pio_in(struct SATADevice* sata_dev, uint8_t cmd, unsigned long long lba,
-					 unsigned int cont, void* buf, unsigned int blocks) {
+int sata_exec_pio_in(
+	struct SATADevice *sata_dev, uint8_t cmd, unsigned long long lba, unsigned int cont, void *buf,
+	unsigned int blocks
+) {
 	if (sata_dev->controller->type == SATA_CONTROLLER_TYPE_AHCI) {
-		return ahci_exec_pio_in(sata_dev->controller->private, sata_dev->port, cmd, lba, cont, buf,
-								blocks);
+		return ahci_exec_pio_in(
+			sata_dev->controller->private, sata_dev->port, cmd, lba, cont, buf, blocks
+		);
 	} else {
 		panic("unknown SATA controller type");
 	}
 }
 
-int sata_exec_pio_out(struct SATADevice* sata_dev, uint8_t cmd, unsigned long long lba,
-					  unsigned int cont, const void* buf, unsigned int blocks) {
+int sata_exec_pio_out(
+	struct SATADevice *sata_dev, uint8_t cmd, unsigned long long lba, unsigned int cont,
+	const void *buf, unsigned int blocks
+) {
 	if (sata_dev->controller->type == SATA_CONTROLLER_TYPE_AHCI) {
-		return ahci_exec_pio_out(sata_dev->controller->private, sata_dev->port, cmd, lba, cont, buf,
-								 blocks);
+		return ahci_exec_pio_out(
+			sata_dev->controller->private, sata_dev->port, cmd, lba, cont, buf, blocks
+		);
 	} else {
 		panic("unknown SATA controller type");
 	}
 }
 
-int sata_port_get_link_status(struct SATAController* sata_controller, unsigned int port) {
+int sata_port_get_link_status(struct SATAController *sata_controller, unsigned int port) {
 	if (sata_controller->type == SATA_CONTROLLER_TYPE_AHCI) {
 		return ahci_port_get_link_status(sata_controller->private, port);
 	} else {
@@ -52,7 +58,7 @@ int sata_port_get_link_status(struct SATAController* sata_controller, unsigned i
 	}
 }
 
-uint32_t sata_port_get_signature(struct SATAController* sata_controller, unsigned int port) {
+uint32_t sata_port_get_signature(struct SATAController *sata_controller, unsigned int port) {
 	if (sata_controller->type == SATA_CONTROLLER_TYPE_AHCI) {
 		return ahci_port_get_signature(sata_controller->private, port);
 	} else {
@@ -60,7 +66,7 @@ uint32_t sata_port_get_signature(struct SATAController* sata_controller, unsigne
 	}
 }
 
-void sata_port_reset(struct SATAController* sata_controller, unsigned int port) {
+void sata_port_reset(struct SATAController *sata_controller, unsigned int port) {
 	if (sata_controller->type == SATA_CONTROLLER_TYPE_AHCI) {
 		ahci_port_reset(sata_controller->private, port);
 	} else {
@@ -68,22 +74,22 @@ void sata_port_reset(struct SATAController* sata_controller, unsigned int port) 
 	}
 }
 
-void sata_register_controller(struct SATAController* sata_controller) {
+void sata_register_controller(struct SATAController *sata_controller) {
 	for (unsigned int port = 0; port < sata_controller->num_ports; port++) {
 		sata_port_reset(sata_controller, port);
 		if (sata_port_get_link_status(sata_controller, port)) {
 			switch (sata_port_get_signature(sata_controller, port)) {
-			case SATA_SIGNATURE_ATA:
-				cprintf("[ata] ATA device found on SATA controller port %d\n", port);
-				struct ATADevice* ata_dev = ata_device_alloc();
-				ata_dev->transport = ATA_TRANSPORT_SERIAL_ATA;
-				ata_dev->sata.controller = sata_controller;
-				ata_dev->sata.port = port;
-				ata_register_ata_device(ata_dev);
-				break;
-			case SATA_SIGNATURE_ATAPI:
-				cprintf("[ata] ATAPI device found on SATA controller port %d\n", port);
-				break;
+				case SATA_SIGNATURE_ATA:
+					cprintf("[ata] ATA device found on SATA controller port %d\n", port);
+					struct ATADevice *ata_dev = ata_device_alloc();
+					ata_dev->transport = ATA_TRANSPORT_SERIAL_ATA;
+					ata_dev->sata.controller = sata_controller;
+					ata_dev->sata.port = port;
+					ata_register_ata_device(ata_dev);
+					break;
+				case SATA_SIGNATURE_ATAPI:
+					cprintf("[ata] ATAPI device found on SATA controller port %d\n", port);
+					break;
 			}
 		}
 	}

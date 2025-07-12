@@ -12,8 +12,10 @@ enum IOAPICIntrPinPolarity {
 };
 
 void ioapic_init(void);
-void ioapic_enable(int irq, unsigned int lapicid, enum IOAPICTriggerMode trigger_mode,
-				   enum IOAPICIntrPinPolarity polarity);
+void ioapic_enable(
+	int irq, unsigned int lapicid, enum IOAPICTriggerMode trigger_mode,
+	enum IOAPICIntrPinPolarity polarity
+);
 void ioapic_disable(int irq);
 
 #endif

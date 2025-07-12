@@ -17,6 +17,6 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-void free(void* ptr) {
+void free(void *ptr) {
 	return;
 }

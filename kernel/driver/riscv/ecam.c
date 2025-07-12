@@ -21,42 +21,36 @@
 #include <driver/pci/pci.h>
 
 static uint8_t ecam_read_config_reg8(const struct PciAddress *addr, int reg) {
-	return *(volatile uint8_t *)(pci_host.pcie_ecam_base
-								 + ((addr->bus << 20) | (addr->device << 15)
-									| (addr->function << 12) | reg));
+	return *(volatile uint8_t *)(pci_host.pcie_ecam_base + ((addr->bus << 20) |
+															(addr->device << 15) |
+															(addr->function << 12) | reg));
 }
 
 static uint16_t ecam_read_config_reg16(const struct PciAddress *addr, int reg) {
-	return *(volatile uint16_t *)(pci_host.pcie_ecam_base
-								  + ((addr->bus << 20) | (addr->device << 15)
-									 | (addr->function << 12) | reg));
+	return *(volatile uint16_t *)(pci_host.pcie_ecam_base + ((addr->bus << 20) |
+															 (addr->device << 15) |
+															 (addr->function << 12) | reg));
 }
 
 static uint32_t ecam_read_config_reg32(const struct PciAddress *addr, int reg) {
-	return *(volatile uint32_t *)(pci_host.pcie_ecam_base
-								  + ((addr->bus << 20) | (addr->device << 15)
-									 | (addr->function << 12) | reg));
+	return *(volatile uint32_t *)(pci_host.pcie_ecam_base + ((addr->bus << 20) |
+															 (addr->device << 15) |
+															 (addr->function << 12) | reg));
 }
 
 static void ecam_write_config_reg8(const struct PciAddress *addr, int reg, uint8_t data) {
-	*(volatile uint8_t *)(pci_host.pcie_ecam_base
-						  + ((addr->bus << 20) | (addr->device << 15) | (addr->function << 12)
-							 | reg))
-		= data;
+	*(volatile uint8_t *)(pci_host.pcie_ecam_base + ((addr->bus << 20) | (addr->device << 15) |
+													 (addr->function << 12) | reg)) = data;
 }
 
 static void ecam_write_config_reg16(const struct PciAddress *addr, int reg, uint16_t data) {
-	*(volatile uint16_t *)(pci_host.pcie_ecam_base
-						   + ((addr->bus << 20) | (addr->device << 15) | (addr->function << 12)
-							  | reg))
-		= data;
+	*(volatile uint16_t *)(pci_host.pcie_ecam_base + ((addr->bus << 20) | (addr->device << 15) |
+													  (addr->function << 12) | reg)) = data;
 }
 
 static void ecam_write_config_reg32(const struct PciAddress *addr, int reg, uint32_t data) {
-	*(volatile uint32_t *)(pci_host.pcie_ecam_base
-						   + ((addr->bus << 20) | (addr->device << 15) | (addr->function << 12)
-							  | reg))
-		= data;
+	*(volatile uint32_t *)(pci_host.pcie_ecam_base + ((addr->bus << 20) | (addr->device << 15) |
+													  (addr->function << 12) | reg)) = data;
 }
 
 int ecam_init(void) {

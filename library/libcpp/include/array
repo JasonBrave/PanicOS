@@ -26,18 +26,17 @@
 
 namespace std {
 
-	template <class T, std::size_t N>
-	struct array {
+	template <class T, std::size_t N> struct array {
 	public:
 		typedef T value_type;
 		typedef std::size_t size_type;
 		typedef std::ptrdiff_t difference_type;
-		typedef value_type& reference;
-		typedef const value_type& const_reference;
-		typedef value_type* pointer;
-		typedef const value_type* const_pointer;
-		typedef value_type* iterator;
-		typedef const value_type* const_iterator;
+		typedef value_type &reference;
+		typedef const value_type &const_reference;
+		typedef value_type *pointer;
+		typedef const value_type *const_pointer;
+		typedef value_type *iterator;
+		typedef const value_type *const_iterator;
 
 		T elements[N];
 
@@ -74,11 +73,11 @@ namespace std {
 			return elements[N - 1];
 		}
 
-		constexpr T* data() noexcept {
+		constexpr T *data() noexcept {
 			return elements;
 		}
 
-		constexpr const T* data() const noexcept {
+		constexpr const T *data() const noexcept {
 			return elements;
 		}
 
@@ -121,13 +120,13 @@ namespace std {
 		}
 
 		// operations
-		constexpr void fill(const T& value) {
+		constexpr void fill(const T &value) {
 			for (std::size_t i = 0; i < N; i++) {
 				elements[i] = value;
 			}
 		}
 
-		constexpr void swap(array& other) noexcept {
+		constexpr void swap(array &other) noexcept {
 			for (std::size_t i = 0; i < N; i++) {
 				std::swap(elements[i], other[i]);
 			}
@@ -135,8 +134,7 @@ namespace std {
 	};
 
 	template <class T, std::size_t N>
-	constexpr bool operator==(const std::array<T, N>& lhs,
-							  const std::array<T, N>& rhs) {
+	constexpr bool operator==(const std::array<T, N> &lhs, const std::array<T, N> &rhs) {
 		for (std::size_t i = 0; i < N; i++) {
 			if (lhs[i] != rhs[i]) {
 				return false;
@@ -147,28 +145,28 @@ namespace std {
 
 	// std::get
 	template <std::size_t I, class T, std::size_t N>
-	constexpr T& get(std::array<T, N>& a) noexcept {
+	constexpr T &get(std::array<T, N> &a) noexcept {
 		return a[I];
 	}
 
 	template <std::size_t I, class T, std::size_t N>
-	constexpr T&& get(std::array<T, N>&& a) noexcept {
+	constexpr T &&get(std::array<T, N> &&a) noexcept {
 		return a[I];
 	}
 
 	template <std::size_t I, class T, std::size_t N>
-	constexpr const T& get(std::array<T, N>& a) noexcept {
+	constexpr const T &get(std::array<T, N> &a) noexcept {
 		return a[I];
 	}
 
 	template <std::size_t I, class T, std::size_t N>
-	constexpr const T&& get(std::array<T, N>&& a) noexcept {
+	constexpr const T &&get(std::array<T, N> &&a) noexcept {
 		return a[I];
 	}
 
 	// std::swap
 	template <class T, std::size_t N>
-	constexpr void swap(array<T, N>& lhs, array<T, N>& rhs) noexcept {
+	constexpr void swap(array<T, N> &lhs, array<T, N> &rhs) noexcept {
 		lhs.swap(rhs);
 	}
 

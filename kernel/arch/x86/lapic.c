@@ -18,9 +18,9 @@
  */
 
 #include <arch/x86/mmu.h>
+#include <arch/x86/traps.h>
 #include <common/delay.h>
 #include <common/x86.h>
-#include <arch/x86/traps.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>
@@ -65,7 +65,6 @@ static void lapicw(int index, int value) {
 }
 
 void lapicinit(void) {
-
 	// Enable local APIC; set spurious interrupt vector.
 	lapicw(SVR, ENABLE | (T_IRQ0 + IRQ_SPURIOUS));
 
@@ -83,8 +82,9 @@ void lapicinit(void) {
 
 	// Disable performance counter overflow interrupts
 	// on machines that provide that interrupt entry.
-	if (((lapic[VER] >> 16) & 0xFF) >= 4)
+	if (((lapic[VER] >> 16) & 0xFF) >= 4) {
 		lapicw(PCINT, MASKED);
+	}
 
 	// Map error interrupt to IRQ_ERROR.
 	lapicw(ERROR, T_IRQ0 + IRQ_ERROR);
@@ -107,15 +107,17 @@ void lapicinit(void) {
 }
 
 int lapicid(void) {
-	if (!lapic)
+	if (!lapic) {
 		return 0;
+	}
 	return lapic[ID] >> 24;
 }
 
 // Acknowledge interrupt.
 void lapiceoi(void) {
-	if (lapic)
+	if (lapic) {
 		lapicw(EOI, 0);
+	}
 }
 
 #define CMOS_PORT 0x70

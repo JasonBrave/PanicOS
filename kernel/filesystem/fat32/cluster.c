@@ -24,15 +24,17 @@
 #include "fat32-struct.h"
 #include "fat32.h"
 
-int fat32_cluster_to_sector(struct FAT32Private* priv, unsigned int cluster) {
-	return (cluster - 2) * (priv->boot_sector->sector_per_cluster)
-		   + (priv->boot_sector->reserved_sector)
-		   + (priv->boot_sector->fat_number) * (priv->boot_sector->fat_size);
+int fat32_cluster_to_sector(struct FAT32Private *priv, unsigned int cluster) {
+	return (cluster - 2) * (priv->boot_sector->sector_per_cluster) +
+		   (priv->boot_sector->reserved_sector) +
+		   (priv->boot_sector->fat_number) * (priv->boot_sector->fat_size);
 }
 
-int fat32_read_cluster(struct FAT32Private* priv, void* dest, unsigned int cluster,
-					   unsigned int begin, unsigned int size) {
-	void* sect = kalloc();
+int fat32_read_cluster(
+	struct FAT32Private *priv, void *dest, unsigned int cluster, unsigned int begin,
+	unsigned int size
+) {
+	void *sect = kalloc();
 	unsigned int off = 0;
 	while (off < size) {
 		int copysize;
@@ -53,9 +55,10 @@ int fat32_read_cluster(struct FAT32Private* priv, void* dest, unsigned int clust
 	return 0;
 }
 
-int fat32_read(void* private, unsigned int cluster, void* buf, unsigned int offset,
-			   unsigned int size) {
-	struct FAT32Private* priv = private;
+int fat32_read(
+	void *private, unsigned int cluster, void *buf, unsigned int offset, unsigned int size
+) {
+	struct FAT32Private *priv = private;
 	int clussize = priv->boot_sector->sector_per_cluster * SECTORSIZE;
 	unsigned int off = 0;
 	while (off < size) {
@@ -74,9 +77,11 @@ int fat32_read(void* private, unsigned int cluster, void* buf, unsigned int offs
 	return size;
 }
 
-int fat32_write_cluster(struct FAT32Private* priv, const void* src, unsigned int cluster,
-						unsigned int begin, unsigned int size) {
-	void* sect = kalloc();
+int fat32_write_cluster(
+	struct FAT32Private *priv, const void *src, unsigned int cluster, unsigned int begin,
+	unsigned int size
+) {
+	void *sect = kalloc();
 	unsigned int off = 0;
 	while (off < size) {
 		int copysize;
@@ -101,8 +106,8 @@ int fat32_write_cluster(struct FAT32Private* priv, const void* src, unsigned int
 	return 0;
 }
 
-unsigned int fat32_allocate_cluster(struct FAT32Private* priv) {
-	unsigned int* buf = kalloc();
+unsigned int fat32_allocate_cluster(struct FAT32Private *priv) {
+	unsigned int *buf = kalloc();
 	for (unsigned int fat = 0; fat < priv->boot_sector->fat_size; fat++) {
 		int sect = priv->boot_sector->reserved_sector + fat;
 		if (hal_partition_read(priv->partition_id, sect, 1, buf) < 0) {
@@ -116,9 +121,9 @@ unsigned int fat32_allocate_cluster(struct FAT32Private* priv) {
 					return ERROR_WRITE_FAIL;
 				}
 				// second FAT
-				if (hal_partition_write(priv->partition_id, sect + priv->boot_sector->fat_size, 1,
-										buf)
-					< 0) {
+				if (hal_partition_write(
+						priv->partition_id, sect + priv->boot_sector->fat_size, 1, buf
+					) < 0) {
 					return ERROR_WRITE_FAIL;
 				}
 				kfree(buf);
@@ -130,9 +135,10 @@ unsigned int fat32_allocate_cluster(struct FAT32Private* priv) {
 	return 0;
 }
 
-int fat32_write(void* private, unsigned int cluster, const void* buf, unsigned int offset,
-				unsigned int size) {
-	struct FAT32Private* priv = private;
+int fat32_write(
+	void *private, unsigned int cluster, const void *buf, unsigned int offset, unsigned int size
+) {
+	struct FAT32Private *priv = private;
 	int clussize = priv->boot_sector->sector_per_cluster * SECTORSIZE;
 	unsigned int off = 0;
 	while (off < size) {

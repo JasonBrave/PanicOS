@@ -14,14 +14,18 @@ struct acpi_xsdp_t {
 } PACKED;
 
 void acpi_init(void) {
-
 	uint8_t *search_ptr = (uint8_t *)P2V(0xe0000);
 
 	for (; search_ptr < P2V(0xfffff); search_ptr += 16) {
 		struct acpi_xsdp_t *xsdp = (struct acpi_xsdp_t *)search_ptr;
 		if (memcmp(xsdp->Signature, "RSD PTR ", 8) == 0) {
-			cprintf("[acpi] RSDP %p Revision %d RSDPAddr %x XSDTAddr %lx\n", V2P(xsdp),
-					xsdp->Revision, xsdp->RsdtAddress, xsdp->XsdtAddress);
+			cprintf(
+				"[acpi] RSDP %p Revision %d RSDPAddr %x XSDTAddr %lx\n",
+				V2P(xsdp),
+				xsdp->Revision,
+				xsdp->RsdtAddress,
+				xsdp->XsdtAddress
+			);
 		}
 	}
 }

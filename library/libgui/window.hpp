@@ -25,18 +25,18 @@ namespace GUI {
 
 	class Window : private WmBase {
 		int handle;
-		std::vector<ControlBase*> control_cont;
+		std::vector<ControlBase *> control_cont;
 
 	public:
 		Window() = delete;
 		Window(int width, int height);
-		Window(const Window&) = delete;
-		Window(Window&&) = delete;
+		Window(const Window &) = delete;
+		Window(Window &&) = delete;
 		virtual ~Window();
 
 		void render();
-		void set_title(const char* title);
-		void add_control(ControlBase& control);
+		void set_title(const char *title);
+		void add_control(ControlBase &control);
 
 		constexpr int get_handle() {
 			return handle;
@@ -49,6 +49,6 @@ namespace GUI {
 		virtual void on_mouse_up(int button, int x, int y);
 	};
 
-	void start_application(Window& win);
+	void start_application(Window &win);
 
 } // namespace GUI

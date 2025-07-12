@@ -10,7 +10,7 @@ typedef unsigned int size_t;
 #define PACKED __attribute__((packed))
 
 // helper functions
-static inline const char* BOOL2SIGN(int b) {
+static inline const char *BOOL2SIGN(int b) {
 	if (b) {
 		return "+";
 	} else {

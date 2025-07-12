@@ -24,18 +24,19 @@
 
 #include "virtio-gpu.h"
 
-static void virtio_gpu_display_update(void* private) {
-	struct VirtioGPUDisplay* disp = private;
+static void virtio_gpu_display_update(void *private) {
+	struct VirtioGPUDisplay *disp = private;
 	virtio_gpu_xfer_to_host_2d(disp->gpu, disp->resource_id, disp->xres, disp->yres);
 	virtio_gpu_flush(disp->gpu, disp->resource_id, disp->xres, disp->yres);
 }
 
-static phyaddr_t virtio_gpu_display_enable(void* private, int xres, int yres) {
-	struct VirtioGPUDisplay* disp = private;
+static phyaddr_t virtio_gpu_display_enable(void *private, int xres, int yres) {
+	struct VirtioGPUDisplay *disp = private;
 	disp->resource_id = virtio_gpu_alloc_resource_id(disp->gpu);
 	disp->framebuffer = V2P(pgalloc(4096));
-	virtio_gpu_res_create_2d(disp->gpu, disp->resource_id, VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM, xres,
-							 yres);
+	virtio_gpu_res_create_2d(
+		disp->gpu, disp->resource_id, VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM, xres, yres
+	);
 	virtio_gpu_attach_banking(disp->gpu, disp->resource_id, disp->framebuffer, 16 * 1024 * 1024);
 	virtio_gpu_set_scanout(disp->gpu, disp->scanout, disp->resource_id, xres, yres);
 	disp->xres = xres;
@@ -43,15 +44,15 @@ static phyaddr_t virtio_gpu_display_enable(void* private, int xres, int yres) {
 	return disp->framebuffer;
 }
 
-static void virtio_gpu_display_disable(void* private) {
-	struct VirtioGPUDisplay* disp = private;
+static void virtio_gpu_display_disable(void *private) {
+	struct VirtioGPUDisplay *disp = private;
 	if (disp->framebuffer) {
 		pgfree(P2V(disp->framebuffer), 4096);
 	}
 }
 
-static unsigned int virtio_gpu_display_read_edid(void* private, void* buffer, unsigned int bytes) {
-	struct VirtioGPUDisplay* disp = private;
+static unsigned int virtio_gpu_display_read_edid(void *private, void *buffer, unsigned int bytes) {
+	struct VirtioGPUDisplay *disp = private;
 	if (!disp->gpu->features.edid) {
 		return 0;
 	}
@@ -66,14 +67,14 @@ static unsigned int virtio_gpu_display_read_edid(void* private, void* buffer, un
 
 struct FramebufferDriver virtio_gpu_fb_driver;
 
-void virtio_gpu_display_dev_init(struct VirtioGPUDevice* dev) {
-	volatile struct virtio_gpu_config* gpucfg = dev->virtio_dev->devcfg;
+void virtio_gpu_display_dev_init(struct VirtioGPUDevice *dev) {
+	volatile struct virtio_gpu_config *gpucfg = dev->virtio_dev->devcfg;
 	dev->num_display = gpucfg->num_scanouts;
 	struct virtio_gpu_display_one display_info[VIRTIO_GPU_MAX_SCANOUTS];
 	virtio_gpu_get_display_info(dev, display_info);
 	cprintf("[virtio-gpu] heads %d\n", dev->num_display);
 	for (unsigned int i = 0; i < dev->num_display; i++) {
-		struct VirtioGPUDisplay* disp = kalloc();
+		struct VirtioGPUDisplay *disp = kalloc();
 		memset(disp, 0, sizeof(struct VirtioGPUDisplay));
 		disp->gpu = dev;
 		disp->enabled = display_info[i].enabled;

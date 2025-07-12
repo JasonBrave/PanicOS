@@ -75,11 +75,13 @@ static void printint(unsigned long long xx, int base, int sgn, int cpt) {
 	do {
 		buf[i++] = digits[x % base];
 	} while ((x /= base) != 0);
-	if (neg)
+	if (neg) {
 		buf[i++] = '-';
+	}
 
-	while (--i >= 0)
+	while (--i >= 0) {
 		consputc(buf[i]);
+	}
 }
 
 // Print to the console. only understands %d, %x, %p, %s.
@@ -90,8 +92,9 @@ void cprintf(const char *restrict fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	if (cons.locking)
+	if (cons.locking) {
 		acquire(&cons.lock);
+	}
 
 	for (i = 0; fmt[i]; i++) {
 		c = fmt[i] & 0xff;
@@ -109,8 +112,9 @@ void cprintf(const char *restrict fmt, ...) {
 				consputc(va_arg(args, int));
 			} else if (c == 's') {
 				const char *s = va_arg(args, const char *);
-				if (s == 0)
+				if (s == 0) {
 					s = "(null)";
+				}
 				while (*s != 0) {
 					consputc(*s);
 					s++;
@@ -158,8 +162,9 @@ void cprintf(const char *restrict fmt, ...) {
 			}
 		}
 	}
-	if (cons.locking)
+	if (cons.locking) {
 		release(&cons.lock);
+	}
 }
 
 void panic(const char *s) {
@@ -179,8 +184,9 @@ void panic(const char *s) {
 	cprintf("\n");
 #ifndef __riscv
 	getcallerpcs(&s, pcs);
-	for (i = 0; i < 10; i++)
+	for (i = 0; i < 10; i++) {
 		cprintf(" %p", pcs[i]);
+	}
 
 #endif
 
@@ -210,8 +216,9 @@ static void cgaputc(int c) {
 		crt[pos++] = (c & 0xff) | 0x0700; // black on white
 	}
 
-	if (pos < 0 || pos > 25 * 80)
+	if (pos < 0 || pos > 25 * 80) {
 		panic("pos under/overflow");
+	}
 
 	if ((pos / 80) >= 24) { // Scroll up.
 		memmove(crt, crt + 80, sizeof(crt[0]) * 23 * 80);
@@ -278,32 +285,32 @@ void consoleintr(int (*getc)(void)) {
 	acquire(&cons.lock);
 	while ((c = getc()) >= 0) {
 		switch (c) {
-		case C('U'): // Kill line.
-			while (input.e != input.w && input.buf[(input.e - 1) % INPUT_BUF] != '\n') {
-				input.e--;
-				consputc(BACKSPACE);
-			}
-			break;
-		case C('H'):
-		case '\x7f': // Backspace
-			if (input.e != input.w) {
-				input.e--;
-				consputc(BACKSPACE);
-			}
-			break;
-		default:
-			if (c != 0 && input.e - input.r < INPUT_BUF) {
-				c = (c == '\r') ? '\n' : c;
-				input.buf[input.e++ % INPUT_BUF] = c;
-				consputc(c);
-				if (c == '\n' || c == C('D') || input.e == input.r + INPUT_BUF) {
-					input.w = input.e;
-#ifndef __riscv
-					wakeup(&input.r);
-#endif
+			case C('U'): // Kill line.
+				while (input.e != input.w && input.buf[(input.e - 1) % INPUT_BUF] != '\n') {
+					input.e--;
+					consputc(BACKSPACE);
 				}
-			}
-			break;
+				break;
+			case C('H'):
+			case '\x7f': // Backspace
+				if (input.e != input.w) {
+					input.e--;
+					consputc(BACKSPACE);
+				}
+				break;
+			default:
+				if (c != 0 && input.e - input.r < INPUT_BUF) {
+					c = (c == '\r') ? '\n' : c;
+					input.buf[input.e++ % INPUT_BUF] = c;
+					consputc(c);
+					if (c == '\n' || c == C('D') || input.e == input.r + INPUT_BUF) {
+						input.w = input.e;
+#ifndef __riscv
+						wakeup(&input.r);
+#endif
+					}
+				}
+				break;
 		}
 	}
 	release(&cons.lock);
@@ -336,8 +343,9 @@ int consoleread(char *dst, int n) {
 		}
 		*dst++ = c;
 		--n;
-		if (c == '\n')
+		if (c == '\n') {
 			break;
+		}
 	}
 	release(&cons.lock);
 
@@ -346,8 +354,9 @@ int consoleread(char *dst, int n) {
 
 int consolewrite(char *buf, int n) {
 	acquire(&cons.lock);
-	for (int i = 0; i < n; i++)
+	for (int i = 0; i < n; i++) {
 		consputc(buf[i] & 0xff);
+	}
 	release(&cons.lock);
 
 	return n;
@@ -440,8 +449,11 @@ static void fb_putc(int c) {
 		ypos++;
 		if (ypos >= cons.height / 16) {
 			for (unsigned int i = 0; i < cons.height / 16; i++) {
-				fastmemcpy32(cons.fb + i * cons.width * 16, cons.fb + (i + 1) * cons.width * 16,
-							 cons.width * 16);
+				fastmemcpy32(
+					cons.fb + i * cons.width * 16,
+					cons.fb + (i + 1) * cons.width * 16,
+					cons.width * 16
+				);
 			}
 			ypos--;
 		}
@@ -462,8 +474,11 @@ static void fb_putc(int c) {
 		ypos++;
 		if (ypos >= cons.height / 16) {
 			for (unsigned int i = 0; i < cons.height / 16; i++) {
-				fastmemcpy32(cons.fb + i * cons.width * 16, cons.fb + (i + 1) * cons.width * 16,
-							 cons.width * 16);
+				fastmemcpy32(
+					cons.fb + i * cons.width * 16,
+					cons.fb + (i + 1) * cons.width * 16,
+					cons.width * 16
+				);
 			}
 			ypos--;
 		}

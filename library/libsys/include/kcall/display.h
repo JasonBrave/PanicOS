@@ -35,16 +35,16 @@ enum DisplayKCallOp {
 
 struct DisplayKcall {
 	enum DisplayKCallOp op;
-	char* str;
+	char *str;
 	unsigned int display_id;
 	unsigned int xres;
 	unsigned int yres;
 	unsigned int flag;
-	void* framebuffer;
+	void *framebuffer;
 };
 
-static inline void* display_enable(unsigned int display_id, unsigned int xres,
-								   unsigned int yres, unsigned int* flag) {
+static inline void *
+display_enable(unsigned int display_id, unsigned int xres, unsigned int yres, unsigned int *flag) {
 	struct DisplayKcall d = {
 		.op = DISPLAY_KCALL_OP_ENABLE,
 		.xres = xres,
@@ -76,8 +76,8 @@ static inline int display_find(void) {
 	return d.display_id;
 }
 
-static inline int display_get_preferred(unsigned int display_id, unsigned int* xres,
-										unsigned int* yres) {
+static inline int
+display_get_preferred(unsigned int display_id, unsigned int *xres, unsigned int *yres) {
 	struct DisplayKcall d = {
 		.op = DISPLAY_KCALL_OP_GET_PREFERRED,
 		.display_id = display_id,
@@ -98,7 +98,7 @@ static inline void display_update(unsigned int display_id) {
 	kcall("display", (unsigned int)&d);
 }
 
-static inline int display_get_name(unsigned int display_id, char* name) {
+static inline int display_get_name(unsigned int display_id, char *name) {
 	struct DisplayKcall d = {
 		.op = DISPLAY_KCALL_OP_GET_NAME,
 		.display_id = display_id,

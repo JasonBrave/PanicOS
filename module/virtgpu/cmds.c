@@ -24,12 +24,13 @@
 #include "virtio-gpu-regs.h"
 #include "virtio-gpu.h"
 
-int virtio_gpu_get_display_info(struct VirtioGPUDevice* dev,
-								struct virtio_gpu_display_one* display_info) {
+int virtio_gpu_get_display_info(
+	struct VirtioGPUDevice *dev, struct virtio_gpu_display_one *display_info
+) {
 	acquire(&dev->lock);
 
-	struct virtio_gpu_ctrl_hdr* req = kalloc();
-	volatile struct virtio_gpu_resp_display_info* resp = kalloc();
+	struct virtio_gpu_ctrl_hdr *req = kalloc();
+	volatile struct virtio_gpu_resp_display_info *resp = kalloc();
 
 	req->type = VIRTIO_GPU_CMD_GET_DISPLAY_INFO;
 	req->flags = 0;
@@ -57,27 +58,30 @@ int virtio_gpu_get_display_info(struct VirtioGPUDevice* dev,
 	if (resp->hdr.type != VIRTIO_GPU_RESP_OK_DISPLAY_INFO) {
 		cprintf("[virtio-gpu] get display info failed with 0x%x\n", resp->hdr.type);
 		kfree(req);
-		kfree((void*)resp);
+		kfree((void *)resp);
 		virtio_free_desc(&dev->controlq, desc[0]);
 		release(&dev->lock);
 		return -1;
 	}
 
-	memcpy(display_info, (void*)resp->pmodes,
-		   sizeof(struct virtio_gpu_display_one) * VIRTIO_GPU_MAX_SCANOUTS);
+	memcpy(
+		display_info,
+		(void *)resp->pmodes,
+		sizeof(struct virtio_gpu_display_one) * VIRTIO_GPU_MAX_SCANOUTS
+	);
 
 	kfree(req);
-	kfree((void*)resp);
+	kfree((void *)resp);
 	virtio_free_desc(&dev->controlq, desc[0]);
 	release(&dev->lock);
 	return 0;
 }
 
-unsigned int virtio_gpu_get_edid(struct VirtioGPUDevice* dev, unsigned int scanout, void* edid) {
+unsigned int virtio_gpu_get_edid(struct VirtioGPUDevice *dev, unsigned int scanout, void *edid) {
 	acquire(&dev->lock);
 
-	struct virtio_gpu_get_edid* req = kalloc();
-	volatile struct virtio_gpu_resp_edid* resp = kalloc();
+	struct virtio_gpu_get_edid *req = kalloc();
+	volatile struct virtio_gpu_resp_edid *resp = kalloc();
 
 	req->hdr.type = VIRTIO_GPU_CMD_GET_EDID;
 	req->hdr.flags = 0;
@@ -106,28 +110,30 @@ unsigned int virtio_gpu_get_edid(struct VirtioGPUDevice* dev, unsigned int scano
 	if (resp->hdr.type != VIRTIO_GPU_RESP_OK_EDID) {
 		cprintf("[virtio-gpu] get edid info failed with 0x%x\n", resp->hdr.type);
 		kfree(req);
-		kfree((void*)resp);
+		kfree((void *)resp);
 		virtio_free_desc(&dev->controlq, desc[0]);
 		release(&dev->lock);
 		return 0;
 	}
 
 	int sz = resp->size;
-	memcpy(edid, (void*)resp->edid, resp->size);
+	memcpy(edid, (void *)resp->edid, resp->size);
 
 	kfree(req);
-	kfree((void*)resp);
+	kfree((void *)resp);
 	virtio_free_desc(&dev->controlq, desc[0]);
 	release(&dev->lock);
 	return sz;
 }
 
-void virtio_gpu_res_create_2d(struct VirtioGPUDevice* dev, unsigned int resource_id,
-							  enum virtio_gpu_formats format, unsigned int w, unsigned int h) {
+void virtio_gpu_res_create_2d(
+	struct VirtioGPUDevice *dev, unsigned int resource_id, enum virtio_gpu_formats format,
+	unsigned int w, unsigned int h
+) {
 	acquire(&dev->lock);
 
-	struct virtio_gpu_resource_create_2d* req = kalloc();
-	volatile struct virtio_gpu_ctrl_hdr* resp = kalloc();
+	struct virtio_gpu_resource_create_2d *req = kalloc();
+	volatile struct virtio_gpu_ctrl_hdr *resp = kalloc();
 
 	req->hdr.type = VIRTIO_GPU_CMD_RESOURCE_CREATE_2D;
 	req->hdr.flags = 0;
@@ -157,17 +163,19 @@ void virtio_gpu_res_create_2d(struct VirtioGPUDevice* dev, unsigned int resource
 	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
-	kfree((void*)resp);
+	kfree((void *)resp);
 	virtio_free_desc(&dev->controlq, desc[0]);
 	release(&dev->lock);
 }
 
-void virtio_gpu_set_scanout(struct VirtioGPUDevice* dev, unsigned int scanout,
-							unsigned int resource_id, unsigned int w, unsigned int h) {
+void virtio_gpu_set_scanout(
+	struct VirtioGPUDevice *dev, unsigned int scanout, unsigned int resource_id, unsigned int w,
+	unsigned int h
+) {
 	acquire(&dev->lock);
 
-	struct virtio_gpu_set_scanout* req = kalloc();
-	volatile struct virtio_gpu_ctrl_hdr* resp = kalloc();
+	struct virtio_gpu_set_scanout *req = kalloc();
+	volatile struct virtio_gpu_ctrl_hdr *resp = kalloc();
 
 	req->hdr.type = VIRTIO_GPU_CMD_SET_SCANOUT;
 	req->hdr.flags = 0;
@@ -199,17 +207,18 @@ void virtio_gpu_set_scanout(struct VirtioGPUDevice* dev, unsigned int scanout,
 	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
-	kfree((void*)resp);
+	kfree((void *)resp);
 	virtio_free_desc(&dev->controlq, desc[0]);
 	release(&dev->lock);
 }
 
-void virtio_gpu_flush(struct VirtioGPUDevice* dev, unsigned int resource_id, unsigned int w,
-					  unsigned int h) {
+void virtio_gpu_flush(
+	struct VirtioGPUDevice *dev, unsigned int resource_id, unsigned int w, unsigned int h
+) {
 	acquire(&dev->lock);
 
-	struct virtio_gpu_resource_flush* req = kalloc();
-	volatile struct virtio_gpu_ctrl_hdr* resp = kalloc();
+	struct virtio_gpu_resource_flush *req = kalloc();
+	volatile struct virtio_gpu_ctrl_hdr *resp = kalloc();
 
 	req->hdr.type = VIRTIO_GPU_CMD_RESOURCE_FLUSH;
 	req->hdr.flags = 0;
@@ -240,17 +249,18 @@ void virtio_gpu_flush(struct VirtioGPUDevice* dev, unsigned int resource_id, uns
 	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
-	kfree((void*)resp);
+	kfree((void *)resp);
 	virtio_free_desc(&dev->controlq, desc[0]);
 	release(&dev->lock);
 }
 
-void virtio_gpu_xfer_to_host_2d(struct VirtioGPUDevice* dev, unsigned int resource_id,
-								unsigned int w, unsigned int h) {
+void virtio_gpu_xfer_to_host_2d(
+	struct VirtioGPUDevice *dev, unsigned int resource_id, unsigned int w, unsigned int h
+) {
 	acquire(&dev->lock);
 
-	struct virtio_gpu_transfer_to_host_2d* req = kalloc();
-	volatile struct virtio_gpu_ctrl_hdr* resp = kalloc();
+	struct virtio_gpu_transfer_to_host_2d *req = kalloc();
+	volatile struct virtio_gpu_ctrl_hdr *resp = kalloc();
 
 	req->hdr.type = VIRTIO_GPU_CMD_TRANSFER_TO_HOST_2D;
 	req->hdr.flags = 0;
@@ -282,18 +292,19 @@ void virtio_gpu_xfer_to_host_2d(struct VirtioGPUDevice* dev, unsigned int resour
 	virtio_queue_notify_wait(dev->virtio_dev, &dev->controlq);
 
 	kfree(req);
-	kfree((void*)resp);
+	kfree((void *)resp);
 	virtio_free_desc(&dev->controlq, desc[0]);
 	release(&dev->lock);
 }
 
-void virtio_gpu_attach_banking(struct VirtioGPUDevice* dev, unsigned int resource_id, phyaddr_t fb,
-							   size_t length) {
+void virtio_gpu_attach_banking(
+	struct VirtioGPUDevice *dev, unsigned int resource_id, phyaddr_t fb, size_t length
+) {
 	acquire(&dev->lock);
 
-	struct virtio_gpu_resource_attach_backing* req = kalloc();
-	volatile struct virtio_gpu_ctrl_hdr* resp = kalloc();
-	struct virtio_gpu_mem_entry* mement = kalloc();
+	struct virtio_gpu_resource_attach_backing *req = kalloc();
+	volatile struct virtio_gpu_ctrl_hdr *resp = kalloc();
+	struct virtio_gpu_mem_entry *mement = kalloc();
 
 	req->hdr.type = VIRTIO_GPU_CMD_RESOURCE_ATTACH_BACKING;
 	req->hdr.flags = 0;
@@ -330,7 +341,7 @@ void virtio_gpu_attach_banking(struct VirtioGPUDevice* dev, unsigned int resourc
 
 	kfree(req);
 	kfree(mement);
-	kfree((void*)resp);
+	kfree((void *)resp);
 	virtio_free_desc(&dev->controlq, desc[0]);
 	release(&dev->lock);
 }

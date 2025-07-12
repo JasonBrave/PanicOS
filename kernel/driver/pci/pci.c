@@ -44,17 +44,35 @@ void pci_init(void) {
 				uint8_t subclass = pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS);
 				uint8_t progif = pci_read_config_reg8(&addr, PCI_CONF_PROGIF);
 				if (intr_pin == 0) { // No interrupt pin for this device
-					cprintf("[pci] bus %d device %d func %d %x:%x class %x "
-							"subclass %x progif %x\n",
-							addr.bus, addr.device, addr.function, vendor_id, device_id, class,
-							subclass, progif);
+					cprintf(
+						"[pci] bus %d device %d func %d %x:%x class %x "
+						"subclass %x progif %x\n",
+						addr.bus,
+						addr.device,
+						addr.function,
+						vendor_id,
+						device_id,
+						class,
+						subclass,
+						progif
+					);
 					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif, 0);
 				} else {
 					uint8_t intr_line = pci_read_config_reg8(&addr, PCI_CONF_INTR_LINE);
-					cprintf("[pci] bus %d device %d func %d %x:%x class %x "
-							"subclass %x progif %x %s %d\n",
-							addr.bus, addr.device, addr.function, vendor_id, device_id, class,
-							subclass, progif, pci_intx_name[intr_pin], intr_line);
+					cprintf(
+						"[pci] bus %d device %d func %d %x:%x class %x "
+						"subclass %x progif %x %s %d\n",
+						addr.bus,
+						addr.device,
+						addr.function,
+						vendor_id,
+						device_id,
+						class,
+						subclass,
+						progif,
+						pci_intx_name[intr_pin],
+						intr_line
+					);
 					pci_add_device(&addr, vendor_id, device_id, class, subclass, progif, intr_line);
 				}
 			}
@@ -160,8 +178,8 @@ struct PciAddress *pci_find_device(struct PciAddress *pciaddr, uint16_t vendor, 
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (addr.device = 0; addr.device < PCI_DEVICE_MAX; addr.device++) {
 			for (addr.function = 0; addr.function < PCI_FUNCTION_MAX; addr.function++) {
-				if ((vendor == pci_read_config_reg16(&addr, PCI_CONF_VENDOR))
-					&& (device == pci_read_config_reg16(&addr, PCI_CONF_DEVICE))) {
+				if ((vendor == pci_read_config_reg16(&addr, PCI_CONF_VENDOR)) &&
+					(device == pci_read_config_reg16(&addr, PCI_CONF_DEVICE))) {
 					pciaddr->bus = addr.bus;
 					pciaddr->device = addr.device;
 					pciaddr->function = addr.function;
@@ -178,8 +196,8 @@ struct PciAddress *pci_find_class(struct PciAddress *pciaddr, uint8_t class, uin
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (addr.device = 0; addr.device < PCI_DEVICE_MAX; addr.device++) {
 			for (addr.function = 0; addr.function < PCI_FUNCTION_MAX; addr.function++) {
-				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS))
-					&& (subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS))) {
+				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS)) &&
+					(subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS))) {
 					pciaddr->bus = addr.bus;
 					pciaddr->device = addr.device;
 					pciaddr->function = addr.function;
@@ -191,15 +209,15 @@ struct PciAddress *pci_find_class(struct PciAddress *pciaddr, uint8_t class, uin
 	return 0;
 }
 
-struct PciAddress *pci_find_progif(struct PciAddress *pciaddr, uint8_t class, uint8_t subclass,
-								   uint8_t progif) {
+struct PciAddress *
+pci_find_progif(struct PciAddress *pciaddr, uint8_t class, uint8_t subclass, uint8_t progif) {
 	struct PciAddress addr;
 	for (addr.bus = 0; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (addr.device = 0; addr.device < PCI_DEVICE_MAX; addr.device++) {
 			for (addr.function = 0; addr.function < PCI_FUNCTION_MAX; addr.function++) {
-				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS))
-					&& (subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS))
-					&& (progif == pci_read_config_reg8(&addr, PCI_CONF_PROGIF))) {
+				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS)) &&
+					(subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS)) &&
+					(progif == pci_read_config_reg8(&addr, PCI_CONF_PROGIF))) {
 					pciaddr->bus = addr.bus;
 					pciaddr->device = addr.device;
 					pciaddr->function = addr.function;
@@ -219,8 +237,8 @@ struct PciAddress *pci_next_device(struct PciAddress *pciaddr, uint16_t vendor, 
 	for (; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (; addr.device < PCI_DEVICE_MAX; addr.device++) {
 			for (; addr.function < PCI_FUNCTION_MAX; addr.function++) {
-				if ((vendor == pci_read_config_reg16(&addr, PCI_CONF_VENDOR))
-					&& (device == pci_read_config_reg16(&addr, PCI_CONF_DEVICE))) {
+				if ((vendor == pci_read_config_reg16(&addr, PCI_CONF_VENDOR)) &&
+					(device == pci_read_config_reg16(&addr, PCI_CONF_DEVICE))) {
 					pciaddr->bus = addr.bus;
 					pciaddr->device = addr.device;
 					pciaddr->function = addr.function;
@@ -242,8 +260,8 @@ struct PciAddress *pci_next_class(struct PciAddress *pciaddr, uint8_t class, uin
 	for (; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (; addr.device < PCI_DEVICE_MAX; addr.device++) {
 			for (; addr.function < PCI_FUNCTION_MAX; addr.function++) {
-				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS))
-					&& (subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS))) {
+				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS)) &&
+					(subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS))) {
 					pciaddr->bus = addr.bus;
 					pciaddr->device = addr.device;
 					pciaddr->function = addr.function;
@@ -257,8 +275,8 @@ struct PciAddress *pci_next_class(struct PciAddress *pciaddr, uint8_t class, uin
 	return 0;
 }
 
-struct PciAddress *pci_next_progif(struct PciAddress *pciaddr, uint8_t class, uint8_t subclass,
-								   uint8_t progif) {
+struct PciAddress *
+pci_next_progif(struct PciAddress *pciaddr, uint8_t class, uint8_t subclass, uint8_t progif) {
 	struct PciAddress addr;
 	addr.bus = pciaddr->bus;
 	addr.device = pciaddr->device;
@@ -266,9 +284,9 @@ struct PciAddress *pci_next_progif(struct PciAddress *pciaddr, uint8_t class, ui
 	for (; addr.bus < pci_host.bus_num; addr.bus++) {
 		for (; addr.device < PCI_DEVICE_MAX; addr.device++) {
 			for (; addr.function < PCI_FUNCTION_MAX; addr.function++) {
-				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS))
-					&& (subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS))
-					&& (progif == pci_read_config_reg8(&addr, PCI_CONF_PROGIF))) {
+				if ((class == pci_read_config_reg8(&addr, PCI_CONF_CLASS)) &&
+					(subclass == pci_read_config_reg8(&addr, PCI_CONF_SUBCLASS)) &&
+					(progif == pci_read_config_reg8(&addr, PCI_CONF_PROGIF))) {
 					pciaddr->bus = addr.bus;
 					pciaddr->device = addr.device;
 					pciaddr->function = addr.function;

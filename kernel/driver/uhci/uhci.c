@@ -27,13 +27,13 @@
 
 struct UHCIDevice {
 	ioport_t iobase;
-	uint32_t* frame_list;
+	uint32_t *frame_list;
 };
 
-static void uhci_intr(struct PCIDevice* pcidev) {}
+static void uhci_intr(struct PCIDevice *pcidev) {}
 
-static void uhci_port_reset(void* private, unsigned int port) {
-	struct UHCIDevice* uhci = private;
+static void uhci_port_reset(void *private, unsigned int port) {
+	struct UHCIDevice *uhci = private;
 	uint16_t portstat = inw(uhci->iobase + UHCI_PORTSC + port * 2);
 	portstat |= UHCI_PORTSC_PORT_RESET;
 	outw(uhci->iobase + UHCI_PORTSC + port * 2, portstat);
@@ -43,8 +43,8 @@ static void uhci_port_reset(void* private, unsigned int port) {
 	outw(uhci->iobase + UHCI_PORTSC + port * 2, portstat);
 }
 
-static enum USBPortStatus uhci_get_port_status(void* private, unsigned int port) {
-	struct UHCIDevice* dev = private;
+static enum USBPortStatus uhci_get_port_status(void *private, unsigned int port) {
+	struct UHCIDevice *dev = private;
 	uint16_t portstat = inw(dev->iobase + UHCI_PORTSC + port * 2);
 	if (portstat & UHCI_PORTSC_CONNECT_STATUS) {
 		if (portstat & UHCI_PORTSC_LOW_SPEED) {
@@ -56,27 +56,27 @@ static enum USBPortStatus uhci_get_port_status(void* private, unsigned int port)
 	return USB_PORT_STATUS_NOT_CONNECT;
 }
 
-static void uhci_run(struct UHCIDevice* dev, int frnum) {
+static void uhci_run(struct UHCIDevice *dev, int frnum) {
 	outw(dev->iobase + UHCI_FRNUM, frnum);
 	outw(dev->iobase + UHCI_USBCMD, inw(dev->iobase + UHCI_USBCMD) | UHCI_USBCMD_RS);
 }
 
-static void uhci_stop(struct UHCIDevice* dev) {
+static void uhci_stop(struct UHCIDevice *dev) {
 	outw(dev->iobase + UHCI_USBSTS, 1);
 	outw(dev->iobase + UHCI_USBCMD, inw(dev->iobase + UHCI_USBCMD) & ~UHCI_USBCMD_RS);
 }
 
-static enum USBTransferStatus uhci_transfer_packet(void* private, unsigned int addr,
-												   unsigned int endpoint,
-												   const struct USBPacket* packets,
-												   unsigned int num) {
-	struct UHCIDevice* dev = private;
+static enum USBTransferStatus uhci_transfer_packet(
+	void *private, unsigned int addr, unsigned int endpoint, const struct USBPacket *packets,
+	unsigned int num
+) {
+	struct UHCIDevice *dev = private;
 	for (int i = 0; i < 1024; i++) {
 		dev->frame_list[i] = 1;
 	}
 	volatile struct UHCITransferDesc {
 		uint32_t lnk, sta, maxlen, bufptr;
-	} PACKED* transdesc = kalloc();
+	} PACKED *transdesc = kalloc();
 	for (unsigned int i = 0; i < num; i++) {
 		transdesc[i].lnk = 1;
 		transdesc[i].sta = UHCI_STATUS_ACTIVE;
@@ -103,10 +103,9 @@ static enum USBTransferStatus uhci_transfer_packet(void* private, unsigned int a
 
 	uhci_run(dev, 0);
 
-	while (!(inw(dev->iobase + UHCI_USBSTS) & 1)) {
-	}
+	while (!(inw(dev->iobase + UHCI_USBSTS) & 1)) {}
 	uhci_stop(dev);
-	kfree((void*)transdesc);
+	kfree((void *)transdesc);
 	return USB_STATUS_OK;
 }
 
@@ -116,14 +115,17 @@ const static struct USBHostControllerDriver uhci_usbhc_driver = {
 	.transfer_packet = uhci_transfer_packet,
 };
 
-static void uhci_controller_init(struct PCIDevice* pcidev) {
+static void uhci_controller_init(struct PCIDevice *pcidev) {
 	pci_enable_bus_mastering(&pcidev->addr);
 	pci_register_intr_handler(pcidev, uhci_intr);
-	struct UHCIDevice* dev = kalloc();
+	struct UHCIDevice *dev = kalloc();
 	pcidev->private = dev;
 	dev->iobase = pci_read_bar(&pcidev->addr, 4);
-	cprintf("[uhci] UHCI Controller IOBASE %x release %x\n", dev->iobase,
-			pci_read_config_reg8(&pcidev->addr, 0x60));
+	cprintf(
+		"[uhci] UHCI Controller IOBASE %x release %x\n",
+		dev->iobase,
+		pci_read_config_reg8(&pcidev->addr, 0x60)
+	);
 
 	outw(dev->iobase + UHCI_USBCMD, UHCI_USBCMD_HCRESET);
 	outw(dev->iobase + UHCI_USBCMD, 0);

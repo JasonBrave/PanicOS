@@ -32,7 +32,7 @@ void kcall_init(void) {
 	kcall_set("true", kcall_true);
 }
 
-void kcall_set(const char* name, int (*handler)(unsigned int)) {
+void kcall_set(const char *name, int (*handler)(unsigned int)) {
 	for (int i = 0; i < 256; i++) {
 		if (strncmp(kcall_table[i].name, name, 32) == 0) {
 			if (handler) {
@@ -51,7 +51,7 @@ void kcall_set(const char* name, int (*handler)(unsigned int)) {
 	panic("out ouf kcall table");
 }
 
-int kcall(const char* name, unsigned int arg) {
+int kcall(const char *name, unsigned int arg) {
 	for (int i = 0; i < 256; i++) {
 		if (strncmp(kcall_table[i].name, name, 32) == 0) {
 			return kcall_table[i].handler(arg);

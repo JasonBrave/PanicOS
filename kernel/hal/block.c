@@ -25,9 +25,9 @@
 struct BlockDevice hal_block_map[HAL_BLOCK_MAX];
 struct HalPartitionMap hal_partition_map[HAL_PARTITION_MAX];
 
-struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFilesystemType fs,
-												 unsigned int dev, unsigned int begin,
-												 unsigned int size) {
+struct HalPartitionMap *hal_partition_map_insert(
+	enum HalPartitionFilesystemType fs, unsigned int dev, unsigned int begin, unsigned int size
+) {
 	for (int i = 0; i < HAL_PARTITION_MAX; i++) {
 		if (hal_partition_map[i].fs_type == HAL_PARTITION_TYPE_NONE) {
 			hal_partition_map[i].fs_type = fs;
@@ -41,7 +41,7 @@ struct HalPartitionMap* hal_partition_map_insert(enum HalPartitionFilesystemType
 }
 
 static void hal_block_probe_partition(int block_id) {
-	uint64_t* gptsect = kalloc();
+	uint64_t *gptsect = kalloc();
 	if (hal_disk_read(block_id, 1, 1, gptsect) < 0) {
 		panic("disk read error");
 	}
@@ -64,8 +64,9 @@ static void hal_block_cache_init(int block_id) {
 	initlock(&hal_block_map[block_id].cache_lock, "block-cache");
 }
 
-void hal_block_register_device(const char* name, void* private,
-							   const struct BlockDeviceDriver* driver) {
+void hal_block_register_device(
+	const char *name, void *private, const struct BlockDeviceDriver *driver
+) {
 	for (int i = 0; i < HAL_BLOCK_MAX; i++) {
 		if (!hal_block_map[i].driver) {
 			cprintf("[hal] Block device %s added\n", name);
@@ -84,12 +85,12 @@ void hal_block_init(void) {
 	memset(hal_partition_map, 0, sizeof(hal_partition_map));
 }
 
-int hal_block_read(int id, int begin, int count, void* buf) {
+int hal_block_read(int id, int begin, int count, void *buf) {
 	if (count > 1) {
 		return hal_disk_read(id, begin, count, buf);
 	}
 
-	struct BlockDevice* blk = &hal_block_map[id];
+	struct BlockDevice *blk = &hal_block_map[id];
 	acquire(&blk->cache_lock);
 	for (int i = 0; i < HAL_BLOCK_CACHE_MAX; i++) {
 		if (blk->cache[i].buf && blk->cache[i].lba == begin) {
@@ -115,7 +116,7 @@ int hal_block_read(int id, int begin, int count, void* buf) {
 	return 0;
 }
 
-int hal_disk_read(int id, int begin, int count, void* buf) {
+int hal_disk_read(int id, int begin, int count, void *buf) {
 	if (id >= HAL_BLOCK_MAX) {
 		return ERROR_INVAILD;
 	}
@@ -126,18 +127,19 @@ int hal_disk_read(int id, int begin, int count, void* buf) {
 	return hal_block_map[id].driver->block_read(hal_block_map[id].private, begin, count, buf);
 }
 
-int hal_partition_read(int id, int begin, int count, void* buf) {
+int hal_partition_read(int id, int begin, int count, void *buf) {
 	if (id >= HAL_PARTITION_MAX) {
 		return -1;
 	}
 	if (hal_partition_map[id].fs_type == HAL_PARTITION_TYPE_NONE) {
 		return -1;
 	}
-	return hal_block_read(hal_partition_map[id].dev, hal_partition_map[id].begin + begin, count,
-						  buf);
+	return hal_block_read(
+		hal_partition_map[id].dev, hal_partition_map[id].begin + begin, count, buf
+	);
 }
 
-int hal_block_write(int id, int begin, int count, const void* buf) {
+int hal_block_write(int id, int begin, int count, const void *buf) {
 	if (count > 1) {
 		for (int i = 0; i < HAL_BLOCK_CACHE_MAX; i++) {
 			if (hal_block_map[id].cache[i].buf) {
@@ -147,7 +149,7 @@ int hal_block_write(int id, int begin, int count, const void* buf) {
 		hal_disk_write(id, begin, count, buf);
 	}
 
-	struct BlockDevice* blk = &hal_block_map[id];
+	struct BlockDevice *blk = &hal_block_map[id];
 	acquire(&blk->cache_lock);
 	for (int i = 0; i < HAL_BLOCK_CACHE_MAX; i++) {
 		if (blk->cache[i].buf && blk->cache[i].lba == begin) {
@@ -160,7 +162,7 @@ int hal_block_write(int id, int begin, int count, const void* buf) {
 	return hal_disk_write(id, begin, count, buf);
 }
 
-int hal_disk_write(int id, int begin, int count, const void* buf) {
+int hal_disk_write(int id, int begin, int count, const void *buf) {
 	if (id >= HAL_BLOCK_MAX) {
 		return -1;
 	}
@@ -171,13 +173,14 @@ int hal_disk_write(int id, int begin, int count, const void* buf) {
 	return hal_block_map[id].driver->block_write(hal_block_map[id].private, begin, count, buf);
 }
 
-int hal_partition_write(int id, int begin, int count, const void* buf) {
+int hal_partition_write(int id, int begin, int count, const void *buf) {
 	if (id >= HAL_PARTITION_MAX) {
 		return -1;
 	}
 	if (hal_partition_map[id].fs_type == HAL_PARTITION_TYPE_NONE) {
 		return -1;
 	}
-	return hal_block_write(hal_partition_map[id].dev, hal_partition_map[id].begin + begin, count,
-						   buf);
+	return hal_block_write(
+		hal_partition_map[id].dev, hal_partition_map[id].begin + begin, count, buf
+	);
 }

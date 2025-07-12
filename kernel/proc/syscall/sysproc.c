@@ -45,8 +45,9 @@ int sys_wait(void) {
 int sys_kill(void) {
 	int pid;
 
-	if (argint(0, &pid) < 0)
+	if (argint(0, &pid) < 0) {
 		return -1;
+	}
 	return kill(pid);
 }
 
@@ -58,11 +59,13 @@ int sys_sbrk(void) {
 	int addr;
 	int n;
 
-	if (argint(0, &n) < 0)
+	if (argint(0, &n) < 0) {
 		return -1;
+	}
 	addr = PROC_HEAP_BOTTOM + myproc()->heap_size;
-	if (growproc(n) < 0)
+	if (growproc(n) < 0) {
 		return -1;
+	}
 	return addr;
 }
 
@@ -70,8 +73,9 @@ int sys_sleep(void) {
 	int n;
 	unsigned int ticks0;
 
-	if (argint(0, &n) < 0)
+	if (argint(0, &n) < 0) {
 		return -1;
+	}
 	acquire(&tickslock);
 	ticks0 = ticks;
 	while (ticks - ticks0 < n) {
@@ -97,7 +101,7 @@ int sys_uptime(void) {
 }
 
 int sys_chdir(void) {
-	char* dir;
+	char *dir;
 	if (argstr(0, &dir) < 0) {
 		return -1;
 	}
@@ -108,7 +112,7 @@ int sys_chdir(void) {
 			return mode;
 		}
 		if (mode & 0040000) { // is a directory
-			struct proc* p = myproc();
+			struct proc *p = myproc();
 			p->cwd.parts = vfs_path_split(dir, p->cwd.pathbuf);
 		} else { // not a directory
 			return ERROR_NOT_DIRECTORY;
@@ -126,7 +130,7 @@ int sys_chdir(void) {
 			return mode;
 		}
 		if (mode & 0040000) { // is a directory
-			struct proc* p = myproc();
+			struct proc *p = myproc();
 			kfree(p->cwd.pathbuf);
 			p->cwd = newpath;
 		} else { // not a directory
@@ -138,7 +142,7 @@ int sys_chdir(void) {
 }
 
 int sys_getcwd(void) {
-	char* dir;
+	char *dir;
 	if (argstr(0, &dir) < 0) {
 		return -1;
 	}
@@ -147,20 +151,20 @@ int sys_getcwd(void) {
 }
 
 int sys_dynamic_load(void) {
-	char* name;
-	unsigned int* dynamic;
-	unsigned int* entry;
-	if (argstr(0, &name) < 0 || argptr(1, (char**)&dynamic, sizeof(unsigned int)) ||
-		argptr(2, (char**)&entry, sizeof(unsigned int))) {
+	char *name;
+	unsigned int *dynamic;
+	unsigned int *entry;
+	if (argstr(0, &name) < 0 || argptr(1, (char **)&dynamic, sizeof(unsigned int)) ||
+		argptr(2, (char **)&entry, sizeof(unsigned int))) {
 		return -1;
 	}
 	return proc_load_dynamic(myproc(), name, dynamic, entry);
 }
 
 int sys_kcall(void) {
-	char* name;
+	char *name;
 	unsigned int arg;
-	if (argstr(0, &name) < 0 || argint(1, (int*)&arg) < 0) {
+	if (argstr(0, &name) < 0 || argint(1, (int *)&arg) < 0) {
 		return -1;
 	}
 	return kcall(name, arg);
@@ -168,16 +172,16 @@ int sys_kcall(void) {
 
 int sys_message_send(void) {
 	int pid, size;
-	void* data;
-	if ((argint(0, &pid) < 0) || (argint(1, &size) < 0) || (argptr(2, (char**)&data, size) < 0)) {
+	void *data;
+	if ((argint(0, &pid) < 0) || (argint(1, &size) < 0) || (argptr(2, (char **)&data, size) < 0)) {
 		return -1;
 	}
-	struct proc* destproc = proc_search_pid(pid);
+	struct proc *destproc = proc_search_pid(pid);
 	if (!destproc) {
 		return -1;
 	}
 	acquire(&destproc->msgqueue.lock);
-	struct Message* destmsg = &destproc->msgqueue.queue[destproc->msgqueue.begin];
+	struct Message *destmsg = &destproc->msgqueue.queue[destproc->msgqueue.begin];
 	destmsg->pid = myproc()->pid;
 	destmsg->size = size;
 	destmsg->addr = pgalloc(PGROUNDUP(size) / 4096);
@@ -192,8 +196,8 @@ int sys_message_send(void) {
 }
 
 int sys_message_receive(void) {
-	void* data;
-	if (argptr(0, (char**)&data, 4 * 1024 * 1024) < 0) {
+	void *data;
+	if (argptr(0, (char **)&data, 4 * 1024 * 1024) < 0) {
 		return -1;
 	}
 	acquire(&myproc()->msgqueue.lock);
@@ -201,7 +205,7 @@ int sys_message_receive(void) {
 		release(&myproc()->msgqueue.lock);
 		return 0;
 	}
-	struct Message* thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
+	struct Message *thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
 	int ret = thismsg->pid;
 	memmove(data, thismsg->addr, thismsg->size);
 	pgfree(thismsg->addr, PGROUNDUP(thismsg->size) / 4096);
@@ -214,15 +218,15 @@ int sys_message_receive(void) {
 }
 
 int sys_message_wait(void) {
-	void* data;
-	if (argptr(0, (char**)&data, 4 * 1024 * 1024) < 0) {
+	void *data;
+	if (argptr(0, (char **)&data, 4 * 1024 * 1024) < 0) {
 		return -1;
 	}
 	acquire(&myproc()->msgqueue.lock);
 	while (myproc()->msgqueue.begin == myproc()->msgqueue.end) {
 		sleep(&myproc()->msgqueue, &myproc()->msgqueue.lock);
 	}
-	struct Message* thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
+	struct Message *thismsg = &myproc()->msgqueue.queue[myproc()->msgqueue.end];
 	int ret = thismsg->pid;
 	memmove(data, thismsg->addr, thismsg->size);
 	pgfree(thismsg->addr, PGROUNDUP(thismsg->size) / 4096);
@@ -239,7 +243,7 @@ int sys_getppid(void) {
 }
 
 int sys_proc_search(void) {
-	char* name;
+	char *name;
 	if (argstr(0, &name) < 0) {
 		return -1;
 	}
@@ -261,7 +265,7 @@ int sys_pty_create(void) {
 
 int sys_pty_read_output(void) {
 	int ptyid, n;
-	char* buf;
+	char *buf;
 	if ((argint(0, &ptyid) < 0) || (argint(2, &n) < 0) || (argptr(1, &buf, n) < 0)) {
 		return -1;
 	}
@@ -270,7 +274,7 @@ int sys_pty_read_output(void) {
 
 int sys_pty_write_input(void) {
 	int ptyid, n;
-	char* buf;
+	char *buf;
 	if ((argint(0, &ptyid) < 0) || (argint(2, &n) < 0) || (argptr(1, &buf, n) < 0)) {
 		return -1;
 	}
@@ -302,11 +306,11 @@ enum ProcStatus {
 
 int sys_proc_status(void) {
 	int pid;
-	int* exit_status;
-	if (argint(0, &pid) < 0 || argptr(1, (char**)&exit_status, sizeof(int))) {
+	int *exit_status;
+	if (argint(0, &pid) < 0 || argptr(1, (char **)&exit_status, sizeof(int))) {
 		return -1;
 	}
-	struct proc* p = proc_search_pid(pid);
+	struct proc *p = proc_search_pid(pid);
 	if (!p) {
 		return PROC_NOT_EXIST;
 	}
@@ -325,7 +329,7 @@ int sys_proc_status(void) {
 }
 
 int sys_module_load(void) {
-	char* name;
+	char *name;
 	if (argstr(0, &name) < 0) {
 		return -1;
 	}

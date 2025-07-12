@@ -25,8 +25,7 @@
 #include <iosfwd>
 
 namespace std {
-	template <class CharT, class Traits>
-	class basic_streambuf {
+	template <class CharT, class Traits> class basic_streambuf {
 	public:
 		typedef CharT char_type;
 		typedef Traits traits_type;
@@ -34,7 +33,7 @@ namespace std {
 		typedef typename Traits::pos_type pos_type;
 		typedef typename Traits::off_type off_type;
 
-		basic_streambuf(FILE* c_stream) {
+		basic_streambuf(FILE *c_stream) {
 			fd = c_stream;
 		}
 
@@ -46,16 +45,16 @@ namespace std {
 			return Traits::to_int_type(ch);
 		}
 
-		std::streamsize sputn(const char_type* s, std::streamsize count) {
+		std::streamsize sputn(const char_type *s, std::streamsize count) {
 			return xsputn(s, count);
 		}
 
 	protected:
 		basic_streambuf() {}
-		basic_streambuf(const basic_streambuf& rhs) {}
+		basic_streambuf(const basic_streambuf &rhs) {}
 
 		// put area
-		virtual std::streamsize xsputn(const char_type* s, std::streamsize count) {
+		virtual std::streamsize xsputn(const char_type *s, std::streamsize count) {
 			for (int i = 0; i < count; i++) {
 				sputc(s[i]);
 			}
@@ -63,7 +62,7 @@ namespace std {
 		}
 
 	private:
-		FILE* fd = nullptr;
+		FILE *fd = nullptr;
 	};
 
 	using streambuf = basic_streambuf<char>;

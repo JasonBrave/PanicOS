@@ -40,7 +40,7 @@ static inline uint32_t indw(ioport_t port) {
 	return data;
 }
 
-static inline void insw(ioport_t port, void* addr, int cnt) {
+static inline void insw(ioport_t port, void *addr, int cnt) {
 	__asm__ volatile("cld; rep insw"
 					 : "=D"(addr), "=c"(cnt)
 					 : "d"(port), "0"(addr), "1"(cnt)
@@ -59,21 +59,21 @@ static inline void outdw(ioport_t port, uint32_t data) {
 	__asm__ volatile("out %0,%1" : : "a"(data), "d"(port));
 }
 
-static inline void outsw(ioport_t port, const void* addr, int cnt) {
+static inline void outsw(ioport_t port, const void *addr, int cnt) {
 	__asm__ volatile("cld; rep outsw"
 					 : "=S"(addr), "=c"(cnt)
 					 : "d"(port), "0"(addr), "1"(cnt)
 					 : "cc");
 }
 
-static inline void stosb(void* addr, int data, int cnt) {
+static inline void stosb(void *addr, int data, int cnt) {
 	__asm__ volatile("cld; rep stosb"
 					 : "=D"(addr), "=c"(cnt)
 					 : "0"(addr), "1"(cnt), "a"(data)
 					 : "memory", "cc");
 }
 
-static inline void stosl(void* addr, int data, int cnt) {
+static inline void stosl(void *addr, int data, int cnt) {
 	__asm__ volatile("cld; rep stosl"
 					 : "=D"(addr), "=c"(cnt)
 					 : "0"(addr), "1"(cnt), "a"(data)
@@ -82,7 +82,7 @@ static inline void stosl(void* addr, int data, int cnt) {
 
 struct segdesc;
 
-static inline void lgdt(struct segdesc* p, int size) {
+static inline void lgdt(struct segdesc *p, int size) {
 	volatile unsigned short pd[3];
 
 	pd[0] = size - 1;
@@ -94,7 +94,7 @@ static inline void lgdt(struct segdesc* p, int size) {
 
 struct gatedesc;
 
-static inline void lidt(struct gatedesc* p, int size) {
+static inline void lidt(struct gatedesc *p, int size) {
 	volatile unsigned short pd[3];
 
 	pd[0] = size - 1;
@@ -126,14 +126,11 @@ static inline void sti(void) {
 	__asm__ volatile("sti");
 }
 
-static inline unsigned int xchg(volatile unsigned int* addr, unsigned int newval) {
+static inline unsigned int xchg(volatile unsigned int *addr, unsigned int newval) {
 	unsigned int result;
 
 	// The + in "+m" denotes a read-modify-write operand.
-	__asm__ volatile("lock; xchgl %0, %1"
-					 : "+m"(*addr), "=a"(result)
-					 : "1"(newval)
-					 : "cc");
+	__asm__ volatile("lock; xchgl %0, %1" : "+m"(*addr), "=a"(result) : "1"(newval) : "cc");
 	return result;
 }
 

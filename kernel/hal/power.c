@@ -34,20 +34,20 @@
 
 static int power_kcall_handler(unsigned int op) {
 	switch (op) {
-	case POWER_KCALL_OP_SHUTDOWN:
-		hal_shutdown();
-		break;
-	case POWER_KCALL_OP_REBOOT:
-		hal_reboot();
-		break;
-	case POWER_KCALL_OP_SUSPEND:
-		return ERROR_INVAILD;
-		break;
-	case POWER_KCALL_OP_HIBERNATE:
-		return ERROR_INVAILD;
-		break;
-	default:
-		return ERROR_INVAILD;
+		case POWER_KCALL_OP_SHUTDOWN:
+			hal_shutdown();
+			break;
+		case POWER_KCALL_OP_REBOOT:
+			hal_reboot();
+			break;
+		case POWER_KCALL_OP_SUSPEND:
+			return ERROR_INVAILD;
+			break;
+		case POWER_KCALL_OP_HIBERNATE:
+			return ERROR_INVAILD;
+			break;
+		default:
+			return ERROR_INVAILD;
 	}
 	return ERROR_INVAILD;
 }

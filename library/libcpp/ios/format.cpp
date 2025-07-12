@@ -46,19 +46,19 @@ namespace std {
 		format_flag &= ~flags;
 	}
 
-	ios_base& dec(std::ios_base& str) {
+	ios_base &dec(std::ios_base &str) {
 		str.unsetf(std::ios_base::basefield);
 		str.setf(std::ios_base::dec);
 		return str;
 	}
 
-	ios_base& hex(std::ios_base& str) {
+	ios_base &hex(std::ios_base &str) {
 		str.unsetf(std::ios_base::basefield);
 		str.setf(std::ios_base::hex);
 		return str;
 	}
 
-	ios_base& oct(std::ios_base& str) {
+	ios_base &oct(std::ios_base &str) {
 		str.unsetf(std::ios_base::basefield);
 		str.setf(std::ios_base::oct);
 		return str;

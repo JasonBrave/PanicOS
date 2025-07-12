@@ -25,7 +25,7 @@
 #define S_IFMT 0170000
 #define S_IFDIR 0040000
 
-char* dir_type_str(const char* name) {
+char *dir_type_str(const char *name) {
 	int mode = file_get_mode(name);
 	if ((mode & S_IFMT) == S_IFDIR) {
 		return "<DIR>";
@@ -34,8 +34,8 @@ char* dir_type_str(const char* name) {
 	}
 }
 
-int main(int argc, char* argv[]) {
-	char* dir_target;
+int main(int argc, char *argv[]) {
+	char *dir_target;
 	char cwd[64];
 	getcwd(cwd);
 	if (argc == 1) {

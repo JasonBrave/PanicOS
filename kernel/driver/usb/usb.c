@@ -61,13 +61,27 @@ void usb_register_device(struct USBBus *bus, unsigned int port) {
 	}
 
 	if (usbdev->class) {
-		cprintf("[usb] port %d addr %d %x:%x class %d subclass %d protocol %d "
-				"numcfg %d\n",
-				port, addr, usbdev->vendor_id, usbdev->product_id, usbdev->class, usbdev->subclass,
-				usbdev->protocol, usbdev->num_configuration);
+		cprintf(
+			"[usb] port %d addr %d %x:%x class %d subclass %d protocol %d "
+			"numcfg %d\n",
+			port,
+			addr,
+			usbdev->vendor_id,
+			usbdev->product_id,
+			usbdev->class,
+			usbdev->subclass,
+			usbdev->protocol,
+			usbdev->num_configuration
+		);
 	} else {
-		cprintf("[usb] port %d addr %d %x:%x numcfg %d\n", port, addr, usbdev->vendor_id,
-				usbdev->product_id, usbdev->num_configuration);
+		cprintf(
+			"[usb] port %d addr %d %x:%x numcfg %d\n",
+			port,
+			addr,
+			usbdev->vendor_id,
+			usbdev->product_id,
+			usbdev->num_configuration
+		);
 	}
 
 	uint8_t configuration_value;
@@ -75,16 +89,24 @@ void usb_register_device(struct USBBus *bus, unsigned int port) {
 		cprintf("[usb] GetConfigurationDescriptor on port %d failed\n", port);
 	}
 	for (unsigned int i = 0; i < usbdev->num_interface; i++) {
-		cprintf("[usb] config %d interface %d class %x subclass %x protocol %x "
-				"endpoints %d\n",
-				configuration_value, i, usbdev->interfaces[i].class, usbdev->interfaces[i].subclass,
-				usbdev->interfaces[i].protocol, usbdev->interfaces[i].num_endpoints);
+		cprintf(
+			"[usb] config %d interface %d class %x subclass %x protocol %x "
+			"endpoints %d\n",
+			configuration_value,
+			i,
+			usbdev->interfaces[i].class,
+			usbdev->interfaces[i].subclass,
+			usbdev->interfaces[i].protocol,
+			usbdev->interfaces[i].num_endpoints
+		);
 	}
 	usb_set_configuration(usbdev, configuration_value);
 }
 
-void usb_register_host_controller(void *private, const char *name, unsigned int num_ports,
-								  const struct USBHostControllerDriver *hcdriver) {
+void usb_register_host_controller(
+	void *private, const char *name, unsigned int num_ports,
+	const struct USBHostControllerDriver *hcdriver
+) {
 	struct USBBus *bus = usb_alloc_bus();
 	bus->controller.name = name;
 	bus->controller.driver = hcdriver;
@@ -112,13 +134,13 @@ void usb_register_driver(const struct USBDriver *driver) {
 				continue;
 			}
 			for (unsigned int j = 0; j < usb_bus[bus].devices[i]->num_interface; j++) {
-				if (!usb_bus[bus].devices[i]->interfaces[j].driver
-					&& usb_bus[bus].devices[i]->interfaces[j].class
-						   == (driver->class_type >> 16 & 0xff)
-					&& usb_bus[bus].devices[i]->interfaces[j].subclass
-						   == (driver->class_type >> 8 & 0xff)
-					&& usb_bus[bus].devices[i]->interfaces[j].protocol
-						   == (driver->class_type & 0xff)) {
+				if (!usb_bus[bus].devices[i]->interfaces[j].driver &&
+					usb_bus[bus].devices[i]->interfaces[j].class ==
+						(driver->class_type >> 16 & 0xff) &&
+					usb_bus[bus].devices[i]->interfaces[j].subclass ==
+						(driver->class_type >> 8 & 0xff) &&
+					usb_bus[bus].devices[i]->interfaces[j].protocol ==
+						(driver->class_type & 0xff)) {
 					usb_bus[bus].devices[i]->interfaces[j].driver = driver;
 					driver->init(&usb_bus[bus].devices[i]->interfaces[j]);
 				}
@@ -144,29 +166,42 @@ void usb_print_devices(void) {
 		cprintf("USB devices on bus #%d:\n", bus);
 		for (int i = 0; i <= 127; i++) {
 			if (usb_bus[bus].devices[i] && usb_bus[bus].devices[i]->class) {
-				cprintf("|- Addr %d %x:%x class %d subclass %d protocol %d\n", i,
-						usb_bus[bus].devices[i]->vendor_id, usb_bus[bus].devices[i]->product_id,
-						usb_bus[bus].devices[i]->class, usb_bus[bus].devices[i]->subclass,
-						usb_bus[bus].devices[i]->protocol);
+				cprintf(
+					"|- Addr %d %x:%x class %d subclass %d protocol %d\n",
+					i,
+					usb_bus[bus].devices[i]->vendor_id,
+					usb_bus[bus].devices[i]->product_id,
+					usb_bus[bus].devices[i]->class,
+					usb_bus[bus].devices[i]->subclass,
+					usb_bus[bus].devices[i]->protocol
+				);
 			} else if (usb_bus[bus].devices[i]) {
-				cprintf("|- Addr %d %x:%x\n", i, usb_bus[bus].devices[i]->vendor_id,
-						usb_bus[bus].devices[i]->product_id);
+				cprintf(
+					"|- Addr %d %x:%x\n",
+					i,
+					usb_bus[bus].devices[i]->vendor_id,
+					usb_bus[bus].devices[i]->product_id
+				);
 			}
 			if (usb_bus[bus].devices[i]) {
 				for (unsigned int j = 0; j < usb_bus[bus].devices[i]->num_interface; j++) {
 					if (usb_bus[bus].devices[i]->interfaces[j].driver) {
-						cprintf("|  |- Interface class %d subclass %d protocol %d "
-								"driver %s\n",
-								usb_bus[bus].devices[i]->interfaces[j].class,
-								usb_bus[bus].devices[i]->interfaces[j].subclass,
-								usb_bus[bus].devices[i]->interfaces[j].protocol,
-								usb_bus[bus].devices[i]->interfaces[j].driver->name);
+						cprintf(
+							"|  |- Interface class %d subclass %d protocol %d "
+							"driver %s\n",
+							usb_bus[bus].devices[i]->interfaces[j].class,
+							usb_bus[bus].devices[i]->interfaces[j].subclass,
+							usb_bus[bus].devices[i]->interfaces[j].protocol,
+							usb_bus[bus].devices[i]->interfaces[j].driver->name
+						);
 					} else {
-						cprintf("|  |- Interface class %d subclass %d protocol %d "
-								"driver <none>\n",
-								usb_bus[bus].devices[i]->interfaces[j].class,
-								usb_bus[bus].devices[i]->interfaces[j].subclass,
-								usb_bus[bus].devices[i]->interfaces[j].protocol);
+						cprintf(
+							"|  |- Interface class %d subclass %d protocol %d "
+							"driver <none>\n",
+							usb_bus[bus].devices[i]->interfaces[j].class,
+							usb_bus[bus].devices[i]->interfaces[j].subclass,
+							usb_bus[bus].devices[i]->interfaces[j].protocol
+						);
 					}
 				}
 			}

@@ -51,7 +51,7 @@ struct BMPPixel24 {
 	std::uint8_t b, g, r;
 } __attribute__((packed));
 
-GUI::BMPLoader::BMPLoader(const char* filename) {
+GUI::BMPLoader::BMPLoader(const char *filename) {
 	bmpfile = std::fopen(filename, "rb");
 	if (!bmpfile) {
 		return;
@@ -72,9 +72,9 @@ GUI::BMPLoader::~BMPLoader() {
 	std::fclose(bmpfile);
 }
 
-void GUI::BMPLoader::pix24_to_colour(void* dest, const void* src, int num) {
-	COLOUR* d = reinterpret_cast<COLOUR*>(dest);
-	const BMPPixel24* s = reinterpret_cast<const BMPPixel24*>(src);
+void GUI::BMPLoader::pix24_to_colour(void *dest, const void *src, int num) {
+	COLOUR *d = reinterpret_cast<COLOUR *>(dest);
+	const BMPPixel24 *s = reinterpret_cast<const BMPPixel24 *>(src);
 	for (int i = 0; i < num; i++) {
 		d[i].r = s[i].r;
 		d[i].g = s[i].g;
@@ -82,18 +82,18 @@ void GUI::BMPLoader::pix24_to_colour(void* dest, const void* src, int num) {
 	}
 }
 
-void GUI::BMPLoader::load(void* dest) {
-	void* buf = ::operator new(height* ROUNDUP4(width * (bpp / 8)));
+void GUI::BMPLoader::load(void *dest) {
+	void *buf = ::operator new(height * ROUNDUP4(width * (bpp / 8)));
 	fseek(bmpfile, img_offset, SEEK_SET);
 	fread(buf, height * ROUNDUP4(width * (bpp / 8)), 1, bmpfile);
 
 	if (bpp == 24) {
 		for (int i = 0; i < height; i++) {
-			pix24_to_colour(reinterpret_cast<std::uint8_t*>(dest) +
-								i * width * sizeof(COLOUR),
-							reinterpret_cast<std::uint8_t*>(buf) +
-								(height - i - 1) * ROUNDUP4(width * 3),
-							width);
+			pix24_to_colour(
+				reinterpret_cast<std::uint8_t *>(dest) + i * width * sizeof(COLOUR),
+				reinterpret_cast<std::uint8_t *>(buf) + (height - i - 1) * ROUNDUP4(width * 3),
+				width
+			);
 		}
 	}
 	::operator delete(buf);

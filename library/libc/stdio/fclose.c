@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int fclose(FILE* stream) {
+int fclose(FILE *stream) {
 	if (close(stream->fd) < 0) {
 		return EOF;
 	}

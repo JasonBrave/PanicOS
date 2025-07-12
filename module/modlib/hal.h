@@ -23,24 +23,25 @@
 #include <kernsrv.h>
 
 struct BlockDeviceDriver {
-	int (*block_read)(void* private, unsigned int begin, int count, void* buf);
-	int (*block_write)(void* private, unsigned int begin, int count, const void* buf);
+	int (*block_read)(void *private, unsigned int begin, int count, void *buf);
+	int (*block_write)(void *private, unsigned int begin, int count, const void *buf);
 };
 
 struct FramebufferDriver {
-	phyaddr_t (*enable)(void* private, int xres, int yres);
-	void (*disable)(void* private);
-	void (*update)(void* private);
-	unsigned int (*read_edid)(void* private, void* buffer, unsigned int bytes);
+	phyaddr_t (*enable)(void *private, int xres, int yres);
+	void (*disable)(void *private);
+	void (*update)(void *private);
+	unsigned int (*read_edid)(void *private, void *buffer, unsigned int bytes);
 };
 
-static inline void hal_block_register_device(const char* name, void* private,
-											 const struct BlockDeviceDriver* driver) {
+static inline void
+hal_block_register_device(const char *name, void *private, const struct BlockDeviceDriver *driver) {
 	return kernsrv->hal_block_register_device(name, private, driver);
 }
 
-static inline void hal_display_register_device(const char* name, void* private,
-											   const struct FramebufferDriver* driver) {
+static inline void hal_display_register_device(
+	const char *name, void *private, const struct FramebufferDriver *driver
+) {
 	return kernsrv->hal_display_register_device(name, private, driver);
 }
 

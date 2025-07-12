@@ -20,6 +20,6 @@
 #include <panicos.h>
 #include <stdlib.h>
 
-void* malloc(size_t size) {
+void *malloc(size_t size) {
 	return sbrk(size);
 }

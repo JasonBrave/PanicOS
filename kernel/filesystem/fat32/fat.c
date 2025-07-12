@@ -24,8 +24,8 @@
 #include "fat32-struct.h"
 #include "fat32.h"
 
-unsigned int fat32_fat_read(struct FAT32Private* priv, unsigned int current) {
-	uint32_t* buf = kalloc();
+unsigned int fat32_fat_read(struct FAT32Private *priv, unsigned int current) {
+	uint32_t *buf = kalloc();
 	unsigned int sect = priv->boot_sector->reserved_sector + current / 128;
 	hal_partition_read(priv->partition_id, sect, 1, buf);
 	unsigned int val = buf[current % 128];
@@ -33,8 +33,8 @@ unsigned int fat32_fat_read(struct FAT32Private* priv, unsigned int current) {
 	return val;
 }
 
-unsigned int fat32_offset_cluster(struct FAT32Private* priv, unsigned int cluster,
-								  unsigned int offset) {
+unsigned int
+fat32_offset_cluster(struct FAT32Private *priv, unsigned int cluster, unsigned int offset) {
 	int n = offset / 512 / priv->boot_sector->sector_per_cluster;
 	while (n--) {
 		cluster = fat32_fat_read(priv, cluster);
@@ -45,8 +45,8 @@ unsigned int fat32_offset_cluster(struct FAT32Private* priv, unsigned int cluste
 	return cluster;
 }
 
-int fat32_write_fat(struct FAT32Private* priv, unsigned int cluster, unsigned int data) {
-	uint32_t* buf = kalloc();
+int fat32_write_fat(struct FAT32Private *priv, unsigned int cluster, unsigned int data) {
+	uint32_t *buf = kalloc();
 	int sect = priv->boot_sector->reserved_sector + cluster / 128;
 	if (hal_partition_read(priv->partition_id, sect, 1, buf) < 0) {
 		kfree(buf);
@@ -67,8 +67,9 @@ int fat32_write_fat(struct FAT32Private* priv, unsigned int cluster, unsigned in
 	return 0;
 }
 
-int fat32_append_cluster(struct FAT32Private* priv, unsigned int begin_cluster,
-						 unsigned int end_cluster) {
+int fat32_append_cluster(
+	struct FAT32Private *priv, unsigned int begin_cluster, unsigned int end_cluster
+) {
 	unsigned int clus = begin_cluster;
 	while (fat32_fat_read(priv, clus) < 0x0ffffff8) {
 		clus = fat32_fat_read(priv, clus);
@@ -76,7 +77,7 @@ int fat32_append_cluster(struct FAT32Private* priv, unsigned int begin_cluster,
 	return fat32_write_fat(priv, clus, end_cluster);
 }
 
-int fat32_free_chain(struct FAT32Private* priv, unsigned int cluster) {
+int fat32_free_chain(struct FAT32Private *priv, unsigned int cluster) {
 	do {
 		// read it out and clear FAT entry
 		unsigned int clus = fat32_fat_read(priv, cluster);

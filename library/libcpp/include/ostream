@@ -34,36 +34,36 @@ namespace std {
 		typedef typename Traits::pos_type pos_type;
 		typedef typename Traits::off_type off_type;
 
-		explicit basic_ostream(std::basic_streambuf<CharT, Traits>* sb)
+		explicit basic_ostream(std::basic_streambuf<CharT, Traits> *sb)
 			: std::basic_ios<CharT, Traits>(sb) {}
 		virtual ~basic_ostream() {}
 
 		// formatted output
-		basic_ostream& operator<<(short value) {
+		basic_ostream &operator<<(short value) {
 			return operator<<(static_cast<long long>(value));
 		}
 
-		basic_ostream& operator<<(unsigned short value) {
+		basic_ostream &operator<<(unsigned short value) {
 			return operator<<(static_cast<unsigned long long>(value));
 		}
 
-		basic_ostream& operator<<(int value) {
+		basic_ostream &operator<<(int value) {
 			return operator<<(static_cast<long long>(value));
 		}
 
-		basic_ostream& operator<<(unsigned int value) {
+		basic_ostream &operator<<(unsigned int value) {
 			return operator<<(static_cast<unsigned long long>(value));
 		}
 
-		basic_ostream& operator<<(long value) {
+		basic_ostream &operator<<(long value) {
 			return operator<<(static_cast<long long>(value));
 		}
 
-		basic_ostream& operator<<(unsigned long value) {
+		basic_ostream &operator<<(unsigned long value) {
 			return operator<<(static_cast<unsigned long long>(value));
 		}
 
-		basic_ostream& operator<<(long long value) {
+		basic_ostream &operator<<(long long value) {
 			if (value == 0) {
 				put('0');
 				return *this;
@@ -100,7 +100,7 @@ namespace std {
 			return *this;
 		}
 
-		basic_ostream& operator<<(unsigned long long value) {
+		basic_ostream &operator<<(unsigned long long value) {
 			if (value == 0) {
 				put('0');
 				return *this;
@@ -130,7 +130,7 @@ namespace std {
 			return *this;
 		}
 
-		basic_ostream& operator<<(bool value) {
+		basic_ostream &operator<<(bool value) {
 			if (value) {
 				write("true", 4);
 			} else {
@@ -139,43 +139,44 @@ namespace std {
 			return *this;
 		}
 
-		basic_ostream& operator<<(const void* value) {
+		basic_ostream &operator<<(const void *value) {
 			return operator<<(reinterpret_cast<unsigned long>(value));
 		}
 
-		basic_ostream& operator<<(std::nullptr_t) {
+		basic_ostream &operator<<(std::nullptr_t) {
 			write("nullptr", 7);
 			return *this;
 		}
 
-		basic_ostream& operator<<(std::basic_streambuf<CharT, Traits>* sb) {
+		basic_ostream &operator<<(std::basic_streambuf<CharT, Traits> *sb) {
 			return *this;
 		}
 
-		basic_ostream& operator<<(std::ios_base& (*func)(std::ios_base& io)) {
+		basic_ostream &operator<<(std::ios_base &(*func)(std::ios_base &io)) {
 			func(*this);
 			return *this;
 		}
 
-		basic_ostream&
-		operator<<(std::basic_ios<CharT, Traits>& (*func)(std::basic_ios<CharT, Traits>& io)) {
+		basic_ostream &
+		operator<<(std::basic_ios<CharT, Traits> &(*func)(std::basic_ios<CharT, Traits> &io)) {
 			func(*this);
 			return *this;
 		}
 
-		basic_ostream& operator<<(
-			std::basic_ostream<CharT, Traits>& (*func)(std::basic_ostream<CharT, Traits>& io)) {
+		basic_ostream &
+		operator<<(std::basic_ostream<CharT, Traits> &(*func)(std::basic_ostream<CharT, Traits> &io)
+		) {
 			func(*this);
 			return *this;
 		}
 
 		// unformatted output
-		basic_ostream& put(char_type ch) {
+		basic_ostream &put(char_type ch) {
 			std::basic_ios<CharT, Traits>::strbuf->sputc(ch);
 			return *this;
 		}
 
-		basic_ostream& write(const char_type* s, std::streamsize count) {
+		basic_ostream &write(const char_type *s, std::streamsize count) {
 			std::basic_ios<CharT, Traits>::strbuf->sputn(s, count);
 			return *this;
 		}
@@ -185,117 +186,119 @@ namespace std {
 
 	// basic_ostream and character
 	template <class CharT, class Traits>
-	basic_ostream<CharT, Traits>& operator<<(basic_ostream<CharT, Traits>& os, CharT ch) {
+	basic_ostream<CharT, Traits> &operator<<(basic_ostream<CharT, Traits> &os, CharT ch) {
 		os.put(ch);
 		return os;
 	}
 
 	template <class CharT, class Traits>
-	basic_ostream<CharT, Traits>& operator<<(basic_ostream<CharT, Traits>& os, char ch) {
+	basic_ostream<CharT, Traits> &operator<<(basic_ostream<CharT, Traits> &os, char ch) {
 		os.put(ch);
 		return os;
 	}
 
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, char ch) {
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, char ch) {
 		os.put(ch);
 		return os;
 	}
 
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, signed char ch) {
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, signed char ch) {
 		os.put(ch);
 		return os;
 	}
 
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, unsigned char ch) {
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, unsigned char ch) {
 		os.put(ch);
 		return os;
 	}
 
 	// basic_ostream and character array
 	template <class CharT, class Traits>
-	basic_ostream<CharT, Traits>& operator<<(basic_ostream<CharT, Traits>& os, const CharT* s) {
+	basic_ostream<CharT, Traits> &operator<<(basic_ostream<CharT, Traits> &os, const CharT *s) {
 		os.write(s, Traits::length(s));
 		return os;
 	}
 
 	template <class CharT, class Traits>
-	basic_ostream<CharT, Traits>& operator<<(basic_ostream<CharT, Traits>& os, const char* s) {
+	basic_ostream<CharT, Traits> &operator<<(basic_ostream<CharT, Traits> &os, const char *s) {
 		os.write(s, Traits::length(s));
 		return os;
 	}
 
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, const char* s) {
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, const char *s) {
 		os.write(s, Traits::length(s));
 		return os;
 	}
 
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, const signed char* s) {
-		os.write(reinterpret_cast<const char*>(s),
-				 Traits::length(reinterpret_cast<const char*>(s)));
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, const signed char *s) {
+		os.write(
+			reinterpret_cast<const char *>(s), Traits::length(reinterpret_cast<const char *>(s))
+		);
 		return os;
 	}
 
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
-											const unsigned char* s) {
-		os.write(reinterpret_cast<const char*>(s),
-				 Traits::length(reinterpret_cast<const char*>(s)));
+	basic_ostream<char, Traits> &
+	operator<<(basic_ostream<char, Traits> &os, const unsigned char *s) {
+		os.write(
+			reinterpret_cast<const char *>(s), Traits::length(reinterpret_cast<const char *>(s))
+		);
 		return os;
 	}
 
 	// deleted overloads
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, wchar_t ch) = delete;
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, wchar_t ch) = delete;
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, char8_t ch) = delete;
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, char8_t ch) = delete;
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, char16_t ch) = delete;
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, char16_t ch) = delete;
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os, char32_t ch) = delete;
+	basic_ostream<char, Traits> &operator<<(basic_ostream<char, Traits> &os, char32_t ch) = delete;
 	template <class Traits>
-	basic_ostream<wchar_t, Traits>& operator<<(basic_ostream<wchar_t, Traits>& os,
-											   char8_t ch) = delete;
+	basic_ostream<wchar_t, Traits> &
+	operator<<(basic_ostream<wchar_t, Traits> &os, char8_t ch) = delete;
 	template <class Traits>
-	basic_ostream<wchar_t, Traits>& operator<<(basic_ostream<wchar_t, Traits>& os,
-											   char16_t ch) = delete;
+	basic_ostream<wchar_t, Traits> &
+	operator<<(basic_ostream<wchar_t, Traits> &os, char16_t ch) = delete;
 	template <class Traits>
-	basic_ostream<wchar_t, Traits>& operator<<(basic_ostream<wchar_t, Traits>& os,
-											   char32_t ch) = delete;
+	basic_ostream<wchar_t, Traits> &
+	operator<<(basic_ostream<wchar_t, Traits> &os, char32_t ch) = delete;
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
-											const wchar_t* ch) = delete;
+	basic_ostream<char, Traits> &
+	operator<<(basic_ostream<char, Traits> &os, const wchar_t *ch) = delete;
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
-											const char8_t* ch) = delete;
+	basic_ostream<char, Traits> &
+	operator<<(basic_ostream<char, Traits> &os, const char8_t *ch) = delete;
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
-											const char16_t* ch) = delete;
+	basic_ostream<char, Traits> &
+	operator<<(basic_ostream<char, Traits> &os, const char16_t *ch) = delete;
 	template <class Traits>
-	basic_ostream<char, Traits>& operator<<(basic_ostream<char, Traits>& os,
-											const char32_t* ch) = delete;
+	basic_ostream<char, Traits> &
+	operator<<(basic_ostream<char, Traits> &os, const char32_t *ch) = delete;
 	template <class Traits>
-	basic_ostream<wchar_t, Traits>& operator<<(basic_ostream<wchar_t, Traits>& os,
-											   const char8_t* ch) = delete;
+	basic_ostream<wchar_t, Traits> &
+	operator<<(basic_ostream<wchar_t, Traits> &os, const char8_t *ch) = delete;
 	template <class Traits>
-	basic_ostream<wchar_t, Traits>& operator<<(basic_ostream<wchar_t, Traits>& os,
-											   const char16_t* ch) = delete;
+	basic_ostream<wchar_t, Traits> &
+	operator<<(basic_ostream<wchar_t, Traits> &os, const char16_t *ch) = delete;
 	template <class Traits>
-	basic_ostream<wchar_t, Traits>& operator<<(basic_ostream<wchar_t, Traits>& os,
-											   const char32_t* ch) = delete;
+	basic_ostream<wchar_t, Traits> &
+	operator<<(basic_ostream<wchar_t, Traits> &os, const char32_t *ch) = delete;
 	// manipulators
 	template <class CharT, class Traits>
-	std::basic_ostream<CharT, Traits>& endl(std::basic_ostream<CharT, Traits>& os) {
+	std::basic_ostream<CharT, Traits> &endl(std::basic_ostream<CharT, Traits> &os) {
 		os.put('\n');
 		return os;
 	}
 
 	template <class CharT, class Traits>
-	std::basic_ostream<CharT, Traits>& ends(std::basic_ostream<CharT, Traits>& os) {
+	std::basic_ostream<CharT, Traits> &ends(std::basic_ostream<CharT, Traits> &os) {
 		os.put(CharT());
 		return os;
 	}

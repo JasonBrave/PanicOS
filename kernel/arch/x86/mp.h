@@ -24,7 +24,7 @@
 
 struct mp { // floating pointer
 	unsigned char signature[4]; // "_MP_"
-	void* physaddr; // phys addr of MP config table
+	void *physaddr; // phys addr of MP config table
 	unsigned char length; // 1
 	unsigned char specrev; // [14]
 	unsigned char checksum; // all bytes must add up to 0
@@ -39,10 +39,10 @@ struct mpconf { // configuration table header
 	unsigned char version; // [14]
 	unsigned char checksum; // all bytes must add up to 0
 	unsigned char product[20]; // product id
-	unsigned int* oemtable; // OEM table pointer
+	unsigned int *oemtable; // OEM table pointer
 	unsigned short oemlength; // OEM table length
 	unsigned short entry; // entry count
-	unsigned int* lapicaddr; // address of local APIC
+	unsigned int *lapicaddr; // address of local APIC
 	unsigned short xlength; // extended table length
 	unsigned char xchecksum; // extended table checksum
 	unsigned char reserved;

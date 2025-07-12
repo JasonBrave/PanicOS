@@ -17,7 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-int atoi(const char* nptr) {
+int atoi(const char *nptr) {
 	int n = 0, neg = 0;
 	while (*nptr) {
 		if ((*nptr >= '0') && (*nptr <= '9')) {

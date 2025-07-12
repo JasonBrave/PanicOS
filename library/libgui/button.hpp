@@ -34,12 +34,12 @@ namespace GUI {
 	public:
 		GUI::Event<> onclick;
 		Button() = default;
-		Button(const Button&) = delete;
-		Button(Button&&) = delete;
-		Button(const std::string& s);
-		Button(const char* s);
-		void set_test(const std::string& s);
-		void set_text(const char* s);
+		Button(const Button &) = delete;
+		Button(Button &&) = delete;
+		Button(const std::string &s);
+		Button(const char *s);
+		void set_test(const std::string &s);
+		void set_text(const char *s);
 	};
 
 } // namespace GUI

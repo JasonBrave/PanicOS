@@ -7,7 +7,7 @@ class ImgView : public GUI::Window {
 	GUI::ImageBox img;
 
 public:
-	ImgView(const std::string& filename) : GUI::Window(600, 400) {
+	ImgView(const std::string &filename) : GUI::Window(600, 400) {
 		set_title("Image viewer");
 
 		img.x = 0;

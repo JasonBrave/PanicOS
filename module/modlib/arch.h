@@ -27,11 +27,11 @@ struct MSIMessage {
 	uint32_t data;
 };
 
-static inline int msi_alloc_vector(struct MSIMessage* msg, void (*handler)(void*), void* private) {
+static inline int msi_alloc_vector(struct MSIMessage *msg, void (*handler)(void *), void *private) {
 	return kernsrv->msi_alloc_vector(msg, handler, private);
 }
 
-static inline void msi_free_vector(const struct MSIMessage* msg) {
+static inline void msi_free_vector(const struct MSIMessage *msg) {
 	return kernsrv->msi_free_vector(msg);
 }
 

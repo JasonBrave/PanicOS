@@ -58,7 +58,7 @@ int pty_close(int ptyid) {
 	return 0;
 }
 
-int pty_read(int ptyid, char* buf, int n) {
+int pty_read(int ptyid, char *buf, int n) {
 	acquire(&pty[ptyid].lock);
 	while (pty[ptyid].input_begin == pty[ptyid].input_end) {
 		sleep(&pty[ptyid].input_buffer, &pty[ptyid].lock);
@@ -78,7 +78,7 @@ int pty_read(int ptyid, char* buf, int n) {
 	return n;
 }
 
-int pty_write(int ptyid, const char* buf, int n) {
+int pty_write(int ptyid, const char *buf, int n) {
 	acquire(&pty[ptyid].lock);
 	for (int i = 0; i < n; i++) {
 		pty[ptyid].output_buffer[pty[ptyid].output_begin] = buf[i];
@@ -91,7 +91,7 @@ int pty_write(int ptyid, const char* buf, int n) {
 	return n;
 }
 
-int pty_read_output(int ptyid, char* buf, int n) {
+int pty_read_output(int ptyid, char *buf, int n) {
 	if (pty[ptyid].owner != myproc()) {
 		return ERROR_NO_PERM;
 	}
@@ -115,7 +115,7 @@ int pty_read_output(int ptyid, char* buf, int n) {
 	return n;
 }
 
-int pty_write_input(int ptyid, const char* buf, int n) {
+int pty_write_input(int ptyid, const char *buf, int n) {
 	if (pty[ptyid].owner != myproc()) {
 		return ERROR_NO_PERM;
 	}

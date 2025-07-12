@@ -24,7 +24,7 @@
 #include <driver/x86/rtc.h>
 #include <driver/x86/uart.h>
 
-extern int intel_pcie_mmcfg_init(const struct PciAddress* host_bridge_addr);
+extern int intel_pcie_mmcfg_init(const struct PciAddress *host_bridge_addr);
 extern void picinit(void);
 
 void platform_init(void) {

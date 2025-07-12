@@ -24,8 +24,7 @@
 
 namespace std {
 
-	template <class T>
-	constexpr void swap(T& a, T& b) noexcept {
+	template <class T> constexpr void swap(T &a, T &b) noexcept {
 		T t(std::move(b));
 		b = std::move(a);
 		a = std::move(t);

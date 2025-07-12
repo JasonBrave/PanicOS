@@ -31,10 +31,11 @@ int sys_dup(void) {
 
 int sys_read(void) {
 	int n, fd;
-	char* p;
+	char *p;
 
-	if (argint(0, &fd) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+	if (argint(0, &fd) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0) {
 		return -1;
+	}
 	if (fd < 3) {
 		if (myproc()->pty == 0) {
 			return consoleread(p, n);
@@ -47,10 +48,11 @@ int sys_read(void) {
 
 int sys_write(void) {
 	int n, fd;
-	char* p;
+	char *p;
 
-	if (argint(0, &fd) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+	if (argint(0, &fd) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0) {
 		return -1;
+	}
 	if (fd < 3) {
 		if (myproc()->pty == 0) {
 			return consolewrite(p, n);
@@ -76,7 +78,7 @@ int sys_link(void) {
 }
 
 int sys_unlink(void) {
-	char* name;
+	char *name;
 	if (argstr(0, &name) < 0) {
 		return -1;
 	}
@@ -84,11 +86,12 @@ int sys_unlink(void) {
 }
 
 int sys_open(void) {
-	char* path;
+	char *path;
 	int omode;
 
-	if (argstr(0, &path) < 0 || argint(1, &omode) < 0)
+	if (argstr(0, &path) < 0 || argint(1, &omode) < 0) {
 		return -1;
+	}
 
 	for (int i = 3; i < PROC_FILE_MAX; i++) {
 		if (myproc()->files[i].used == 0) {
@@ -103,7 +106,7 @@ int sys_open(void) {
 }
 
 int sys_mkdir(void) {
-	char* name;
+	char *name;
 	if (argstr(0, &name) < 0) {
 		return -1;
 	}
@@ -119,21 +122,24 @@ int sys_exec(void) {
 	int i;
 	unsigned int uargv, uarg;
 
-	if (argstr(0, &path) < 0 || argint(1, (int*)&uargv) < 0) {
+	if (argstr(0, &path) < 0 || argint(1, (int *)&uargv) < 0) {
 		return -1;
 	}
 	memset(argv, 0, sizeof(argv));
 	for (i = 0;; i++) {
-		if (i >= NELEM(argv))
+		if (i >= NELEM(argv)) {
 			return -1;
-		if (fetchint(uargv + 4 * i, (int*)&uarg) < 0)
+		}
+		if (fetchint(uargv + 4 * i, (int *)&uarg) < 0) {
 			return -1;
+		}
 		if (uarg == 0) {
 			argv[i] = 0;
 			break;
 		}
-		if (fetchstr(uarg, &argv[i]) < 0)
+		if (fetchstr(uarg, &argv[i]) < 0) {
 			return -1;
+		}
 	}
 	return exec(path, argv);
 }
@@ -143,7 +149,7 @@ int sys_pipe(void) {
 }
 
 int sys_dir_open(void) {
-	char* dirname;
+	char *dirname;
 	if (argstr(0, &dirname) < 0) {
 		return -1;
 	}
@@ -160,7 +166,7 @@ int sys_dir_open(void) {
 
 int sys_dir_read(void) {
 	int handle;
-	char* buffer;
+	char *buffer;
 	if ((argint(0, &handle) < 0) || (argptr(1, &buffer, 256) < 0)) {
 		return -1;
 	}
@@ -176,7 +182,7 @@ int sys_dir_close(void) {
 }
 
 int sys_file_get_size(void) {
-	char* filename;
+	char *filename;
 	if (argstr(0, &filename) < 0) {
 		return -1;
 	}
@@ -192,7 +198,7 @@ int sys_lseek(void) {
 }
 
 int sys_file_get_mode(void) {
-	char* filename;
+	char *filename;
 	if (argstr(0, &filename) < 0) {
 		return -1;
 	}

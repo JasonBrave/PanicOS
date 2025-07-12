@@ -28,31 +28,31 @@ struct VirtioQueue;
 
 struct VirtioDevice {
 	unsigned int device_id;
-	const struct VirtioDriver* driver;
-	void* private;
+	const struct VirtioDriver *driver;
+	void *private;
 	struct spinlock lock;
 	union {
-		struct PCIDevice* pcidev;
+		struct PCIDevice *pcidev;
 	};
 	struct {
 		unsigned int transport_is_pci : 1;
 		unsigned int is_legacy : 1;
 	};
-	struct VirtioQueue* virtqueue[VIRTIO_MAX_NUM_VIRTQUEUE];
+	struct VirtioQueue *virtqueue[VIRTIO_MAX_NUM_VIRTQUEUE];
 	// registers
-	volatile struct VirtioPciCommonConfig* cmcfg;
-	volatile unsigned int* isr;
-	volatile void* devcfg;
-	volatile unsigned int* notify_begin;
+	volatile struct VirtioPciCommonConfig *cmcfg;
+	volatile unsigned int *isr;
+	volatile void *devcfg;
+	volatile unsigned int *notify_begin;
 	unsigned int notify_off_multiplier;
 };
 
 struct VirtioDriver {
-	const char* name;
+	const char *name;
 	unsigned int legacy_device_id, device_id;
 	unsigned int features;
-	void (*init)(struct VirtioDevice*, unsigned int features);
-	void (*uninit)(struct VirtioDevice*);
+	void (*init)(struct VirtioDevice *, unsigned int features);
+	void (*uninit)(struct VirtioDevice *);
 };
 
 #define VIRTIO_QUEUE_SIZE_MAX 256
@@ -97,42 +97,42 @@ struct VirtqUsed {
 };
 
 struct VirtioQueue {
-	struct VirtioDevice* virtio_dev;
-	void (*intr_handler)(struct VirtioQueue*);
+	struct VirtioDevice *virtio_dev;
+	void (*intr_handler)(struct VirtioQueue *);
 	int size;
-	volatile struct VirtqDesc* desc;
-	volatile struct VirtqAvail* avail;
-	volatile struct VirtqUsed* used;
-	volatile unsigned int* notify;
+	volatile struct VirtqDesc *desc;
+	volatile struct VirtqAvail *avail;
+	volatile struct VirtqUsed *used;
+	volatile unsigned int *notify;
 };
 
-static inline void virtio_register_driver(const struct VirtioDriver* driver) {
+static inline void virtio_register_driver(const struct VirtioDriver *driver) {
 	return kernsrv->virtio_register_driver(driver);
 }
 
-static inline void virtio_init_queue(struct VirtioDevice* dev, struct VirtioQueue* queue,
-									 unsigned int queue_n,
-									 void (*intr_handler)(struct VirtioQueue*)) {
+static inline void virtio_init_queue(
+	struct VirtioDevice *dev, struct VirtioQueue *queue, unsigned int queue_n,
+	void (*intr_handler)(struct VirtioQueue *)
+) {
 	return kernsrv->virtio_init_queue(dev, queue, queue_n, intr_handler);
 }
 
-static inline void virtio_queue_notify(struct VirtioDevice* dev, struct VirtioQueue* queue) {
+static inline void virtio_queue_notify(struct VirtioDevice *dev, struct VirtioQueue *queue) {
 	*queue->notify = 0;
 }
 
-static inline void virtio_queue_notify_wait(struct VirtioDevice* dev, struct VirtioQueue* queue) {
+static inline void virtio_queue_notify_wait(struct VirtioDevice *dev, struct VirtioQueue *queue) {
 	int prev = queue->used->idx;
 	*queue->notify = 0;
-	while (prev == queue->used->idx) {
-	}
+	while (prev == queue->used->idx) {}
 }
 
-static inline void virtio_queue_avail_insert(struct VirtioQueue* queue, int desc) {
+static inline void virtio_queue_avail_insert(struct VirtioQueue *queue, int desc) {
 	queue->avail->ring[queue->avail->idx % queue->size] = desc;
 	queue->avail->idx++;
 }
 
-static inline int* virtio_alloc_desc(struct VirtioQueue* queue, int* desc, int num) {
+static inline int *virtio_alloc_desc(struct VirtioQueue *queue, int *desc, int num) {
 	for (int i = 0; i < num; i++) {
 		desc[i] = -1;
 		for (int j = 0; j < queue->size; j++) {
@@ -149,7 +149,7 @@ static inline int* virtio_alloc_desc(struct VirtioQueue* queue, int* desc, int n
 	return desc;
 }
 
-static inline void virtio_free_desc(struct VirtioQueue* queue, int desc) {
+static inline void virtio_free_desc(struct VirtioQueue *queue, int desc) {
 	do {
 		queue->desc[desc].addr = 0;
 		if (queue->desc[desc].flags & VIRTQ_DESC_F_NEXT) {

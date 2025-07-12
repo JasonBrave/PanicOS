@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-FILE* fopen(const char* restrict filename, const char* restrict mode) {
+FILE *fopen(const char *restrict filename, const char *restrict mode) {
 	int omode;
 	if (mode[0] == 'w') {
 		if (mode[1] == 'x') { // wx
@@ -82,7 +82,7 @@ FILE* fopen(const char* restrict filename, const char* restrict mode) {
 		return NULL;
 	}
 
-	FILE* file;
+	FILE *file;
 	if ((file = malloc(sizeof(FILE))) == NULL) {
 		return NULL;
 	}

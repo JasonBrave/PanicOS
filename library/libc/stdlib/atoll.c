@@ -17,7 +17,7 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-long long int atoll(const char* nptr) {
+long long int atoll(const char *nptr) {
 	long long int n = 0, neg = 0;
 	while (*nptr) {
 		if ((*nptr >= '0') && (*nptr <= '9')) {

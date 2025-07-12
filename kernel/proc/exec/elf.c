@@ -23,15 +23,17 @@
 
 #include "elf.h"
 
-int proc_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, unsigned int* entry,
-				  unsigned int* dynamic, unsigned int* interp) {
+int proc_elf_load(
+	pdpte_t *pgdir, unsigned int base, const char *name, unsigned int *entry, unsigned int *dynamic,
+	unsigned int *interp
+) {
 	struct FileDesc fd;
 	if (vfs_fd_open(&fd, name, O_READ) < 0) {
 		return -1;
 	}
 
 	struct elfhdr elf;
-	if (vfs_fd_read(&fd, (char*)&elf, sizeof(elf)) != sizeof(elf)) {
+	if (vfs_fd_read(&fd, (char *)&elf, sizeof(elf)) != sizeof(elf)) {
 		vfs_fd_close(&fd);
 		return -1;
 	}
@@ -49,7 +51,7 @@ int proc_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, unsigned 
 			vfs_fd_close(&fd);
 			return -1;
 		}
-		if (vfs_fd_read(&fd, (char*)&ph, sizeof(ph)) != sizeof(ph)) {
+		if (vfs_fd_read(&fd, (char *)&ph, sizeof(ph)) != sizeof(ph)) {
 			vfs_fd_close(&fd);
 			return -1;
 		}
@@ -62,16 +64,25 @@ int proc_elf_load(pdpte_t* pgdir, unsigned int base, const char* name, unsigned 
 		} else if (ph.type != ELF_PROG_LOAD) {
 			continue;
 		}
-		if (allocuvm(pgdir, base + ph.vaddr - ph.vaddr % PGSIZE, base + ph.vaddr + ph.memsz,
-					 (ph.flags & ELF_PROG_FLAG_WRITE) ? (PTE_W | PTE_U) : PTE_U) == 0) {
+		if (allocuvm(
+				pgdir,
+				base + ph.vaddr - ph.vaddr % PGSIZE,
+				base + ph.vaddr + ph.memsz,
+				(ph.flags & ELF_PROG_FLAG_WRITE) ? (PTE_W | PTE_U) : PTE_U
+			) == 0) {
 			vfs_fd_close(&fd);
 			return -1;
 		}
 		if (ph.vaddr + ph.memsz > sz) {
 			sz = ph.vaddr + ph.memsz;
 		}
-		if (loaduvm(pgdir, (char*)base + ph.vaddr - ph.vaddr % PGSIZE, &fd,
-					ph.off - ph.vaddr % PGSIZE, ph.vaddr % PGSIZE + ph.filesz) < 0) {
+		if (loaduvm(
+				pgdir,
+				(char *)base + ph.vaddr - ph.vaddr % PGSIZE,
+				&fd,
+				ph.off - ph.vaddr % PGSIZE,
+				ph.vaddr % PGSIZE + ph.filesz
+			) < 0) {
 			vfs_fd_close(&fd);
 			return -1;
 		}

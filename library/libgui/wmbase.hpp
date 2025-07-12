@@ -27,8 +27,8 @@ namespace GUI {
 
 	public:
 		WmBase();
-		WmBase(const WmBase&) = delete;
-		WmBase(WmBase&&) = delete;
+		WmBase(const WmBase &) = delete;
+		WmBase(WmBase &&) = delete;
 	};
 
 } // namespace GUI

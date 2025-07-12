@@ -42,7 +42,7 @@ struct UARTDevice {
 #define UART_REG_DIVISOR_LO 0
 #define UART_REG_DIVISOR_HI 1
 
-static void uart_dev_init(struct UARTDevice* dev, ioport_t iobase, int irq) {
+static void uart_dev_init(struct UARTDevice *dev, ioport_t iobase, int irq) {
 	dev->iobase = iobase;
 
 	// If status is 0xFF, no serial port.
@@ -62,8 +62,10 @@ static void uart_dev_init(struct UARTDevice* dev, ioport_t iobase, int irq) {
 	outb(iobase + UART_REG_DIVISOR_HI, 0);
 	outb(iobase + UART_REG_LINE_CONTROL, 0x03); // 8 data bits.
 	outb(iobase + UART_REG_MODEM_CONTROL, 0);
-	outb(iobase + UART_REG_INTR_ENABLE,
-		 UART_REG_INTR_ENABLE_DATA_READY); // Enable receive interrupts.
+	outb(
+		iobase + UART_REG_INTR_ENABLE,
+		UART_REG_INTR_ENABLE_DATA_READY
+	); // Enable receive interrupts.
 
 	// Acknowledge pre-existing interrupt conditions;
 	inb(iobase + UART_REG_FIFO);
@@ -82,8 +84,9 @@ void uart_init(void) {
 }
 
 void uart_putc(unsigned char c) {
-	if (!uart_devices[0].exist)
+	if (!uart_devices[0].exist) {
 		return;
+	}
 	ioport_t iobase = uart_devices[0].iobase;
 	/*for (int i = 0;
 		 i < 128 && !(inb(iobase + UART_REG_LINE_STATUS) & UART_REG_LINE_STATUS_THR_EMPTY); i++)
@@ -92,11 +95,13 @@ void uart_putc(unsigned char c) {
 }
 
 static int uartgetc(void) {
-	if (!uart_devices[0].exist)
+	if (!uart_devices[0].exist) {
 		return -1;
+	}
 	ioport_t iobase = uart_devices[0].iobase;
-	if (!(inb(iobase + UART_REG_LINE_STATUS) & UART_REG_LINE_STATUS_DATA_READY))
+	if (!(inb(iobase + UART_REG_LINE_STATUS) & UART_REG_LINE_STATUS_DATA_READY)) {
 		return -1;
+	}
 	return inb(iobase + UART_REG_CHAR);
 }
 

@@ -22,11 +22,11 @@
 #define _LIBCPP_CASSERT
 
 #ifndef NDEBUG
-extern "C" [[noreturn]] void __libc_assert_fail(const char* file, int line,
-												const char* func, const char* expr);
-#define assert(expr)                                                                   \
-	if ((expr) == 0) {                                                                 \
-		__libc_assert_fail(__FILE__, __LINE__, __func__, #expr);                       \
+extern "C" [[noreturn]] void
+__libc_assert_fail(const char *file, int line, const char *func, const char *expr);
+#define assert(expr)                                                                               \
+	if ((expr) == 0) {                                                                             \
+		__libc_assert_fail(__FILE__, __LINE__, __func__, #expr);                                   \
 	}
 #else
 #define assert(expr) ((void)0)

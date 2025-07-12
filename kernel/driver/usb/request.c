@@ -22,9 +22,11 @@
 #include "usb-struct.h"
 #include "usb.h"
 
-int usb_get_standard_descriptor(struct USBDevice* dev, unsigned int desc_type,
-								unsigned int desc_index, void* buffer, unsigned int size) {
-	struct USBSetupData* setup = kalloc();
+int usb_get_standard_descriptor(
+	struct USBDevice *dev, unsigned int desc_type, unsigned int desc_index, void *buffer,
+	unsigned int size
+) {
+	struct USBSetupData *setup = kalloc();
 	setup->bm_request_type = USB_REQUEST_DIR_DEVICE_TO_HOST | USB_REQUEST_TYPE_STANDARD;
 	setup->b_request = USB_REQUEST_GET_DESCRIPTOR;
 	setup->w_value = (desc_type << 8) | desc_index;
@@ -36,9 +38,11 @@ int usb_get_standard_descriptor(struct USBDevice* dev, unsigned int desc_type,
 	return status;
 }
 
-int usb_get_class_descriptor(struct USBDevice* dev, unsigned int desc_type, unsigned int desc_index,
-							 void* buffer, unsigned int size) {
-	struct USBSetupData* setup = kalloc();
+int usb_get_class_descriptor(
+	struct USBDevice *dev, unsigned int desc_type, unsigned int desc_index, void *buffer,
+	unsigned int size
+) {
+	struct USBSetupData *setup = kalloc();
 	setup->bm_request_type = USB_REQUEST_DIR_DEVICE_TO_HOST | USB_REQUEST_TYPE_CLASS;
 	setup->b_request = USB_REQUEST_GET_DESCRIPTOR;
 	setup->w_value = (desc_type << 8) | desc_index;
@@ -50,14 +54,15 @@ int usb_get_class_descriptor(struct USBDevice* dev, unsigned int desc_type, unsi
 	return status;
 }
 
-int usb_get_device_descriptor(struct USBDevice* dev) {
-	volatile struct USBDeviceDescriptor* device_desc = kalloc();
+int usb_get_device_descriptor(struct USBDevice *dev) {
+	volatile struct USBDeviceDescriptor *device_desc = kalloc();
 
-	int status = usb_get_standard_descriptor(dev, USB_DESCRIPTOR_DEVICE, 0, (void*)device_desc,
-											 sizeof(struct USBDeviceDescriptor));
+	int status = usb_get_standard_descriptor(
+		dev, USB_DESCRIPTOR_DEVICE, 0, (void *)device_desc, sizeof(struct USBDeviceDescriptor)
+	);
 
 	if (status) {
-		kfree((void*)device_desc);
+		kfree((void *)device_desc);
 		return -1;
 	}
 	dev->vendor_id = device_desc->vendor;
@@ -66,34 +71,36 @@ int usb_get_device_descriptor(struct USBDevice* dev) {
 	dev->class = device_desc->class;
 	dev->subclass = device_desc->subclass;
 	dev->protocol = device_desc->protocol;
-	kfree((void*)device_desc);
+	kfree((void *)device_desc);
 	return 0;
 }
 
-int usb_get_configuration_descriptor(struct USBDevice* dev, unsigned int index,
-									 uint8_t* configuration_value) {
-	volatile void* descriptor = kalloc();
-	int status = usb_get_standard_descriptor(dev, USB_DESCRIPTOR_CONFIGURATION, index,
-											 (void*)descriptor, 1024);
+int usb_get_configuration_descriptor(
+	struct USBDevice *dev, unsigned int index, uint8_t *configuration_value
+) {
+	volatile void *descriptor = kalloc();
+	int status = usb_get_standard_descriptor(
+		dev, USB_DESCRIPTOR_CONFIGURATION, index, (void *)descriptor, 1024
+	);
 
 	if (status) {
-		kfree((void*)descriptor);
+		kfree((void *)descriptor);
 		return -1;
 	}
 
-	struct USBConfigurationDescriptor* config_desc = (void*)descriptor;
+	struct USBConfigurationDescriptor *config_desc = (void *)descriptor;
 	*configuration_value = config_desc->configuration_value;
 	dev->num_interface = config_desc->num_interfaces;
 
-	void* descptr = (void*)descriptor + sizeof(struct USBConfigurationDescriptor);
+	void *descptr = (void *)descriptor + sizeof(struct USBConfigurationDescriptor);
 	int infcnt = 0;
 	for (; descptr < descriptor + config_desc->total_length;) {
 		struct USBGenericDescriptor {
 			uint8_t length;
 			uint8_t descriptor_type;
-		} PACKED* d = descptr;
+		} PACKED *d = descptr;
 		if (d->descriptor_type == USB_DESCRIPTOR_INTERFACE) {
-			struct USBInterfaceDescriptor* inf = descptr;
+			struct USBInterfaceDescriptor *inf = descptr;
 			dev->interfaces[infcnt].usbdev = dev;
 			dev->interfaces[infcnt].class = inf->interface_class;
 			dev->interfaces[infcnt].subclass = inf->interface_subclass;
@@ -104,12 +111,12 @@ int usb_get_configuration_descriptor(struct USBDevice* dev, unsigned int index,
 		descptr += d->length;
 	}
 
-	kfree((void*)descriptor);
+	kfree((void *)descriptor);
 	return 0;
 }
 
-int usb_set_address(struct USBBus* bus, unsigned int oldaddr, unsigned int newaddr) {
-	struct USBSetupData* setup = kalloc();
+int usb_set_address(struct USBBus *bus, unsigned int oldaddr, unsigned int newaddr) {
+	struct USBSetupData *setup = kalloc();
 	setup->bm_request_type = 0;
 	setup->b_request = USB_REQUEST_SET_ADDRESS;
 	setup->w_value = newaddr;
@@ -120,8 +127,8 @@ int usb_set_address(struct USBBus* bus, unsigned int oldaddr, unsigned int newad
 	return status;
 }
 
-int usb_set_configuration(struct USBDevice* dev, uint8_t configuration_value) {
-	struct USBSetupData* setup = kalloc();
+int usb_set_configuration(struct USBDevice *dev, uint8_t configuration_value) {
+	struct USBSetupData *setup = kalloc();
 	setup->bm_request_type = 0;
 	setup->b_request = USB_REQUEST_SET_CONFIGURATION;
 	setup->w_value = configuration_value;

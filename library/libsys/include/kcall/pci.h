@@ -37,7 +37,7 @@ struct PciKcall {
 	unsigned int op;
 	unsigned int id;
 	unsigned int bus, device, function;
-	void* ptr;
+	void *ptr;
 };
 
 struct PciKcallResource {
@@ -91,7 +91,7 @@ struct PCIAddr {
 	unsigned int bus, device, function;
 };
 
-static inline unsigned int pci_get_first_addr(struct PCIAddr* addr) {
+static inline unsigned int pci_get_first_addr(struct PCIAddr *addr) {
 	struct PciKcall pcikcall;
 	pcikcall.op = PCI_KCALL_OP_FIRST_ADDR;
 	if (kcall("pci", (unsigned int)&pcikcall)) {
@@ -104,7 +104,7 @@ static inline unsigned int pci_get_first_addr(struct PCIAddr* addr) {
 	}
 }
 
-static inline unsigned int pci_get_next_addr(unsigned int id, struct PCIAddr* addr) {
+static inline unsigned int pci_get_next_addr(unsigned int id, struct PCIAddr *addr) {
 	struct PciKcall pcikcall;
 	pcikcall.op = PCI_KCALL_OP_NEXT_ADDR;
 	pcikcall.id = id;
@@ -118,7 +118,7 @@ static inline unsigned int pci_get_next_addr(unsigned int id, struct PCIAddr* ad
 	}
 }
 
-static inline void pci_read_config(unsigned int id, void* buf) {
+static inline void pci_read_config(unsigned int id, void *buf) {
 	struct PciKcall pcikcall;
 	pcikcall.op = PCI_KCALL_OP_READ_CONFIG;
 	pcikcall.id = id;
@@ -126,7 +126,7 @@ static inline void pci_read_config(unsigned int id, void* buf) {
 	kcall("pci", (unsigned int)&pcikcall);
 }
 
-static inline void pci_get_driver_name(unsigned int id, char* buf) {
+static inline void pci_get_driver_name(unsigned int id, char *buf) {
 	struct PciKcall pcikcall;
 	pcikcall.op = PCI_KCALL_OP_DRIVER_NAME;
 	pcikcall.id = id;
@@ -134,7 +134,7 @@ static inline void pci_get_driver_name(unsigned int id, char* buf) {
 	kcall("pci", (unsigned int)&pcikcall);
 }
 
-static inline void pci_get_resource(unsigned int id, struct PciKcallResource* pcires) {
+static inline void pci_get_resource(unsigned int id, struct PciKcallResource *pcires) {
 	struct PciKcall pcikcall;
 	pcikcall.op = PCI_KCALL_OP_RESOURCE;
 	pcikcall.id = id;

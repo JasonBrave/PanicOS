@@ -27,10 +27,10 @@ void GUI::Label::draw(int handle) {
 
 void GUI::Label::on_mouse_down(int button, int x, int y) {}
 
-void GUI::Label::set_text(const char* text) {
+void GUI::Label::set_text(const char *text) {
 	label_str = text;
 }
 
-void GUI::Label::set_text(const std::string& text) {
+void GUI::Label::set_text(const std::string &text) {
 	label_str = text;
 }

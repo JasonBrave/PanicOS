@@ -43,8 +43,7 @@ int wm_create_sheet(int x, int y, int width, int height) {
 	msg.height = height;
 	message_send(wm_pid, sizeof(msg), &msg);
 	struct MessageReturnHandle ret_handle;
-	while (!message_receive(&ret_handle) || ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {
-	}
+	while (!message_receive(&ret_handle) || ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {}
 	return ret_handle.handle;
 }
 
@@ -58,7 +57,7 @@ void wm_fill_sheet(int handle, COLOUR colour) {
 	message_send(wm_pid, sizeof(msg), &msg);
 }
 
-void wm_print_text(int handle, int x, int y, COLOUR colour, const char* text) {
+void wm_print_text(int handle, int x, int y, COLOUR colour, const char *text) {
 	struct MessagePrintText msg;
 	msg.msgtype = WM_MESSAGE_PRINT_TEXT;
 	msg.sheet_id = handle;
@@ -71,7 +70,7 @@ void wm_print_text(int handle, int x, int y, COLOUR colour, const char* text) {
 	message_send(wm_pid, sizeof(msg), &msg);
 }
 
-void wm_print_text_n(int handle, int x, int y, COLOUR colour, const char* text, int n) {
+void wm_print_text_n(int handle, int x, int y, COLOUR colour, const char *text, int n) {
 	struct MessagePrintText msg;
 	msg.msgtype = WM_MESSAGE_PRINT_TEXT;
 	msg.sheet_id = handle;
@@ -92,12 +91,11 @@ int wm_create_window(int width, int height) {
 	msg.height = height;
 	message_send(wm_pid, sizeof(msg), &msg);
 	struct MessageReturnHandle ret_handle;
-	while (!message_receive(&ret_handle) || ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {
-	}
+	while (!message_receive(&ret_handle) || ret_handle.msgtype != WM_MESSAGE_RETURN_HANDLE) {}
 	return ret_handle.handle;
 }
 
-void wm_window_set_title(int handle, const char* title) {
+void wm_window_set_title(int handle, const char *title) {
 	struct MessageWindowSetTitle msg;
 	msg.msgtype = WM_MESSAGE_WINDOW_SET_TITLE;
 	msg.sheet_id = handle;
@@ -105,13 +103,13 @@ void wm_window_set_title(int handle, const char* title) {
 	message_send(wm_pid, sizeof(msg), &msg);
 }
 
-int wm_wait_event(struct WmEvent* event) {
+int wm_wait_event(struct WmEvent *event) {
 	char buf[256];
 	if (!message_wait(buf)) {
 		return 0;
 	}
-	if (*(int*)buf == WM_MESSAGE_KEYBOARD_EVENT) {
-		struct MessageKeyboardEvent* msg = (struct MessageKeyboardEvent*)buf;
+	if (*(int *)buf == WM_MESSAGE_KEYBOARD_EVENT) {
+		struct MessageKeyboardEvent *msg = (struct MessageKeyboardEvent *)buf;
 		if (msg->event) {
 			event->event_type = WM_EVENT_KEY_UP;
 		} else {
@@ -120,9 +118,9 @@ int wm_wait_event(struct WmEvent* event) {
 		event->handle = msg->sheet_id;
 		event->keycode = msg->keycode;
 		return 1;
-	} else if (*(int*)buf == WM_MESSAGE_MOUSE_BUTTON_EVENT) {
+	} else if (*(int *)buf == WM_MESSAGE_MOUSE_BUTTON_EVENT) {
 		static int prevbtn = 0;
-		struct MessageMouseButtonEvent* msg = (struct MessageMouseButtonEvent*)buf;
+		struct MessageMouseButtonEvent *msg = (struct MessageMouseButtonEvent *)buf;
 		if (!(prevbtn & 1) && (msg->button & 1)) {
 			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
 			event->keycode = WM_MOUSE_LEFT;
@@ -147,8 +145,8 @@ int wm_wait_event(struct WmEvent* event) {
 		event->x = msg->x;
 		event->y = msg->y;
 		return 1;
-	} else if (*(int*)buf == WM_MESSAGE_WINDOW_CLOSE_EVENT) {
-		struct MessageWindowCloseEvent* msg = (struct MessageWindowCloseEvent*)buf;
+	} else if (*(int *)buf == WM_MESSAGE_WINDOW_CLOSE_EVENT) {
+		struct MessageWindowCloseEvent *msg = (struct MessageWindowCloseEvent *)buf;
 		event->event_type = WM_EVENT_WINDOW_CLOSE;
 		event->handle = msg->sheet_id;
 		return 1;
@@ -157,13 +155,13 @@ int wm_wait_event(struct WmEvent* event) {
 	}
 }
 
-int wm_catch_event(struct WmEvent* event) {
+int wm_catch_event(struct WmEvent *event) {
 	char buf[256];
 	if (!message_receive(buf)) {
 		return 0;
 	}
-	if (*(int*)buf == WM_MESSAGE_KEYBOARD_EVENT) {
-		struct MessageKeyboardEvent* msg = (struct MessageKeyboardEvent*)buf;
+	if (*(int *)buf == WM_MESSAGE_KEYBOARD_EVENT) {
+		struct MessageKeyboardEvent *msg = (struct MessageKeyboardEvent *)buf;
 		if (msg->event) {
 			event->event_type = WM_EVENT_KEY_UP;
 		} else {
@@ -172,9 +170,9 @@ int wm_catch_event(struct WmEvent* event) {
 		event->handle = msg->sheet_id;
 		event->keycode = msg->keycode;
 		return 1;
-	} else if (*(int*)buf == WM_MESSAGE_MOUSE_BUTTON_EVENT) {
+	} else if (*(int *)buf == WM_MESSAGE_MOUSE_BUTTON_EVENT) {
 		static int prevbtn = 0;
-		struct MessageMouseButtonEvent* msg = (struct MessageMouseButtonEvent*)buf;
+		struct MessageMouseButtonEvent *msg = (struct MessageMouseButtonEvent *)buf;
 		if (!(prevbtn & 1) && (msg->button & 1)) {
 			event->event_type = WM_EVENT_MOUSE_BUTTON_DOWN;
 			event->keycode = WM_MOUSE_LEFT;
@@ -199,8 +197,8 @@ int wm_catch_event(struct WmEvent* event) {
 		event->x = msg->x;
 		event->y = msg->y;
 		return 1;
-	} else if (*(int*)buf == WM_MESSAGE_WINDOW_CLOSE_EVENT) {
-		struct MessageWindowCloseEvent* msg = (struct MessageWindowCloseEvent*)buf;
+	} else if (*(int *)buf == WM_MESSAGE_WINDOW_CLOSE_EVENT) {
+		struct MessageWindowCloseEvent *msg = (struct MessageWindowCloseEvent *)buf;
 		event->event_type = WM_EVENT_WINDOW_CLOSE;
 		event->handle = msg->sheet_id;
 		return 1;
@@ -230,8 +228,8 @@ void wm_fill_rect(int handle, int x, int y, int width, int height, COLOUR colour
 	message_send(wm_pid, sizeof(msg), &msg);
 }
 
-void wm_draw_buffer(int handle, int x, int y, int width, int height, COLOUR* buffer) {
-	struct MessageDrawBuffer* msg = malloc(sizeof(struct MessageDrawBuffer));
+void wm_draw_buffer(int handle, int x, int y, int width, int height, COLOUR *buffer) {
+	struct MessageDrawBuffer *msg = malloc(sizeof(struct MessageDrawBuffer));
 	msg->msgtype = WM_MESSAGE_DRAW_BUFFER;
 	msg->sheet_id = handle;
 	msg->x = x;

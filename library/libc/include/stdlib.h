@@ -26,14 +26,14 @@
 #define EXIT_FAILURE 1
 
 // numeric conversion functions
-int atoi(const char* nptr);
-long int atol(const char* nptr);
-long long int atoll(const char* nptr);
+int atoi(const char *nptr);
+long int atol(const char *nptr);
+long long int atoll(const char *nptr);
 
 // memory management functions
-void* calloc(size_t nmemb, size_t size);
-void free(void* ptr);
-void* malloc(size_t size);
+void *calloc(size_t nmemb, size_t size);
+void free(void *ptr);
+void *malloc(size_t size);
 
 // communication with the environment
 _Noreturn void abort(void);

@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void load_module(const char* name) {
+static void load_module(const char *name) {
 	char module_path[512];
 	strcpy(module_path, "/boot/module/");
 	strcat(module_path, name);
@@ -34,7 +34,7 @@ static void load_module(const char* name) {
 	}
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
 	if (argc == 1) {
 		puts("kmod mod_name(s)");
 		return 0;

@@ -28,18 +28,15 @@
 
 namespace std {
 
-	template <class T>
-	constexpr T&& forward(std::remove_reference_t<T>& t) noexcept {
-		return static_cast<T&&>(t);
+	template <class T> constexpr T &&forward(std::remove_reference_t<T> &t) noexcept {
+		return static_cast<T &&>(t);
 	}
 
-	template <class T>
-	constexpr T&& forward(std::remove_reference_t<T>&& t) noexcept {
-		return static_cast<T&&>(t);
+	template <class T> constexpr T &&forward(std::remove_reference_t<T> &&t) noexcept {
+		return static_cast<T &&>(t);
 	}
 
-	template <class T, class U = T>
-	constexpr T exchange(T& obj, U&& new_value) {
+	template <class T, class U = T> constexpr T exchange(T &obj, U &&new_value) {
 		T old_value = std::move(obj);
 		obj = std::forward<U>(new_value);
 		return old_value;
@@ -48,8 +45,7 @@ namespace std {
 	/*
 	 * class pair
 	 */
-	template <class T1, class T2>
-	struct pair {
+	template <class T1, class T2> struct pair {
 		typedef T1 first_type;
 		typedef T2 second_type;
 
@@ -58,40 +54,37 @@ namespace std {
 
 		constexpr pair() : first(), second() {}
 
-		constexpr pair(const T1& x, const T2& y) : first(x), second(y) {}
+		constexpr pair(const T1 &x, const T2 &y) : first(x), second(y) {}
+
+		template <class U1, class U2> constexpr pair(U1 &&x, U2 &&y) : first(x), second(y) {}
 
 		template <class U1, class U2>
-		constexpr pair(U1&& x, U2&& y) : first(x), second(y) {}
+		constexpr pair(const pair<U1, U2> &p) : first(p.first), second(p.second) {}
 
 		template <class U1, class U2>
-		constexpr pair(const pair<U1, U2>& p) : first(p.first), second(p.second) {}
+		constexpr pair(pair<U1, U2> &&p) : first(p.first), second(p.second) {}
 
-		template <class U1, class U2>
-		constexpr pair(pair<U1, U2>&& p) : first(p.first), second(p.second) {}
+		pair(const pair &) = default;
+		pair(pair &&) = default;
 
-		pair(const pair&) = default;
-		pair(pair&&) = default;
-
-		constexpr pair& operator=(const pair& other) {
+		constexpr pair &operator=(const pair &other) {
 			first = other.first;
 			second = other.second;
 			return *this;
 		}
 
-		constexpr void swap(pair& other) noexcept {
+		constexpr void swap(pair &other) noexcept {
 			std::swap(first, other.first);
 			std::swap(second, other.second);
 		}
 	};
 
-	template <class T1, class T2>
-	constexpr std::pair<T1, T2> make_pair(T1&& t, T2&& u) {
+	template <class T1, class T2> constexpr std::pair<T1, T2> make_pair(T1 &&t, T2 &&u) {
 		return pair<T1, T2>(t, u);
 	}
 
 	template <class T1, class T2>
-	constexpr bool operator==(const std::pair<T1, T2>& lhs,
-							  const std::pair<T1, T2>& rhs) {
+	constexpr bool operator==(const std::pair<T1, T2> &lhs, const std::pair<T1, T2> &rhs) {
 		return (lhs.first == rhs.first) && (lhs.second == rhs.second);
 	}
 

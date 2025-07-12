@@ -20,7 +20,7 @@
 #include <panicos.h>
 #include <stdio.h>
 
-int fseek(FILE* stream, long int offset, int whence) {
+int fseek(FILE *stream, long int offset, int whence) {
 	int lsk;
 	if (whence == SEEK_CUR) {
 		lsk = FILE_SEEK_CUR;

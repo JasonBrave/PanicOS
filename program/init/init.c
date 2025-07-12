@@ -20,7 +20,7 @@
 #include <panicos.h>
 #include <stdio.h>
 
-const char* argv[] = {"sh", 0};
+const char *argv[] = {"sh", 0};
 
 int main(void) {
 	int pid, wpid;
@@ -36,7 +36,8 @@ int main(void) {
 			fputs("init: exec sh failed\n", stderr);
 			return 1;
 		}
-		while ((wpid = wait()) >= 0 && wpid != pid)
+		while ((wpid = wait()) >= 0 && wpid != pid) {
 			fputs("init: zombie!\n", stderr);
+		}
 	}
 }

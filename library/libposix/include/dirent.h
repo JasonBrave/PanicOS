@@ -28,8 +28,8 @@ struct dirent {
 	char d_name[256];
 };
 
-DIR* opendir(const char* dirname);
-struct dirent* readdir(DIR* dirp);
-int closedir(DIR* dirp);
+DIR *opendir(const char *dirname);
+struct dirent *readdir(DIR *dirp);
+int closedir(DIR *dirp);
 
 #endif

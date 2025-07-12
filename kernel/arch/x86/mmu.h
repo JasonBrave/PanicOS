@@ -61,15 +61,35 @@ struct segdesc {
 
 // Normal segment
 #define SEG(type, base, lim, dpl)                                                                  \
-	(struct segdesc) {                                                                             \
-		((lim) >> 12) & 0xffff, (unsigned int)(base)&0xffff, ((unsigned int)(base) >> 16) & 0xff,  \
-			type, 1, dpl, 1, (unsigned int)(lim) >> 28, 0, 0, 1, 1, (unsigned int)(base) >> 24     \
-	}
+	(struct segdesc                                                                                \
+	){((lim) >> 12) & 0xffff,                                                                      \
+	  (unsigned int)(base) & 0xffff,                                                               \
+	  ((unsigned int)(base) >> 16) & 0xff,                                                         \
+	  type,                                                                                        \
+	  1,                                                                                           \
+	  dpl,                                                                                         \
+	  1,                                                                                           \
+	  (unsigned int)(lim) >> 28,                                                                   \
+	  0,                                                                                           \
+	  0,                                                                                           \
+	  1,                                                                                           \
+	  1,                                                                                           \
+	  (unsigned int)(base) >> 24}
 #define SEG16(type, base, lim, dpl)                                                                \
-	(struct segdesc) {                                                                             \
-		(lim) & 0xffff, (unsigned int)(base)&0xffff, ((unsigned int)(base) >> 16) & 0xff, type, 1, \
-			dpl, 1, (unsigned int)(lim) >> 16, 0, 0, 1, 0, (unsigned int)(base) >> 24              \
-	}
+	(struct segdesc                                                                                \
+	){(lim) & 0xffff,                                                                              \
+	  (unsigned int)(base) & 0xffff,                                                               \
+	  ((unsigned int)(base) >> 16) & 0xff,                                                         \
+	  type,                                                                                        \
+	  1,                                                                                           \
+	  dpl,                                                                                         \
+	  1,                                                                                           \
+	  (unsigned int)(lim) >> 16,                                                                   \
+	  0,                                                                                           \
+	  0,                                                                                           \
+	  1,                                                                                           \
+	  0,                                                                                           \
+	  (unsigned int)(base) >> 24}
 #endif
 
 #define DPL_USER 0x3 // User DPL
@@ -126,7 +146,7 @@ struct segdesc {
 
 // Address in page table or page directory entry
 #define PTE_ADDR(pte) ((unsigned long long)(pte) & ~(0xfff0000000000fff))
-#define PTE_FLAGS(pte) ((unsigned long long)(pte)&0xfff0000000000fff)
+#define PTE_FLAGS(pte) ((unsigned long long)(pte) & 0xfff0000000000fff)
 
 #ifndef __ASSEMBLER__
 typedef unsigned long long pde_t;
@@ -139,21 +159,21 @@ struct taskstate {
 	unsigned int esp0; // Stack pointers and segment selectors
 	unsigned short ss0; //   after an increase in privilege level
 	unsigned short padding1;
-	unsigned int* esp1;
+	unsigned int *esp1;
 	unsigned short ss1;
 	unsigned short padding2;
-	unsigned int* esp2;
+	unsigned int *esp2;
 	unsigned short ss2;
 	unsigned short padding3;
-	void* cr3; // Page directory base
-	unsigned int* eip; // Saved state from last task switch
+	void *cr3; // Page directory base
+	unsigned int *eip; // Saved state from last task switch
 	unsigned int eflags;
 	unsigned int eax; // More saved state (registers)
 	unsigned int ecx;
 	unsigned int edx;
 	unsigned int ebx;
-	unsigned int* esp;
-	unsigned int* ebp;
+	unsigned int *esp;
+	unsigned int *ebp;
 	unsigned int esi;
 	unsigned int edi;
 	unsigned short es; // Even more saved state (segment selectors)
@@ -197,7 +217,7 @@ struct gatedesc {
 //        this interrupt/trap gate explicitly using an int instruction.
 #define SETGATE(gate, istrap, sel, off, d)                                                         \
 	{                                                                                              \
-		(gate).off_15_0 = (unsigned int)(off)&0xffff;                                              \
+		(gate).off_15_0 = (unsigned int)(off) & 0xffff;                                            \
 		(gate).cs = (sel);                                                                         \
 		(gate).args = 0;                                                                           \
 		(gate).rsv1 = 0;                                                                           \

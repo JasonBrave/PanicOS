@@ -17,23 +17,23 @@
  * along with PanicOS.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <arch/x86/mmu.h>
 #include <common/sleeplock.h>
 #include <common/spinlock.h>
 #include <common/x86.h>
-#include <arch/x86/mmu.h>
 #include <core/proc.h>
 #include <defs.h>
 #include <memlayout.h>
 #include <param.h>
 
-void initsleeplock(struct sleeplock* lk, const char* name) {
+void initsleeplock(struct sleeplock *lk, const char *name) {
 	initlock(&lk->lk, "sleep lock");
 	lk->name = name;
 	lk->locked = 0;
 	lk->pid = 0;
 }
 
-void acquiresleep(struct sleeplock* lk) {
+void acquiresleep(struct sleeplock *lk) {
 	acquire(&lk->lk);
 	while (lk->locked) {
 		sleep(lk, &lk->lk);
@@ -43,7 +43,7 @@ void acquiresleep(struct sleeplock* lk) {
 	release(&lk->lk);
 }
 
-void releasesleep(struct sleeplock* lk) {
+void releasesleep(struct sleeplock *lk) {
 	acquire(&lk->lk);
 	lk->locked = 0;
 	lk->pid = 0;
@@ -51,7 +51,7 @@ void releasesleep(struct sleeplock* lk) {
 	release(&lk->lk);
 }
 
-int holdingsleep(struct sleeplock* lk) {
+int holdingsleep(struct sleeplock *lk) {
 	int r;
 
 	acquire(&lk->lk);

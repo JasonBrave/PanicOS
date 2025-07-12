@@ -28,8 +28,10 @@
 #include "virtio-regs.h"
 #include "virtio.h"
 
-static void virtio_blk_req(struct VirtioBlockDevice *dev, int type, unsigned int sect,
-						   unsigned int count, phyaddr_t dest, uint8_t *status) {
+static void virtio_blk_req(
+	struct VirtioBlockDevice *dev, int type, unsigned int sect, unsigned int count, phyaddr_t dest,
+	uint8_t *status
+) {
 	volatile struct {
 		uint32_t type;
 		uint32_t reserved;
@@ -80,10 +82,13 @@ static void virtio_blk_req(struct VirtioBlockDevice *dev, int type, unsigned int
 
 int virtio_blk_read(void *private, unsigned int begin, int count, void *buf) {
 	// check buf for DMA
-	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP || (phyaddr_t)buf % PGSIZE)
+	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+		(phyaddr_t)buf % PGSIZE) {
 		panic("virtio dma");
-	if (count == 0 || count > 8)
+	}
+	if (count == 0 || count > 8) {
 		panic("virtio count");
+	}
 	phyaddr_t dest = V2P(buf);
 	struct VirtioBlockDevice *dev = private;
 	uint8_t status;
@@ -99,10 +104,13 @@ int virtio_blk_read(void *private, unsigned int begin, int count, void *buf) {
 
 int virtio_blk_write(void *private, unsigned int begin, int count, const void *buf) {
 	// check buf for DMA
-	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP || (phyaddr_t)buf % PGSIZE)
+	if ((phyaddr_t)buf < KERNBASE || (phyaddr_t)buf > KERNBASE + PHYSTOP ||
+		(phyaddr_t)buf % PGSIZE) {
 		panic("virtio dma");
-	if (count == 0 || count > 8)
+	}
+	if (count == 0 || count > 8) {
 		panic("virtio count");
+	}
 	phyaddr_t dest = V2P(buf);
 	struct VirtioBlockDevice *dev = private;
 	uint8_t status;
@@ -156,10 +164,13 @@ static void virtio_blk_dev_init(struct VirtioDevice *virtio_dev, unsigned int fe
 	acquire(&dev->lock);
 	virtio_init_queue(dev->virtio_dev, &dev->requestq, 0, virtio_blk_requestq_intr);
 	// print a message
-	cprintf("[virtio-blk] Virtio Block device capacity %lld "
-			"blk_size %d\n",
+	cprintf(
+		"[virtio-blk] Virtio Block device capacity %lld "
+		"blk_size %d\n",
 
-			blkcfg->capacity, blkcfg->blk_size);
+		blkcfg->capacity,
+		blkcfg->blk_size
+	);
 	release(&dev->lock);
 	hal_block_register_device("virtio-blk", dev, &virtio_blk_block_driver);
 }
